@@ -2,9 +2,6 @@ import numpy as np
 
 from moltrack._widget import (
     ExampleQWidget,
-    ImageThreshold,
-    threshold_autogenerate_widget,
-    threshold_magic_widget,
 )
 
 
@@ -56,7 +53,7 @@ def test_example_q_widget(make_napari_viewer, capsys):
     viewer.add_image(np.random.random((100, 100)))
 
     # create our widget, passing in the viewer
-    my_widget = ExampleQWidget(viewer)
+    my_widget = QWidget(viewer)
 
     # call our widget method
     my_widget._on_click()

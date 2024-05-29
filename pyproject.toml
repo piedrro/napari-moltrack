@@ -25,10 +25,26 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
+    "napari[all]",
     "numpy",
     "magicgui",
     "qtpy",
-    "scikit-image",
+    "scipy",
+    "pyqtgraph",
+    "picassosr",
+    "pandas",
+    "matplotlib",
+    "scipy",
+    "opencv-python",
+    "tqdm",
+    "originpro",
+    "pyqt5-tools",
+    "torch",
+    "cellpose >= 3.0.1",
+    "omnipose",
+    "trackpy",
+    "shapely",
+    "astropy",
 ]
 
 [project.optional-dependencies]
