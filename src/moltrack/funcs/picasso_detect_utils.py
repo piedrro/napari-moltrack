@@ -406,8 +406,8 @@ class _picasso_detect_utils:
 
             self.draw_localisations()
 
-            # self.update_filter_criterion()
-            # self.update_criterion_ranges()
+            self.update_filter_criterion()
+            self.update_criterion_ranges()
 
             self.update_ui()
 

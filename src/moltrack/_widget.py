@@ -8,6 +8,8 @@ import traceback
 from multiprocessing import Manager
 from functools import partial
 from qtpy.QtCore import QThreadPool
+from qtpy.QtWidgets import QVBoxLayout
+import pyqtgraph as pg
 
 if TYPE_CHECKING:
     import napari
@@ -19,10 +21,22 @@ from moltrack.funcs.compute_utils import _compute_utils
 from moltrack.funcs.events_utils import _events_utils
 from moltrack.funcs.segmentation_utils import _segmentation_utils
 from moltrack.funcs.picasso_detect_utils import _picasso_detect_utils
+from moltrack.funcs.loc_filter_utils import _loc_filter_utils
 
 subclasses = [_import_utils, _compute_utils,
               _events_utils, _segmentation_utils,
-              _picasso_detect_utils]
+              _picasso_detect_utils, _loc_filter_utils]
+
+
+class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
+
+    def __init__(self, parent):
+        super().__init__()
+
+        self.parent = parent
+        self.frame_position_memory = {}
+        self.frame_position = None
+
 
 class QWidget(QWidget, gui, *subclasses):
     # your QWidget.__init__ can optionally request the napari viewer instance
@@ -51,6 +65,11 @@ class QWidget(QWidget, gui, *subclasses):
 
     def initialise_variables(self):
 
+        #initialise graph PyQtGraph canvases
+        self.gui.filter_graph_container.setLayout(QVBoxLayout())
+        self.filter_graph_canvas = CustomPyQTGraphWidget(self)
+        self.gui.filter_graph_container.layout().addWidget(self.filter_graph_canvas)
+
         self.dataset_dict = {}
         self.localisation_dict = {}
         self.contrast_dict = {}
@@ -72,6 +91,16 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.picasso_detect.clicked.connect(partial(self.init_picasso, detect = True, fit=False))
         self.gui.picasso_fit.clicked.connect(partial(self.init_picasso, detect = False, fit=True))
         self.gui.picasso_detectfit.clicked.connect(partial(self.init_picasso, detect=True, fit=True))
+
+        self.gui.picasso_filter_dataset.currentIndexChanged.connect(self.update_filter_criterion)
+        self.gui.filter_criterion.currentIndexChanged.connect(self.update_criterion_ranges)
+        self.gui.filter_localisations.clicked.connect(self.pixseq_filter_localisations)
+        self.gui.picasso_filter_type.currentIndexChanged.connect(self.update_filter_dataset)
+
+        self.gui.picasso_vis_mode.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))
+        self.gui.picasso_vis_size.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))
+        self.gui.picasso_vis_opacity.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))
+        self.gui.picasso_vis_edge_width.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))
 
         self.viewer.dims.events.current_step.connect(self.slider_event)
 
