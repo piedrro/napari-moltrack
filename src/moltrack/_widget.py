@@ -18,9 +18,11 @@ from moltrack.funcs.import_utils import _import_utils
 from moltrack.funcs.compute_utils import _compute_utils
 from moltrack.funcs.events_utils import _events_utils
 from moltrack.funcs.segmentation_utils import _segmentation_utils
+from moltrack.funcs.picasso_detect_utils import _picasso_detect_utils
 
 subclasses = [_import_utils, _compute_utils,
-              _events_utils, _segmentation_utils]
+              _events_utils, _segmentation_utils,
+              _picasso_detect_utils]
 
 class QWidget(QWidget, gui, *subclasses):
     # your QWidget.__init__ can optionally request the napari viewer instance
@@ -67,6 +69,10 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.cellpose_load_model.clicked.connect(self.load_cellpose_model)
         self.gui.dilate_segmentations.clicked.connect(self.dilate_segmentations)
 
+        self.gui.picasso_detect.clicked.connect(partial(self.init_picasso, detect = True, fit=False))
+        self.gui.picasso_fit.clicked.connect(partial(self.init_picasso, detect = False, fit=True))
+        self.gui.picasso_detectfit.clicked.connect(partial(self.init_picasso, detect=True, fit=True))
+
         self.viewer.dims.events.current_step.connect(self.slider_event)
 
     def initialise_keybindings(self):
@@ -78,7 +84,8 @@ class QWidget(QWidget, gui, *subclasses):
 
     def devfunc(self, viewer=None):
 
-        self.update_active_image()
+        self.create_shared_image_chunks()
+        self.restore_shared_image_chunks()
 
     def check_gpufit_availibility(self):
 

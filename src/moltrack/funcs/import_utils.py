@@ -364,7 +364,7 @@ class _import_utils:
         dataset_selectors = ["import_picasso_dataset",
                              "cellpose_dataset",
                              "moltrack_dataset_selector",
-                             "picasso_dataset,"
+                             "picasso_dataset",
                              "picasso_filter_dataset",
                              "picasso_render_dataset",
                              "tracking_dataset",
