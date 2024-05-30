@@ -17,10 +17,10 @@ from moltrack.GUI.widget_ui import Ui_Frame as gui
 from moltrack.funcs.import_utils import _import_utils
 from moltrack.funcs.compute_utils import _compute_utils
 from moltrack.funcs.events_utils import _events_utils
+from moltrack.funcs.segmentation_utils import _segmentation_utils
 
-subclasses = [_import_utils, _compute_utils, _events_utils]
-
-
+subclasses = [_import_utils, _compute_utils,
+              _events_utils, _segmentation_utils]
 
 class QWidget(QWidget, gui, *subclasses):
     # your QWidget.__init__ can optionally request the napari viewer instance
@@ -61,6 +61,11 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.import_images.clicked.connect(self.init_import_data)
         self.gui.moltrack_dataset_selector.currentIndexChanged.connect(self.update_active_image)
+
+        self.gui.segment_active.clicked.connect(partial(self.initialise_cellpose, mode = "active"))
+        self.gui.segment_all.clicked.connect(partial(self.initialise_cellpose, mode = "all"))
+        self.gui.cellpose_load_model.clicked.connect(self.load_cellpose_model)
+        self.gui.dilate_segmentations.clicked.connect(self.dilate_segmentations)
 
         self.viewer.dims.events.current_step.connect(self.slider_event)
 
