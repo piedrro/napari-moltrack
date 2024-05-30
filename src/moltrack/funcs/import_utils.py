@@ -373,9 +373,14 @@ class _import_utils:
 
         for selector_name in dataset_selectors:
 
+            dataset_names = list(self.dataset_dict.keys())
+
+            if selector_name in ["picasso_dataset","locs_export_dataset"] and len(dataset_names) > 1:
+                dataset_names.append("All Datasets")
+
             if hasattr(self.gui, selector_name):
                 getattr(self.gui, selector_name).clear()
-                getattr(self.gui, selector_name).addItems(self.dataset_dict.keys())
+                getattr(self.gui, selector_name).addItems(dataset_names)
 
 
     def init_import_data(self):

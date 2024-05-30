@@ -894,24 +894,24 @@
                </item>
               </widget>
              </item>
-             <item row="1" column="0">
+             <item row="2" column="0">
               <widget class="QLabel" name="label_11">
                <property name="text">
                 <string>Dataset</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="1">
+             <item row="2" column="1">
               <widget class="QComboBox" name="picasso_dataset"/>
              </item>
-             <item row="2" column="0">
+             <item row="3" column="0">
               <widget class="QLabel" name="label_8">
                <property name="text">
                 <string>Frame Mode</string>
                </property>
               </widget>
              </item>
-             <item row="2" column="1">
+             <item row="3" column="1">
               <widget class="QComboBox" name="picasso_frame_mode">
                <item>
                 <property name="text">
@@ -925,14 +925,14 @@
                </item>
               </widget>
              </item>
-             <item row="3" column="0">
+             <item row="4" column="0">
               <widget class="QLabel" name="label_28">
                <property name="text">
                 <string>Box Size</string>
                </property>
               </widget>
              </item>
-             <item row="3" column="1">
+             <item row="4" column="1">
               <widget class="QComboBox" name="picasso_box_size">
                <property name="currentIndex">
                 <number>0</number>
@@ -974,32 +974,48 @@
                </item>
               </widget>
              </item>
-             <item row="4" column="0">
+             <item row="5" column="0">
               <widget class="QLabel" name="label_5">
                <property name="text">
                 <string>Min Net Gradient</string>
                </property>
               </widget>
              </item>
-             <item row="4" column="1">
+             <item row="5" column="1">
               <widget class="QLineEdit" name="picasso_min_net_gradient">
                <property name="text">
                 <string>1000</string>
                </property>
               </widget>
              </item>
-             <item row="5" column="0">
+             <item row="6" column="0">
               <widget class="QLabel" name="label_35">
                <property name="text">
                 <string>ROI Border Width (Pixels)</string>
                </property>
               </widget>
              </item>
-             <item row="5" column="1">
+             <item row="6" column="1">
               <widget class="QLineEdit" name="picasso_roi_border_width">
                <property name="text">
                 <string>5</string>
                </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label">
+               <property name="text">
+                <string>Fit Mode</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="smlm_fit_mode">
+               <item>
+                <property name="text">
+                 <string>Picasso</string>
+                </property>
+               </item>
               </widget>
              </item>
             </layout>
@@ -1032,16 +1048,6 @@
             <widget class="QCheckBox" name="picasso_minimise_ram">
              <property name="text">
               <string>Minimise RAM usage</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="picasso_use_gpufit">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="text">
-              <string>Use Gpufit (if available)</string>
              </property>
             </widget>
            </item>
@@ -1756,39 +1762,13 @@
           </widget>
          </item>
          <item row="1" column="0">
-          <widget class="QLabel" name="label_73">
-           <property name="text">
-            <string>Localisation Type</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QComboBox" name="locs_export_type">
-           <item>
-            <property name="text">
-             <string>All</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>Bounding Boxes</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>Localisations</string>
-            </property>
-           </item>
-          </widget>
-         </item>
-         <item row="2" column="0">
           <widget class="QLabel" name="label_72">
            <property name="text">
             <string>Dataset</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="1">
+         <item row="1" column="1">
           <widget class="QComboBox" name="locs_export_dataset"/>
          </item>
         </layout>

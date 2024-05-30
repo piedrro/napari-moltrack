@@ -24,11 +24,12 @@ from moltrack.funcs.picasso_detect_utils import _picasso_detect_utils
 from moltrack.funcs.loc_filter_utils import _loc_filter_utils
 from moltrack.funcs.picasso_render_utils import _picasso_render_utils
 from moltrack.funcs.tracking_utils import _tracking_utils
+from moltrack.funcs.export_utils import _export_utils
 
 subclasses = [_import_utils, _compute_utils,
               _events_utils, _segmentation_utils,
               _picasso_detect_utils, _loc_filter_utils,
-              _picasso_render_utils, _tracking_utils]
+              _picasso_render_utils, _tracking_utils, _export_utils]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -108,6 +109,8 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.link_localisations.clicked.connect(self.initialise_tracking)
 
+        self.gui.export_localisations.clicked.connect(self.initialise_export_locs)
+
         self.viewer.dims.events.current_step.connect(self.slider_event)
 
     def initialise_keybindings(self):
@@ -154,10 +157,8 @@ class QWidget(QWidget, gui, *subclasses):
             print("Install pygpufit package into napari-PixSeq root directory")
 
         if self.gpufit_available:
-            print("Pygpufit available")
-            self.gui.picasso_use_gpufit.setEnabled(True)
-            self.gui.picasso_use_gpufit.setChecked(True)
-        else:
-            self.gui.picasso_use_gpufit.setEnabled(False)
+            print("GPUFit available")
+            self.gui.smlm_fit_mode.addItem("GPUFit")
+
 
 

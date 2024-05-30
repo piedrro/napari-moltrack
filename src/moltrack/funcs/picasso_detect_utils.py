@@ -827,9 +827,9 @@ class _picasso_detect_utils:
                 min_net_gradient = self.gui.picasso_min_net_gradient.text()
                 frame_mode = self.gui.picasso_frame_mode.currentText()
                 minimise_ram = self.gui.picasso_minimise_ram.isChecked()
-                picasso_use_gpufit = self.gui.picasso_use_gpufit.isChecked()
+                smlm_fit_mode = self.gui.smlm_fit_mode.currentText()
 
-                if self.gpufit_available and picasso_use_gpufit:
+                if self.gpufit_available and smlm_fit_mode == "GPUFit":
                     gpu_fit = True
                 else:
                     gpu_fit = False
