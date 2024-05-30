@@ -23,9 +23,136 @@ from numba import jit, types,typed
 from numba.typed import Dict
 import numpy as np
 import pandas as pd
+import math
+import cv2
+from skimage.feature import peak_local_max
+from numba import jit, prange
+
+def precompute_kernels(lnoise=0, lobject=1):
+
+    if lnoise == 0:
+        gaussian_kernel = 1
+    else:
+        gaussian_kernel = cv2.getGaussianKernel(2 * math.ceil(5 * lnoise) + 1, math.sqrt(2) * lnoise)
+
+    gaussian_kernel_convolved = cv2.filter2D(gaussian_kernel, -1, gaussian_kernel)
+
+    if lobject != 0:
+        boxcar_kernel = np.ones(2 * round(lobject) + 1)
+        boxcar_kernel = boxcar_kernel / sum(boxcar_kernel)
+        boxcar_kernel_convolved = cv2.filter2D(boxcar_kernel, -1, boxcar_kernel)
+    else:
+        boxcar_kernel_convolved = None
+
+    lzero = round(max(lobject, math.ceil(5 * lnoise)))
+
+    return gaussian_kernel_convolved, boxcar_kernel_convolved, lzero
 
 
 
+def bandpass(image_array, kernels):
+
+    gaussian_kernel_convolved, boxcar_kernel_convolved, lzero = kernels
+
+    if boxcar_kernel_convolved is not None:
+        image_filtered = cv2.filter2D(image_array, -1, gaussian_kernel_convolved - boxcar_kernel_convolved)
+    else:
+        image_filtered = cv2.filter2D(image_array, -1, gaussian_kernel_convolved)
+
+    image_filtered[:lzero, :] = 0
+    image_filtered[-lzero:, :] = 0
+    image_filtered[:, :lzero] = 0
+    image_filtered[:, -lzero:] = 0
+
+    image_filtered[image_filtered < 0] = 0
+
+    return image_filtered
+
+
+
+def detect_stormtracker_locs(dat, progress_list, fit_list):
+
+    result = None
+
+    try:
+        min_net_gradient = dat["min_net_gradient"]
+        box_size = dat["box_size"]
+        roi = dat["roi"]
+        dataset = dat["dataset"]
+        start_index = dat["start_index"]
+        end_index = dat["end_index"]
+        detect = dat["detect"]
+        fit = dat["fit"]
+        remove_overlapping = dat["remove_overlapping"]
+        stop_event = dat["stop_event"]
+        polygon_filter = dat["polygon_filter"]
+        polygons = dat["polygons"]
+        threshold = dat["threshold"]
+        window_size = dat["window_size"]
+
+        loc_list = []
+        spot_list = []
+
+        if not stop_event.is_set():
+
+            kernel_size = max(round(window_size), 1)
+            kernels = precompute_kernels(1, kernel_size)
+
+            # Access the shared memory
+            shared_mem = shared_memory.SharedMemory(name=dat["shared_memory_name"])
+            np_array = np.ndarray(dat["shape"], dtype=dat["dtype"], buffer=shared_mem.buf)
+
+            image_chunk = np_array.copy()
+
+            for array_index, frame in enumerate(image_chunk):
+
+                try:
+
+                    frame_index = start_index + array_index
+
+                    filtered_frame = bandpass(frame.copy(),kernels)
+
+                    locs = peak_local_max(filtered_frame, min_distance=1, threshold_abs=threshold)
+
+                    locs = pd.DataFrame(locs, columns=["y", "x"])
+                    locs.insert(0, "frame", 0)
+                    locs = locs.to_records(index=False)
+
+                    if remove_overlapping:
+                        locs = remove_overlapping_locs(locs, box_size)
+
+                    if polygon_filter:
+                        locs = remove_segmentation_locs(locs, polygons)
+
+                    if len(locs) > 0:
+
+                        image = np.expand_dims(frame.copy(), axis=0)
+                        camera_info = {"baseline": 100.0, "gain": 1, "sensitivity": 1.0, "qe": 0.9, }
+                        spot_data = get_spots(image, locs, box_size, camera_info)
+
+                        locs.frame = frame_index
+
+                        locs = pd.DataFrame(locs)
+                        locs.insert(0, "dataset", dataset)
+                        locs = locs.to_records(index=False)
+
+                        for loc, spot in zip(locs, spot_data):
+                            loc_list.append(loc)
+                            spot_list.append(spot)
+
+                except:
+                    print(traceback.format_exc())
+
+                progress_list.append(1)
+
+        if len(loc_list) > 0:
+            result = loc_list, spot_list
+
+    except:
+        print(traceback.format_exc())
+        result = None
+
+    return result
 
 
 
@@ -61,7 +188,6 @@ def remove_overlapping_locs(locs, box_size):
 
     return non_overlapping_locs
 
-
 def cut_spots(movie, ids_frame, ids_x, ids_y, box):
 
     n_spots = len(ids_x)
@@ -71,7 +197,6 @@ def cut_spots(movie, ids_frame, ids_x, ids_y, box):
         spots[id] = movie[frame, yc - r : yc + r + 1, xc - r : xc + r + 1]
 
     return spots
-
 
 def locs_from_fits(locs, theta, box, em=False, gpu_fit=False):
 
@@ -125,7 +250,6 @@ def locs_from_fits(locs, theta, box, em=False, gpu_fit=False):
 
     return locs
 
-
 def fit_spots_lq(spots, locs, box, progress_list):
 
     theta = np.empty((len(spots), 6), dtype=np.float32)
@@ -164,8 +288,6 @@ def remove_segmentation_locs(locs, polygons):
         locs = []
 
     return locs
-
-
 
 def detect_picaso_locs(dat, progress_list, fit_list):
 
@@ -243,111 +365,6 @@ def detect_picaso_locs(dat, progress_list, fit_list):
         result = None
 
     return result
-
-def picasso_detect(dat, progress_list):
-
-    result = None
-
-    try:
-
-        frame_index = dat["frame_index"]
-        min_net_gradient = dat["min_net_gradient"]
-        box_size = dat["box_size"]
-        roi = dat["roi"]
-        dataset = dat["dataset"]
-        channel = dat["channel"]
-        detect = dat["detect"]
-        fit = dat["fit"]
-        remove_overlapping = dat["remove_overlapping"]
-        stop_event = dat["stop_event"]
-        polygon_filter = dat["polygon_filter"]
-        polygons = dat["polygons"]
-
-        if not stop_event.is_set():
-
-            # Access the shared memory
-            shared_mem = shared_memory.SharedMemory(name=dat["shared_memory_name"])
-            np_array = np.ndarray(dat["shape"], dtype=dat["dtype"], buffer=shared_mem.buf)
-
-            frame = np_array.copy()
-
-            if detect:
-                locs = identify_frame(frame, min_net_gradient, box_size, 0, roi=roi)
-
-                if remove_overlapping:
-                    # overlapping removed prior to fitting to increase speed
-                    locs = remove_overlapping_locs(locs, box_size)
-
-            else:
-                locs = dat["frame_locs"]
-
-            expected_loc_length = 4
-
-            if fit:
-                expected_loc_length = 12
-                try:
-                    image = np.expand_dims(frame, axis=0)
-                    camera_info = {"baseline": 100.0, "gain": 1, "sensitivity": 1.0, "qe": 0.9, }
-                    spot_data = get_spots(image, locs, box_size, camera_info)
-
-                    theta, CRLBs, likelihoods, iterations = gaussmle(spot_data, eps=0.001, max_it=1000, method="sigma")
-                    locs = localize.locs_from_fits(locs.copy(), theta, CRLBs, likelihoods, iterations, box_size)
-
-                    locs.frame = frame_index
-
-                    if remove_overlapping:
-                        # sometimes locs can overlap after fitting
-                        locs = remove_overlapping_locs(locs, box_size)
-
-                except:
-                    # print(traceback.format_exc())
-                    pass
-
-            for loc in locs:
-                loc.frame = frame_index
-
-            if polygon_filter:
-
-                if len(polygons) > 0 and len(locs) > 0:
-
-                    expected_loc_length += 1
-
-                    loclist = pd.DataFrame(locs).to_dict(orient="records")
-
-                    filtered_locs = []
-
-                    for loc in loclist:
-                        point = Point(loc["x"], loc["y"])
-
-                        for polygon_index, polygon in enumerate(polygons):
-                            if polygon.contains(point):
-                                loc["segmentation"] = polygon_index
-                                filtered_locs.append(loc)
-
-                    if len(filtered_locs):
-                        locs = pd.DataFrame(filtered_locs).to_records(index=False)
-                    else:
-                        locs = []
-
-                else:
-                    locs = []
-
-            if len(locs) > 0:
-
-                locs = [loc for loc in locs if len(loc) == expected_loc_length]
-                locs = np.array(locs).view(np.recarray)
-
-            result = {"dataset": dataset, "channel": channel,
-                      "frame_index": frame_index,"locs": locs}
-
-    except:
-        print(traceback.format_exc())
-        pass
-
-    progress_list.append(dat["frame_index"])
-
-    return result
-
 
 class _picasso_detect_utils:
 
@@ -517,6 +534,8 @@ class _picasso_detect_utils:
             box_size = int(self.gui.picasso_box_size.currentText())
             remove_overlapping = self.gui.picasso_remove_overlapping.isChecked()
             polygon_filter = self.gui.picasso_segmentation_filtering.isChecked()
+            threshold = int(self.gui.stormtracker_threshold.text())
+            window_size = int(self.gui.stormtracker_window_size.text())
 
             segmentation_polygons = self.get_segmentation_polygons()
 
@@ -537,6 +556,8 @@ class _picasso_detect_utils:
                                "fit": fit,
                                "min_net_gradient": int(min_net_gradient),
                                "box_size": int(box_size),
+                               "threshold": threshold,
+                               "window_size": window_size,
                                "roi": roi,
                                "remove_overlapping": remove_overlapping,
                                "polygon_filter":polygon_filter,
@@ -555,14 +576,23 @@ class _picasso_detect_utils:
         return compute_jobs, n_frames
 
 
-    def detect_spots_parallel(self, detect_jobs, executor, manager,
+
+
+    def detect_spots_parallel(self, detect_mode, detect_jobs, executor, manager,
             n_workers, n_frames, fit, progress_callback=None,
-            timeout_duration = 10):
+            timeout_duration = 100):
 
         progress_list = manager.list()
         fit_jobs = manager.list()
 
-        futures = {executor.submit(detect_picaso_locs,
+        if detect_mode == "Picasso":
+            detect_fn = detect_picaso_locs
+        else:
+            detect_fn = detect_stormtracker_locs
+
+        start_time = time.time()
+
+        futures = {executor.submit(detect_fn,
             job, progress_list, fit_jobs,): job for job in detect_jobs}
 
         while any(not future.done() for future in futures):
@@ -583,7 +613,7 @@ class _picasso_detect_utils:
 
             job = futures[future]
             try:
-                result = future.result(timeout=timeout_duration)  # Process result here
+                result = future.result()  # Process result here
 
                 if result is not None:
                     result_locs, result_spots = result
@@ -594,6 +624,10 @@ class _picasso_detect_utils:
                 print(f"Task {job} timed out after {timeout_duration} seconds.")
             except Exception as e:
                 print(f"Error occurred in task {job}: {e}")
+
+
+        end_time = time.time()
+        print(f"Finished detecting spots in {n_frames} frames in {end_time - start_time} seconds")
 
         if len(locs) > 0:
             locs = np.hstack(locs).view(np.recarray).copy()
@@ -679,13 +713,13 @@ class _picasso_detect_utils:
 
 
     def _picasso_wrapper(self, progress_callback, detect, fit,
-            min_net_gradient, dataset_list = [], frame_index = None, gpu_fit=True):
+            min_net_gradient, dataset_list = [], frame_index = None, detect_mode = "Picasso", fit_mode = "Picasso"):
 
         try:
             locs, fitted = [], False
 
             frame_mode = self.gui.picasso_frame_mode.currentText()
-            detect_mode = self.gui.picasso_detect_mode.currentText()
+            detect_mode = self.gui.smlm_detect_mode.currentText()
             box_size = int(self.gui.picasso_box_size.currentText())
             roi = self.generate_roi()
 
@@ -703,7 +737,7 @@ class _picasso_detect_utils:
                     if detect is True:
 
                         self.create_shared_image_chunks(dataset_list=dataset_list,
-                            frame_index=frame_index, )
+                            frame_index=frame_index, chunk_size = 1000)
 
                         detect_jobs, n_frames = self.populate_picasso_detect_jobs(detect,
                             fit, min_net_gradient, roi)
@@ -716,8 +750,8 @@ class _picasso_detect_utils:
 
                             print(f"Detecting spots in {n_frames} frames...")
 
-                            locs, spots = self.detect_spots_parallel(detect_jobs, executor, manager,
-                                n_workers, n_frames, fit, progress_callback)
+                            locs, spots = self.detect_spots_parallel(detect_mode, detect_jobs,
+                                executor, manager, n_workers, n_frames, fit, progress_callback)
 
                             print(f"Detected {len(locs)} spots")
 
@@ -727,7 +761,7 @@ class _picasso_detect_utils:
 
                     if len(locs) > 0 and fit == True:
 
-                        if gpu_fit:
+                        if fit_mode == "GPUFit":
 
                             print(f"Fitting {len(locs)} spots on GPU...")
 
@@ -747,15 +781,7 @@ class _picasso_detect_utils:
                     else:
                         fitted = False
 
-            # time to process locs
-
-            import time
-
-            start = time.time()
             self.process_locs(locs, detect_mode, box_size, fitted=fitted)
-            end = time.time()
-
-            print(f"Processed {len(locs)} locs in {end-start} seconds")
 
             if progress_callback is not None:
                 progress_callback.emit(100)
@@ -823,16 +849,13 @@ class _picasso_detect_utils:
         try:
             if self.dataset_dict != {}:
 
+                detect_mode = self.gui.smlm_detect_mode.currentText()
+                fit_mode = self.gui.smlm_fit_mode.currentText()
                 dataset_name = self.gui.picasso_dataset.currentText()
                 min_net_gradient = self.gui.picasso_min_net_gradient.text()
                 frame_mode = self.gui.picasso_frame_mode.currentText()
                 minimise_ram = self.gui.picasso_minimise_ram.isChecked()
                 smlm_fit_mode = self.gui.smlm_fit_mode.currentText()
-
-                if self.gpufit_available and smlm_fit_mode == "GPUFit":
-                    gpu_fit = True
-                else:
-                    gpu_fit = False
 
                 if min_net_gradient.isdigit() and dataset_name != "":
 
@@ -860,7 +883,8 @@ class _picasso_detect_utils:
                         detect=detect, fit=fit,
                         min_net_gradient=min_net_gradient,
                         dataset_list=dataset_list,
-                        gpu_fit=gpu_fit,
+                        detect_mode=detect_mode,
+                        fit_mode=fit_mode,
                         frame_index=frame_index)
 
                     self.worker.signals.progress.connect(partial(self.moltrack_progress,

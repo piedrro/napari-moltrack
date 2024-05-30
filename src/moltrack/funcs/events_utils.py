@@ -344,3 +344,30 @@ class _events_utils:
         except:
             print(traceback.format_exc())
             pass
+
+    def update_detect_options(self, event=None):
+
+        if self.gui.smlm_detect_mode.currentText() == "Picasso":
+
+            self.gui.picasso_box_size_label.show()
+            self.gui.picasso_box_size.show()
+            self.gui.picasso_min_net_gradient_label.show()
+            self.gui.picasso_min_net_gradient.show()
+
+            self.gui.stormtracker_threshold_label.hide()
+            self.gui.stormtracker_threshold.hide()
+            self.gui.stormtracker_window_size_label.hide()
+            self.gui.stormtracker_window_size.hide()
+
+        else:
+
+            self.gui.picasso_box_size_label.hide()
+            self.gui.picasso_box_size.hide()
+            self.gui.picasso_min_net_gradient_label.hide()
+            self.gui.picasso_min_net_gradient.hide()
+
+            self.gui.stormtracker_threshold_label.show()
+            self.gui.stormtracker_threshold.show()
+            self.gui.stormtracker_window_size_label.show()
+            self.gui.stormtracker_window_size.show()
+

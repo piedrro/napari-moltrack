@@ -60,6 +60,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.initialise_keybindings()
 
         self.check_gpufit_availibility()
+        self.update_detect_options()
 
         #create threadpool and stop event
         self.threadpool = QThreadPool()
@@ -90,6 +91,8 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.segment_all.clicked.connect(partial(self.initialise_cellpose, mode = "all"))
         self.gui.cellpose_load_model.clicked.connect(self.load_cellpose_model)
         self.gui.dilate_segmentations.clicked.connect(self.dilate_segmentations)
+
+        self.gui.smlm_detect_mode.currentIndexChanged.connect(self.update_detect_options)
 
         self.gui.picasso_detect.clicked.connect(partial(self.init_picasso, detect = True, fit=False))
         self.gui.picasso_fit.clicked.connect(partial(self.init_picasso, detect = False, fit=True))
@@ -159,6 +162,7 @@ class QWidget(QWidget, gui, *subclasses):
         if self.gpufit_available:
             print("GPUFit available")
             self.gui.smlm_fit_mode.addItem("GPUFit")
+            self.gui.smlm_fit_mode.setCurrentIndex(1)
 
 
 
