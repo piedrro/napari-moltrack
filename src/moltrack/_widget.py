@@ -22,11 +22,12 @@ from moltrack.funcs.events_utils import _events_utils
 from moltrack.funcs.segmentation_utils import _segmentation_utils
 from moltrack.funcs.picasso_detect_utils import _picasso_detect_utils
 from moltrack.funcs.loc_filter_utils import _loc_filter_utils
+from moltrack.funcs.picasso_render_utils import _picasso_render_utils
 
 subclasses = [_import_utils, _compute_utils,
               _events_utils, _segmentation_utils,
-              _picasso_detect_utils, _loc_filter_utils]
-
+              _picasso_detect_utils, _loc_filter_utils,
+              _picasso_render_utils]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -101,6 +102,8 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.picasso_vis_size.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))
         self.gui.picasso_vis_opacity.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))
         self.gui.picasso_vis_edge_width.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))
+
+        self.gui.picasso_render.clicked.connect(self.initialise_picasso_render)
 
         self.viewer.dims.events.current_step.connect(self.slider_event)
 
