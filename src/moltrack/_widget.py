@@ -15,6 +15,7 @@ from moltrack.GUI.widget_ui import Ui_Frame as gui
 from moltrack.funcs.import_utils import _import_utils
 from moltrack.funcs.compute_utils import _compute_utils
 from moltrack.funcs.events_utils import _events_utils
+from moltrack.funcs.segmentation_events import _segmentation_events
 from moltrack.funcs.segmentation_utils import _segmentation_utils
 from moltrack.funcs.picasso_detect_utils import _picasso_detect_utils
 from moltrack.funcs.loc_filter_utils import _loc_filter_utils
@@ -25,7 +26,8 @@ from moltrack.funcs.export_utils import _export_utils
 subclasses = [_import_utils, _compute_utils,
               _events_utils, _segmentation_utils,
               _picasso_detect_utils, _loc_filter_utils,
-              _picasso_render_utils, _tracking_utils, _export_utils]
+              _picasso_render_utils, _tracking_utils,
+              _export_utils, _segmentation_events]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -78,6 +80,9 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.verbose = False
 
+        self.segmentation_mode = "panzoom"
+        self.interface_mode = "segment"
+
     def initialise_events(self):
 
         self.gui.import_images.clicked.connect(self.init_import_data)
@@ -114,13 +119,14 @@ class QWidget(QWidget, gui, *subclasses):
 
     def initialise_keybindings(self):
 
-
         self.viewer.bind_key('d', self.devfunc)
 
         self.viewer.bind_key(key='Control-Right', func=lambda event: self.moltract_translation(direction="right"), overwrite=True)
         self.viewer.bind_key(key='Control-Left', func=lambda event: self.moltract_translation(direction="left"), overwrite=True)
         self.viewer.bind_key(key='Control-Up', func=lambda event: self.moltract_translation(direction="up"), overwrite=True)
         self.viewer.bind_key(key='Control-Down', func=lambda event: self.moltract_translation(direction="down"), overwrite=True)
+
+        self.register_segmentation_keybinds(self.viewer)
 
 
     def devfunc(self, viewer=None):

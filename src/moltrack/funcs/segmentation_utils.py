@@ -250,21 +250,20 @@ class _segmentation_utils:
             mode, masks = result
 
             if mode == "active":
-                shapes = self.mask_to_shape(masks[0], frame = 0)
-                ndim = 2
+                shapes = self.mask_to_shape(masks[0])
             else:
                 shapes = []
-                ndim = 3
                 for i, mask in enumerate(masks):
                     layer_shapes = self.mask_to_shape(mask)
                     shapes.extend(layer_shapes)
 
             if len(shapes) > 0:
-                if "Segmentations" in layer_names:
-                    self.viewer.layers.remove("Segmentations")
 
-                self.segLayer = self.viewer.add_shapes(shapes, shape_type="polygon",
-                    name="Segmentations", opacity=0.3, face_color="red")
+                self.initialise_segLayer(shapes)
+
+
+
+
 
         except:
             print(traceback.format_exc())
@@ -494,6 +493,9 @@ class _segmentation_utils:
                 segLayer = self.viewer.layers["Segmentations"]
 
                 segmentations = segLayer.data.copy()
+                shape_types = segLayer.shape_type
+
+                segmentations = [seg for seg, shape in zip(segmentations, shape_types) if shape == "polygon"]
 
                 for index, seg in enumerate(segmentations):
 
