@@ -13,28 +13,57 @@ import concurrent.futures
 from astropy.io import fits
 
 
+def crop_frame(image, crop_mode):
+
+    try:
+
+        if "left" in crop_mode.lower():
+            crop = image[:, image.shape[1]//2:]
+        elif "right" in crop_mode.lower():
+            crop = image[:, :image.shape[1]//2]
+        elif "brightest" in crop_mode.lower():
+            left = image[:, :image.shape[1]//2]
+            right = image[:, image.shape[1]//2:]
+            crop = left if np.mean(left) > np.mean(right) else right
+        else:
+            crop = image
+
+    except:
+        print(traceback.format_exc())
+        crop = image
+
+    return crop
+
 def import_image_data(dat, progress_dict={}, index=0):
 
     try:
 
         path = dat["path"]
-        import_crop_mode = dat["import_crop_mode"]
-        n_frames = dat["n_frames"]
+        crop_mode = dat["import_crop_mode"]
+        import_limit = dat["import_limit"]
 
         base, ext = os.path.splitext(path)
+
+        images = []
 
         if ext.lower() == ".tif":
 
             with Image.open(path) as image:
+
+                n_frames = image.n_frames
+
+                if type(import_limit) == int:
+                    if n_frames > import_limit:
+                        n_frames = import_limit
 
                 for frame_index in range(n_frames):
 
                     image.seek(frame_index)
                     img_frame = np.array(image)
 
-                    shared_mem = dat["shared_image"]
-                    np_array = np.ndarray(dat["image_shape"], dtype=dat["dtype"], buffer=shared_mem.buf)
-                    np_array[frame_index] = img_frame
+                    img_frame = crop_frame(img_frame, crop_mode)
+
+                    images.append(img_frame)
 
                     progress = int(((frame_index + 1) / n_frames)*100)
                     progress_dict[index] = progress
@@ -43,60 +72,38 @@ def import_image_data(dat, progress_dict={}, index=0):
 
             with fits.open(path) as hdul:
 
+                n_frames = hdul[0].data.shape[0]
+
+                if type(import_limit) == int:
+                    if n_frames > import_limit:
+                        n_frames = import_limit
+
                 for frame_index in range(n_frames):
 
                     img_frame = hdul[0].data[frame_index]
 
-                    shared_mem = dat["shared_image"]
-                    np_array = np.ndarray(dat["image_shape"], dtype=dat["dtype"], buffer=shared_mem.buf)
-                    np_array[frame_index] = img_frame
+                    img_frame = crop_frame(img_frame, crop_mode)
+
+                    images.append(img_frame)
 
                     progress = int(((frame_index + 1) / n_frames)*100)
                     progress_dict[index] = progress
+
+        if len(images) > 0:
+            images = np.stack(images, axis=0)
+
+        dat["data"] = images
 
     except:
         print(traceback.format_exc())
         pass
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return dat
 
 
 
 class _import_utils:
 
-    def create_import_shared_image(self, image_size):
-
-        shared_mem = None
-
-        try:
-
-            if self.verbose:
-                print("Creating shared image...")
-
-            shared_mem = shared_memory.SharedMemory(create=True, size=image_size)
-
-        except:
-            print(traceback.format_exc())
-            pass
-
-        return shared_mem
 
     def get_image_info(self, path):
 
@@ -171,81 +178,37 @@ class _import_utils:
         return path
 
 
-    def populate_import_lists(self, progress_callback=None, paths=[]):
+    def populate_import_jobs(self, progress_callback=None, paths=[]):
 
-        image_list = []
-        import_dict = {}
-        shared_images = {}
+        import_jobs = []
 
         try:
 
-            if self.verbose:
-                print("Populating import lists/metadata...")
-
             import_crop_mode = self.gui.import_crop_mode.currentText()
-            import_limit_combo = self.gui.import_limit.currentText()
+            import_limit = self.gui.import_limit.currentText()
 
             for path_index, path in enumerate(paths):
 
                 path = self.format_import_path(path)
                 dataset_name = os.path.basename(path)
 
-                if dataset_name not in shared_images.keys():
-                    shared_images[dataset_name] = {}
-
-                n_frames, image_shape, dtype, image_size = self.get_image_info(path)
-
-                if import_limit_combo != "None":
-                    import_limit = int(import_limit_combo)
-                else:
-                    import_limit = n_frames
-
-                if import_crop_mode != "None":
-                    image_shape[2] = image_shape[2]//2
-
-                image_shape = (import_limit, image_shape[1], image_shape[2])
-
-                shared_image = self.create_import_shared_image(image_size)
-                shared_images[dataset_name] = shared_image
-
                 image_dict = {"path": path,
                               "dataset_name": dataset_name,
-                              "shared_image": shared_image,
+                              "import_limit": import_limit,
                               "import_crop_mode": import_crop_mode,
-                              "n_frames": n_frames,
-                              "image_shape": image_shape,
-                              "dtype": dtype,
                               }
 
-                image_list.append(image_dict)
-
-                if dataset_name not in import_dict.keys():
-                    import_dict[dataset_name] = {"path":path,
-                                                 "import_limit": import_limit,
-                                                 "import_crop_mode": import_crop_mode,
-                                                 "image_shape": image_shape,
-                                                 "dtype": dtype,}
+                import_jobs.append(image_dict)
 
         except:
             print(traceback.format_exc())
 
-        return image_list, shared_images, import_dict
+        return import_jobs
 
-    def populate_import_compute_jobs(self, image_list):
-
-        if self.verbose:
-            print(f"Populating import compute jobs.")
-
-        compute_jobs = []
-
-        for image_dict in image_list:
-
-            compute_jobs.append({"stop_event": self.stop_event,
-                                 **image_dict})
-
-        return compute_jobs
 
     def process_compute_jobs(self, compute_jobs, progress_callback=None):
+
+        results = []
 
         if self.verbose:
             print(f"Processing {len(compute_jobs)} compute jobs.")
@@ -273,12 +236,14 @@ class _import_utils:
                 concurrent.futures.wait(futures)
 
                 # Retrieve and process results
-                results = [future.result() for future in futures]
+                results = [future.result() for future in futures if future.done()]
 
         if self.verbose:
             print("Finished processing compute jobs.")
 
-    def populate_import_dataset_dict(self, import_dict):
+        return results
+
+    def populate_import_dataset_dict(self, import_list):
 
         try:
 
@@ -287,27 +252,19 @@ class _import_utils:
             if self.verbose:
                 print("Populating dataset dict")
 
-            image_dict = {}
+            import_dict = {}
 
-            for dataset_name, dataset_dict in import_dict.items():
+            for import_data in import_list:
 
-                path = dataset_dict["path"]
-                image_shape = dataset_dict["image_shape"]
-                dtype = dataset_dict["dtype"]
+                if type(import_data) == dict:
 
-                shared_mem = self.shared_images[dataset_name]
+                    if "data" in import_data.keys():
 
-                image = np.ndarray(image_shape, dtype=dtype, buffer=shared_mem.buf).copy()
-                image = image.astype(np.uint16)
+                        dataset_name = import_data["dataset_name"]
+                        image = import_data.pop("data")
 
-                shared_mem.close()
-                shared_mem.unlink()
-
-                if dataset_name not in import_dict.keys():
-                    import_dict[dataset_name] = {"data": []}
-
-                import_dict[dataset_name]["data"] = image
-                import_dict[dataset_name]["path"] = path
+                        import_dict[dataset_name] = import_data
+                        import_dict[dataset_name]["data"] = image
 
             if concat_images == True:
 
@@ -317,6 +274,7 @@ class _import_utils:
                 path_list = []
 
                 for dataset_name in dataset_list:
+
                     dataset_image = import_dict[dataset_name].pop("data")
                     dataset_path = import_dict[dataset_name].pop("path")
 
@@ -337,27 +295,24 @@ class _import_utils:
                     dataset_dict = import_dict.pop(dataset_name)
                     self.dataset_dict[dataset_name] = dataset_dict
 
-            print(self.dataset_dict.keys())
-
         except:
             print(traceback.format_exc())
             pass
 
     def import_data(self, progress_callback=None, paths=[]):
 
-        image_list, self.shared_images, import_dict = self.populate_import_lists(paths=paths)
+        import_jobs = self.populate_import_jobs(paths=paths)
 
-        compute_jobs = self.populate_import_compute_jobs(image_list)
+        results = self.process_compute_jobs(import_jobs,
+            progress_callback=progress_callback)
 
-        self.process_compute_jobs(compute_jobs, progress_callback=progress_callback)
-
-        self.populate_import_dataset_dict(import_dict)
+        self.populate_import_dataset_dict(results)
 
     def import_data_finished(self):
 
         self.populate_dataset_selectors()
         self.update_ui()
-        # self.update_active_image()
+        self.update_active_image()
 
     def populate_dataset_selectors(self):
 
@@ -381,7 +336,6 @@ class _import_utils:
             if hasattr(self.gui, selector_name):
                 getattr(self.gui, selector_name).clear()
                 getattr(self.gui, selector_name).addItems(dataset_names)
-
 
     def init_import_data(self):
 

@@ -1,10 +1,6 @@
 from typing import TYPE_CHECKING
 
-from magicgui import magic_factory
-from magicgui.widgets import CheckBox, Container, create_widget
-from qtpy.QtWidgets import QHBoxLayout, QPushButton, QWidget
-from skimage.util import img_as_float
-import traceback
+from qtpy.QtWidgets import QWidget
 from multiprocessing import Manager
 from functools import partial
 from qtpy.QtCore import QThreadPool

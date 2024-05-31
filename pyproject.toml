@@ -80,9 +80,7 @@ version = {attr = "moltrack.__init__.__version__"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-"*" = ["*.yaml"]
-
-
+"*" = ["*.yaml","*.dll"]
 
 [tool.black]
 line-length = 79
