@@ -367,10 +367,10 @@ class _events_utils:
             self.gui.picasso_min_net_gradient_label.show()
             self.gui.picasso_min_net_gradient.show()
 
-            self.gui.stormtracker_threshold_label.hide()
-            self.gui.stormtracker_threshold.hide()
-            self.gui.stormtracker_window_size_label.hide()
-            self.gui.stormtracker_window_size.hide()
+            self.gui.moltrack_threshold_label.hide()
+            self.gui.moltrack_threshold.hide()
+            self.gui.moltrack_window_size_label.hide()
+            self.gui.moltrack_window_size.hide()
 
         else:
 
@@ -379,10 +379,10 @@ class _events_utils:
             self.gui.picasso_min_net_gradient_label.hide()
             self.gui.picasso_min_net_gradient.hide()
 
-            self.gui.stormtracker_threshold_label.show()
-            self.gui.stormtracker_threshold.show()
-            self.gui.stormtracker_window_size_label.show()
-            self.gui.stormtracker_window_size.show()
+            self.gui.moltrack_threshold_label.show()
+            self.gui.moltrack_threshold.show()
+            self.gui.moltrack_window_size_label.show()
+            self.gui.moltrack_window_size.show()
 
     def moltract_translation(self, event = None, direction = "left"):
 

@@ -992,12 +992,12 @@
               <widget class="QComboBox" name="smlm_detect_mode">
                <item>
                 <property name="text">
-                 <string>Picasso</string>
+                 <string>MolTrack</string>
                 </property>
                </item>
                <item>
                 <property name="text">
-                 <string>StormTracker</string>
+                 <string>Picasso</string>
                 </property>
                </item>
               </widget>
@@ -1064,7 +1064,7 @@
               </widget>
              </item>
              <item row="8" column="1">
-              <widget class="QSpinBox" name="stormtracker_window_size">
+              <widget class="QSpinBox" name="moltrack_window_size">
                <property name="maximum">
                 <number>100</number>
                </property>
@@ -1074,14 +1074,14 @@
               </widget>
              </item>
              <item row="8" column="0">
-              <widget class="QLabel" name="stormtracker_window_size_label">
+              <widget class="QLabel" name="moltrack_window_size_label">
                <property name="text">
                 <string>Window Size</string>
                </property>
               </widget>
              </item>
              <item row="7" column="1">
-              <widget class="QSpinBox" name="stormtracker_threshold">
+              <widget class="QSpinBox" name="moltrack_threshold">
                <property name="maximum">
                 <number>255</number>
                </property>
@@ -1091,7 +1091,7 @@
               </widget>
              </item>
              <item row="7" column="0">
-              <widget class="QLabel" name="stormtracker_threshold_label">
+              <widget class="QLabel" name="moltrack_threshold_label">
                <property name="text">
                 <string>Threshold</string>
                </property>

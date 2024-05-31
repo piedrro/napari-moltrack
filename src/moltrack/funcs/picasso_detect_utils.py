@@ -61,7 +61,7 @@ def bandpass(image_array, kernels):
 
 
 
-def detect_stormtracker_locs(dat, progress_list, fit_list):
+def detect_moltrack_locs(dat, progress_list, fit_list):
 
     result = None
 
@@ -206,7 +206,6 @@ def locs_from_fits(locs, theta, box, em=False, gpu_fit=False):
             sx = theta[:, 3]
             sy = theta[:, 4]
             bg = theta[:, 5]
-            net_gradient = locs.net_gradient
         else:
             x = theta[:, 0] + locs.x  # - box_offset
             y = theta[:, 1] + locs.y  # - box_offset
@@ -219,7 +218,11 @@ def locs_from_fits(locs, theta, box, em=False, gpu_fit=False):
             sx = theta[:, 4]
             sy = theta[:, 5]
             bg = theta[:, 3]
+
+        if "net_gradient" in locs.dtype.names:
             net_gradient = locs.net_gradient
+        else:
+            net_gradient = None
 
         locs = pd.DataFrame(locs)
 
@@ -232,11 +235,14 @@ def locs_from_fits(locs, theta, box, em=False, gpu_fit=False):
         locs["lpx"] = lpx
         locs["lpy"] = lpy
         locs["ellipticity"] = ellipticity
-        locs["net_gradient"] = net_gradient
+
+        if net_gradient is not None:
+            locs["net_gradient"] = net_gradient
 
         locs = locs.to_records(index=False)
 
     except:
+        print(traceback.format_exc())
         pass
 
     return locs
@@ -525,8 +531,8 @@ class _picasso_detect_utils:
             box_size = int(self.gui.picasso_box_size.currentText())
             remove_overlapping = self.gui.picasso_remove_overlapping.isChecked()
             polygon_filter = self.gui.picasso_segmentation_filtering.isChecked()
-            threshold = int(self.gui.stormtracker_threshold.text())
-            window_size = int(self.gui.stormtracker_window_size.text())
+            threshold = int(self.gui.moltrack_threshold.text())
+            window_size = int(self.gui.moltrack_window_size.text())
 
             segmentation_polygons = self.get_segmentation_polygons()
 
@@ -579,7 +585,7 @@ class _picasso_detect_utils:
         if detect_mode == "Picasso":
             detect_fn = detect_picaso_locs
         else:
-            detect_fn = detect_stormtracker_locs
+            detect_fn = detect_moltrack_locs
 
         start_time = time.time()
 
