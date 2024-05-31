@@ -183,8 +183,6 @@ class _export_utils:
 
                 if n_locs > 0:
 
-                    print(fitted, box_size, min_net_gradient, n_locs, dataset_name)
-
                     import_path = self.dataset_dict[dataset_name]["path"]
                     image_shape = self.dataset_dict[dataset_name]["data"].shape
 
