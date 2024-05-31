@@ -117,12 +117,15 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.viewer.bind_key('d', self.devfunc)
 
-        pass
+        self.viewer.bind_key(key='Control-Right', func=lambda event: self.moltract_translation(direction="right"), overwrite=True)
+        self.viewer.bind_key(key='Control-Left', func=lambda event: self.moltract_translation(direction="left"), overwrite=True)
+        self.viewer.bind_key(key='Control-Up', func=lambda event: self.moltract_translation(direction="up"), overwrite=True)
+        self.viewer.bind_key(key='Control-Down', func=lambda event: self.moltract_translation(direction="down"), overwrite=True)
+
 
     def devfunc(self, viewer=None):
 
-        self.create_shared_image_chunks()
-        self.restore_shared_image_chunks()
+        self.update_ui()
 
     def check_gpufit_availibility(self):
 

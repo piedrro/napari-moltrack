@@ -249,21 +249,22 @@ class _segmentation_utils:
 
             mode, masks = result
 
-            if "Segmentations" not in layer_names:
-                self.segLayer = self.viewer.add_shapes(name="Segmentations", shape_type="polygon",
-                    opacity=0.5, face_color="red", edge_color="black", edge_width=1)
-
-            self.segLayer.data = []
-
             if mode == "active":
-
-                shapes = self.mask_to_shape(masks[0])
-                self.segLayer.data = shapes
+                shapes = self.mask_to_shape(masks[0], frame = 0)
+                ndim = 2
             else:
-
+                shapes = []
+                ndim = 3
                 for i, mask in enumerate(masks):
-                    shapes = self.mask_to_shape(mask, frame = i)
-                    self.segLayer.add(shapes, shape_type="polygon")
+                    layer_shapes = self.mask_to_shape(mask)
+                    shapes.extend(layer_shapes)
+
+            if len(shapes) > 0:
+                if "Segmentations" in layer_names:
+                    self.viewer.layers.remove("Segmentations")
+
+                self.segLayer = self.viewer.add_shapes(shapes, shape_type="polygon",
+                    name="Segmentations", opacity=0.3, face_color="red")
 
         except:
             print(traceback.format_exc())
@@ -272,7 +273,7 @@ class _segmentation_utils:
     def mask_to_shape(self, mask, frame = None):
 
         """converts mask to napari shapes"""
-
+        mask = mask.copy()
         shapes = []
         try:
 

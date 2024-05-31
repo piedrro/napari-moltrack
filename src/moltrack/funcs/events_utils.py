@@ -7,7 +7,7 @@ from qtpy.QtWidgets import (QSlider, QLabel)
 import time
 from napari.utils.notifications import show_info
 import napari
-
+from scipy.ndimage import shift
 
 class _events_utils:
 
@@ -159,6 +159,7 @@ class _events_utils:
             else:
                 self.segmentation_layer = self.viewer.add_image(self.segmentation_image,
                     name="Segmentation Image", visible=True)
+                self.segmentation_layer.refresh()
 
     def update_active_image(self, dataset=None, event=None):
 
@@ -383,3 +384,65 @@ class _events_utils:
             self.gui.stormtracker_window_size_label.show()
             self.gui.stormtracker_window_size.show()
 
+    def moltract_translation(self, event = None, direction = "left"):
+
+        try:
+
+            translation_target = self.gui.translation_target.currentText()
+            size = self.gui.translation_size.value()
+
+            if direction == "up":
+                shift_vector = [-size, 0.0]
+            elif direction == "down":
+                shift_vector = [size, 0.0]
+            elif direction == "left":
+                shift_vector = [0.0, -size]
+            elif direction == "right":
+                shift_vector = [0.0, size]
+
+            if translation_target in ["Segmentation Image", "Both"]:
+
+                if hasattr(self, "segmentation_image"):
+
+                    image = self.segmentation_image.copy()
+
+                    if len(image.shape) == 2:
+                        image = shift(image, shift=shift_vector)
+                        self.segmentation_image = image
+
+                    else:
+
+                        for fame_index, frame in enumerate(image):
+                            image[fame_index] = shift(frame, shift=shift_vector)
+                        self.segmentation_image = image
+
+                    self.draw_segmentation_image()
+
+            if translation_target in ["Segmentations","Both"]:
+
+                if hasattr(self, "segLayer"):
+
+                    seg_data = self.segLayer.data.copy()
+
+                    for seg_index, seg in enumerate(seg_data):
+
+                        if seg.shape[1] == 2:
+                            seg = seg + shift_vector
+                            seg_data[seg_index] = seg
+                        if seg.shape[1] == 3:
+                            seg[:, 1:] = seg[:, 1:] + shift_vector
+                            seg_data[seg_index] = seg
+
+
+                    self.segLayer.data = seg_data
+
+
+
+
+
+
+
+
+
+        except:
+            print(traceback.format_exc())

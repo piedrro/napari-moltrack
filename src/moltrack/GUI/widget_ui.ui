@@ -840,6 +840,86 @@
             </widget>
            </item>
            <item>
+            <spacer name="verticalSpacer_3">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_105">
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Translate Segmentations</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QFormLayout" name="formLayout_32">
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_131">
+               <property name="text">
+                <string>Translation Size (Pixels)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QDoubleSpinBox" name="translation_size">
+               <property name="decimals">
+                <number>1</number>
+               </property>
+               <property name="minimum">
+                <double>0.100000000000000</double>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_9">
+               <property name="text">
+                <string>Translation Target</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="translation_target">
+               <item>
+                <property name="text">
+                 <string>Segmentation Image</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Segmentations</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Both</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_10">
+             <property name="text">
+              <string>Press [Control] + [Arrow Key] to move translation target by translation size</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <spacer name="verticalSpacer_27">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
