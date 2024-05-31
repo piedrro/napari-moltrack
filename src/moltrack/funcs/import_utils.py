@@ -41,6 +41,7 @@ def import_image_data(dat, progress_dict={}, index=0):
         path = dat["path"]
         crop_mode = dat["import_crop_mode"]
         import_limit = dat["import_limit"]
+        frame_averaging = dat["frame_averaging"]
 
         base, ext = os.path.splitext(path)
 
@@ -95,6 +96,11 @@ def import_image_data(dat, progress_dict={}, index=0):
 
         if len(images) > 0:
             images = np.stack(images, axis=0)
+
+            if frame_averaging == True:
+                images = np.mean(images, axis=0)
+                images = np.expand_dims(images, axis=0)
+
             dat["data"] = images
 
     except:
@@ -189,6 +195,7 @@ class _import_utils:
 
             import_crop_mode = self.gui.import_crop_mode.currentText()
             import_limit = self.gui.import_limit.currentText()
+            frame_averaging = self.gui.frame_averaging.isChecked()
 
             for path_index, path in enumerate(paths):
 
@@ -199,6 +206,7 @@ class _import_utils:
                               "dataset_name": dataset_name,
                               "import_limit": import_limit,
                               "import_crop_mode": import_crop_mode,
+                              "frame_averaging": frame_averaging
                               }
 
                 import_jobs.append(image_dict)
@@ -299,20 +307,28 @@ class _import_utils:
             print(traceback.format_exc())
             pass
 
-    def import_data(self, progress_callback=None, paths=[]):
+    def import_data(self, progress_callback=None, paths=[], import_mode="data"):
 
         import_jobs = self.populate_import_jobs(paths=paths)
 
         results = self.process_compute_jobs(import_jobs,
             progress_callback=progress_callback)
 
-        self.populate_import_dataset_dict(results)
+        if import_mode.lower() == "data":
+            self.populate_import_dataset_dict(results)
+        else:
+
+            if len(results) > 0:
+                if type(results[0]) == dict:
+                    if "data" in results[0].keys():
+                        self.segmentation_image = results[0]["data"]
 
     def import_data_finished(self):
 
         self.populate_dataset_selectors()
         self.update_ui()
         self.update_active_image()
+        self.draw_segmentation_image()
 
     def populate_dataset_selectors(self):
 
@@ -331,7 +347,11 @@ class _import_utils:
             dataset_names = list(self.dataset_dict.keys())
 
             if selector_name in ["picasso_dataset","locs_export_dataset"] and len(dataset_names) > 1:
-                dataset_names.append("All Datasets")
+                dataset_names.insert(0, "All Datasets")
+
+            if selector_name == "cellpose_dataset":
+                if hasattr(self, "segmentation_image"):
+                    dataset_names.insert(0, "Segmentation Image")
 
             if hasattr(self.gui, selector_name):
                 getattr(self.gui, selector_name).clear()
@@ -341,21 +361,32 @@ class _import_utils:
 
         try:
 
+            import_mode = self.gui.import_mode.currentText()
             desktop = os.path.expanduser("~/Desktop")
-            paths = QFileDialog.getOpenFileNames(self, 'Open file', desktop, "Image files (*.tif *.fits)")[0]
 
-            paths = [path for path in paths if path != ""]
+            if import_mode.lower() == "data":
+
+                paths = QFileDialog.getOpenFileNames(self, 'Open file',
+                    desktop, "Image files (*.tif *.fits)")[0]
+
+                paths = [path for path in paths if path != ""]
+
+            else:
+                path = QFileDialog.getOpenFileName(self, 'Open file',
+                    desktop, "Image files (*.tif *.fits)")[0]
+                paths = [path]
 
             if paths != []:
 
                 self.update_ui(init=True)
 
-                self.worker = Worker(self.import_data, paths=paths)
+                self.worker = Worker(self.import_data, paths=paths, import_mode=import_mode)
                 self.worker.signals.progress.connect(partial(self.moltrack_progress,
                     progress_bar=self.gui.import_progressbar))
                 self.worker.signals.finished.connect(self.import_data_finished)
                 self.worker.signals.error.connect(self.update_ui)
                 self.threadpool.start(self.worker)
+
 
         except:
             self.update_ui()

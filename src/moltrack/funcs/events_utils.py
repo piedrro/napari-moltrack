@@ -6,6 +6,8 @@ from functools import partial, wraps
 from qtpy.QtWidgets import (QSlider, QLabel)
 import time
 from napari.utils.notifications import show_info
+import napari
+
 
 class _events_utils:
 
@@ -147,6 +149,16 @@ class _events_utils:
             print(traceback.format_exc())
 
 
+    def draw_segmentation_image(self):
+
+        if hasattr(self, "segmentation_image"):
+
+            if hasattr(self, "segmentation_layer"):
+                self.segmentation_layer.data = self.segmentation_image.copy()
+                self.segmentation_layer.refresh()
+            else:
+                self.segmentation_layer = self.viewer.add_image(self.segmentation_image,
+                    name="Segmentation Image", visible=True)
 
     def update_active_image(self, dataset=None, event=None):
 

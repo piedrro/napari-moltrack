@@ -49,19 +49,19 @@
          </property>
          <widget class="QWidget" name="tab_15">
           <attribute name="title">
-           <string>Import Images</string>
+           <string>Import Data</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_18">
            <item>
             <layout class="QFormLayout" name="formLayout">
-             <item row="1" column="0">
+             <item row="2" column="0">
               <widget class="QLabel" name="label_22">
                <property name="text">
                 <string>Image Crop Mode</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="1">
+             <item row="2" column="1">
               <widget class="QComboBox" name="import_crop_mode">
                <item>
                 <property name="text">
@@ -85,14 +85,14 @@
                </item>
               </widget>
              </item>
-             <item row="0" column="0">
+             <item row="1" column="0">
               <widget class="QLabel" name="label_32">
                <property name="text">
                 <string>Import Limit</string>
                </property>
               </widget>
              </item>
-             <item row="0" column="1">
+             <item row="1" column="1">
               <widget class="QComboBox" name="import_limit">
                <item>
                 <property name="text">
@@ -136,12 +136,40 @@
                </item>
               </widget>
              </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_6">
+               <property name="text">
+                <string>Import Mode</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="import_mode">
+               <item>
+                <property name="text">
+                 <string>Data</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Segmentation Image</string>
+                </property>
+               </item>
+              </widget>
+             </item>
             </layout>
            </item>
            <item>
             <widget class="QCheckBox" name="import_concatenate">
              <property name="text">
               <string>Concatenate Imported Files</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="frame_averaging">
+             <property name="text">
+              <string>Frame Averaging</string>
              </property>
             </widget>
            </item>

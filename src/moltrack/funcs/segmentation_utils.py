@@ -184,17 +184,28 @@ class _segmentation_utils:
 
         return model, gpu, omnipose_model, labels_to_flows
 
-    def initialise_cellpose(self, mode = "active"):
 
-        try:
+    def get_segmentation_images(self, mode = "active"):
 
-            if self.dataset_dict != {}:
+        images = []
 
-                dataset = self.gui.cellpose_dataset.currentText()
-                current_frame = self.viewer.dims.current_step[0]
+        if self.dataset_dict != {} or hasattr(self, "segmentation_image"):
 
-                images = []
+            dataset = self.gui.cellpose_dataset.currentText()
+            current_frame = self.viewer.dims.current_step[0]
 
+            if dataset == "Segmentation Image":
+                if hasattr(self, "segmentation_image"):
+                    images = self.segmentation_image.copy()
+
+                    if mode == "active":
+                        images = [images[current_frame]]
+                    else:
+                        if len(images.shape) == 3:
+                            images = [frame for frame in images]
+                        else:
+                            images = [images]
+            else:
                 if mode == "active":
                     images = [self.dataset_dict[dataset]["data"][current_frame]]
                 else:
@@ -205,15 +216,25 @@ class _segmentation_utils:
                     else:
                         images = [images]
 
-                if len(images) > 0:
+        return images
 
-                    self.update_ui(init=True)
 
-                    self.worker = Worker(self.pixseq_segment, images = images, mode = mode)
-                    self.worker.signals.result.connect(self.process_cellpose_result)
-                    self.worker.signals.finished.connect(self.run_cellpose_finished)
-                    self.worker.signals.progress.connect(partial(self.moltrack_progress, progress_bar=self.gui.cellpose_progressbar))
-                    self.threadpool.start(self.worker)
+    def initialise_cellpose(self, mode = "active"):
+
+        try:
+
+            images = self.get_segmentation_images(mode = mode)
+
+            if len(images) > 0:
+
+                self.update_ui(init=True)
+
+                self.worker = Worker(self.pixseq_segment, images = images, mode = mode)
+                self.worker.signals.result.connect(self.process_cellpose_result)
+                self.worker.signals.finished.connect(self.run_cellpose_finished)
+                self.worker.signals.progress.connect(partial(self.moltrack_progress,
+                    progress_bar=self.gui.cellpose_progressbar))
+                self.threadpool.start(self.worker)
 
         except:
             self.update_ui(init=False)
