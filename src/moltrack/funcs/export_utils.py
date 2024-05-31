@@ -156,9 +156,8 @@ class _export_utils:
 
                 if dataset in self.tracking_dict.keys():
                     locs = self.tracking_dict[dataset]
-
-            else:
-                locs = []
+                else:
+                    locs = []
 
         return locs, fitted, box_size, min_net_gradient
 
@@ -183,6 +182,8 @@ class _export_utils:
                 n_locs = len(locs)
 
                 if n_locs > 0:
+
+                    print(fitted, box_size, min_net_gradient, n_locs, dataset_name)
 
                     import_path = self.dataset_dict[dataset_name]["path"]
                     image_shape = self.dataset_dict[dataset_name]["data"].shape
@@ -216,7 +217,7 @@ class _export_utils:
                                        "picasso_info": picasso_info,
                                       }
 
-                export_loc_jobs.append(export_loc_job)
+                    export_loc_jobs.append(export_loc_job)
 
             if len(export_loc_jobs) > 0:
 
