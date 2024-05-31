@@ -52,9 +52,11 @@ def import_image_data(dat, progress_dict={}, index=0):
 
                 n_frames = image.n_frames
 
-                if type(import_limit) == int:
-                    if n_frames > import_limit:
-                        n_frames = import_limit
+                if import_limit != "None":
+                    if import_limit.isdigit():
+                        import_limit = int(import_limit)
+                        if n_frames > import_limit:
+                            n_frames = import_limit
 
                 for frame_index in range(n_frames):
 
@@ -74,9 +76,11 @@ def import_image_data(dat, progress_dict={}, index=0):
 
                 n_frames = hdul[0].data.shape[0]
 
-                if type(import_limit) == int:
-                    if n_frames > import_limit:
-                        n_frames = import_limit
+                if import_limit != "None":
+                    if import_limit.isdigit():
+                        import_limit = int(import_limit)
+                        if n_frames > import_limit:
+                            n_frames = import_limit
 
                 for frame_index in range(n_frames):
 
