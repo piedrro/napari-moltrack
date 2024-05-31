@@ -23,6 +23,7 @@ class _tracking_utils:
 
             locdf = pd.DataFrame(locs, columns=columns)
 
+            tp.quiet()
             tracks_df = tp.link(
                 locdf, search_range=search_range, memory=memory
             )
@@ -59,6 +60,9 @@ class _tracking_utils:
 
             if dataset not in self.tracking_dict.keys():
                 self.tracking_dict[dataset] = tracks
+
+            n_tracks = np.unique(tracks["particle"])
+            print(f"Found {len(n_tracks)} tracks")
 
             remove_unlinked = self.gui.remove_unlinked.isChecked()
             n_frames = self.dataset_dict[dataset]["data"].shape[0]
