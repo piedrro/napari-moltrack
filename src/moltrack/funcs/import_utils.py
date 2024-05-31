@@ -18,9 +18,9 @@ def crop_frame(image, crop_mode):
     try:
 
         if "left" in crop_mode.lower():
-            crop = image[:, image.shape[1]//2:]
-        elif "right" in crop_mode.lower():
             crop = image[:, :image.shape[1]//2]
+        elif "right" in crop_mode.lower():
+            crop = image[:, image.shape[1]//2:]
         elif "brightest" in crop_mode.lower():
             left = image[:, :image.shape[1]//2]
             right = image[:, image.shape[1]//2:]
@@ -95,8 +95,7 @@ def import_image_data(dat, progress_dict={}, index=0):
 
         if len(images) > 0:
             images = np.stack(images, axis=0)
-
-        dat["data"] = images
+            dat["data"] = images
 
     except:
         print(traceback.format_exc())
@@ -265,10 +264,7 @@ class _import_utils:
                     if "data" in import_data.keys():
 
                         dataset_name = import_data["dataset_name"]
-                        image = import_data.pop("data")
-
                         import_dict[dataset_name] = import_data
-                        import_dict[dataset_name]["data"] = image
 
             if concat_images == True:
 
