@@ -1891,14 +1891,14 @@
        </item>
        <item>
         <layout class="QFormLayout" name="formLayout_19">
-         <item row="0" column="0">
+         <item row="1" column="0">
           <widget class="QLabel" name="label_112">
            <property name="text">
             <string>Export Mode</string>
            </property>
           </widget>
          </item>
-         <item row="0" column="1">
+         <item row="1" column="1">
           <widget class="QComboBox" name="locs_export_mode">
            <item>
             <property name="text">
@@ -1917,15 +1917,31 @@
            </item>
           </widget>
          </item>
-         <item row="1" column="0">
+         <item row="2" column="0">
           <widget class="QLabel" name="label_72">
            <property name="text">
             <string>Dataset</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="1">
+         <item row="2" column="1">
           <widget class="QComboBox" name="locs_export_dataset"/>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_13">
+           <property name="text">
+            <string>Export Data</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="locs_export_data">
+           <item>
+            <property name="text">
+             <string>Localisations</string>
+            </property>
+           </item>
+          </widget>
          </item>
         </layout>
        </item>

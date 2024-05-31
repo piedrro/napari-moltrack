@@ -81,6 +81,9 @@ class _tracking_utils:
 
             self.track_layer.tail_length = n_frames * 2
 
+            self.gui.locs_export_data.clear()
+            self.gui.locs_export_data.addItems(["Localisations","Tracks"])
+
             if remove_unlinked:
 
                 loc_dict = self.localisation_dict[dataset]
