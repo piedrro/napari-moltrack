@@ -159,6 +159,7 @@ class _segmentation_events:
                                     shapes = self.segLayer.data.copy()
                                     shapes.append(union_shape)
                                     self.segLayer.data = shapes
+                                    self.segLayer.refresh()
 
                     self.join_coords = None
 

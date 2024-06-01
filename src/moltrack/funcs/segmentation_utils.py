@@ -486,11 +486,11 @@ class _segmentation_utils:
 
             buffer = float(self.gui.dilatation_size.value())
 
-            if "Segmentations" in layer_names and filter:
+            if "Segmentations" in layer_names:
 
                 self.update_ui(init=True)
 
-                segLayer = self.viewer.layers["Segmentations"]
+                segLayer = self.segLayer
 
                 segmentations = segLayer.data.copy()
                 shape_types = segLayer.shape_type
@@ -502,7 +502,7 @@ class _segmentation_utils:
 
                     try:
 
-                        ndim = segmentations[0].shape[1]
+                        ndim = seg.shape[1]
 
                         if ndim == 2:
 
@@ -517,8 +517,9 @@ class _segmentation_utils:
                             seg = np.fliplr(seg)
                             seg = seg.astype(float)
                             seg = seg[:-1]
+                            segmentations[index] = seg
 
-                        if ndim == 3:
+                        elif ndim == 3:
 
                             frame = int(seg[0, 0])
                             seg = seg[:, 1:]
@@ -534,15 +535,13 @@ class _segmentation_utils:
                             seg = seg.astype(float)
                             seg = seg[:-1]
                             seg = np.insert(seg, 0, frame, axis=1)
+                            segmentations[index] = seg
 
                     except:
                         pass
 
-                    segmentations[index] = seg
-
                 # update layer
                 segLayer.mode = "pan_zoom"
-                segLayer.data = []
                 segLayer.data = segmentations
 
                 self.update_ui()
