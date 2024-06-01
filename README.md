@@ -7,13 +7,15 @@
 [![codecov](https://codecov.io/gh/piedrro/napari-moltrack/branch/main/graph/badge.svg)](https://codecov.io/gh/piedrro/napari-moltrack)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-moltrack)](https://napari-hub.org/plugins/napari-moltrack)
 
-A Napari plugin for single molecule localisation *and* tracking based on **Picasso**, **GPUfit** and **Trackpy**. Designed to work with single channel .tif and .fits files.
+A Napari plugin for single molecule localisation *and* tracking based on **Picasso**, **GPUfit** and **Trackpy**. This plugin was designed to detect/track single molecules inside cells, but can be used for any other SMLM/tracking application.
 
 All functions are parallelised/GPU accelerated where possible to increase performance. Multiple files can  be loaded and processed in parallel.
 
 Single molecule localisations can be filtered by their properties (e.g. photons, width, etc.) and can be rendered as a super resolution image.
 
 Segmentations can be used to exlude regions from single molecule localisaton and tracking. Segmentations can be added automatically using Cellpose or can be added manually.
+
+Compatible with single channel .tif and .fits files only.
 
 napari-moltrack was written by Piers Turner, Kapanidis Group, University of Oxford.
 
