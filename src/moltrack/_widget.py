@@ -135,10 +135,6 @@ class QWidget(QWidget, gui, *subclasses):
         except:
             package_installed = False
 
-            import moltrack
-            src_dir = moltrack.__file__.replace("\moltrack\__init__.py", "")
-            print(f"Add pygpufit package to moltrack src directory [{src_dir}] to enable GPUFit.")
-
         if package_installed:
             if not gf.cuda_available():
                 print("Pygpufit not available due to missing CUDA")
@@ -157,7 +153,10 @@ class QWidget(QWidget, gui, *subclasses):
 
         else:
             print("Pygpufit not available due to missing package")
-            print("Install pygpufit package into napari-PixSeq root directory")
+
+            import moltrack
+            src_dir = moltrack.__file__.replace("\moltrack\__init__.py", "")
+            print(f"Add pygpufit package to moltrack src directory [{src_dir}] to enable GPUFit.")
 
         if self.gpufit_available:
             print("GPUFit available")
