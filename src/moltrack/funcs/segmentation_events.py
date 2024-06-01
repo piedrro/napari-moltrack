@@ -278,19 +278,24 @@ class _segmentation_events:
                         self.extend_indices = [shape_index, last_index]
 
 
-    def join_shapes(self, shape1, shape2, simplify = True):
+    def join_shapes(self, shape1, shape2, simplify = True, buffer = 1):
 
         union_shape = None
 
         try:
 
             if shape1.shape[1] == 2:
+
                 shape1 = Polygon(shape1)
                 shape2 = Polygon(shape2)
+
+                shape1 = shape1.buffer(buffer)
+                shape2 = shape2.buffer(buffer)
 
                 if shape1.intersects(shape2):
 
                     union_polygon = unary_union([shape1, shape2])
+                    union_polygon = union_polygon.buffer(-buffer)
 
                     if simplify == True:
                         union_polygon = union_polygon.simplify(0.1)
@@ -305,12 +310,15 @@ class _segmentation_events:
                 shape1 = Polygon(shape1[:, 1:])
                 shape2 = Polygon(shape2[:, 1:])
 
+                shape1 = shape1.buffer(buffer)
+                shape2 = shape2.buffer(buffer)
+
                 if shape1.intersects(shape2):
 
                     union_polygon = unary_union([shape1, shape2])
+                    union_polygon = union_polygon.buffer(-buffer)
 
                     if simplify == True:
-                        print("Simplify")
                         union_polygon = union_polygon.simplify(0.1)
 
                     union_shape = np.array(union_polygon.exterior.coords)
