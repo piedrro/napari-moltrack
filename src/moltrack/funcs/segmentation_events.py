@@ -127,9 +127,9 @@ class _segmentation_events:
 
         try:
 
-            print(event.action)
-
             if event.action == "added":
+
+                self.segLayer.mode = "pan_zoom"
 
                 if self.segmentation_mode == "join":
 
@@ -189,8 +189,6 @@ class _segmentation_events:
 
                             if union_shape is not None:
 
-                                self.segLayer.mode = "pan_zoom"
-
                                 self.segLayer.events.data.disconnect(self.update_shapes)
                                 self.segLayer.selected_data = [shape_index, extend_index]
                                 self.segLayer.remove_selected()
@@ -202,12 +200,6 @@ class _segmentation_events:
                         shapes = self.segLayer.data.copy()
                         last_index = len(shapes)-1
                         self.remove_shapes(last_index)
-
-
-
-
-
-
 
                     self.extend_indices = None
 

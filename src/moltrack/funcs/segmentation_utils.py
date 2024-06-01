@@ -496,46 +496,52 @@ class _segmentation_utils:
                 shape_types = segLayer.shape_type
 
                 segmentations = [seg for seg, shape in zip(segmentations, shape_types) if shape == "polygon"]
+                segmentations = [seg for seg in segmentations if len(seg) > 4]
 
                 for index, seg in enumerate(segmentations):
 
-                    ndim = segmentations[0].shape[1]
+                    try:
 
-                    if ndim == 2:
+                        ndim = segmentations[0].shape[1]
 
-                        seg = np.fliplr(seg)
-                        poly = Polygon(seg)
-                        poly = poly.buffer(buffer)
+                        if ndim == 2:
 
-                        if simplify == True:
-                            poly = poly.simplify(0.1)
+                            seg = np.fliplr(seg)
+                            poly = Polygon(seg)
+                            poly = poly.buffer(buffer)
 
-                        seg = np.array(poly.exterior.coords)
-                        seg = np.fliplr(seg)
-                        seg = seg.astype(float)
-                        seg = seg[:-1]
-                        segmentations[index] = seg
+                            if simplify == True:
+                                poly = poly.simplify(0.1)
 
-                    if ndim == 3:
+                            seg = np.array(poly.exterior.coords)
+                            seg = np.fliplr(seg)
+                            seg = seg.astype(float)
+                            seg = seg[:-1]
 
-                        frame = int(seg[0, 0])
-                        seg = seg[:, 1:]
-                        seg = np.fliplr(seg)
-                        poly = Polygon(seg)
-                        poly = poly.buffer(buffer)
+                        if ndim == 3:
 
-                        if simplify == True:
-                            poly = poly.simplify(0.1)
+                            frame = int(seg[0, 0])
+                            seg = seg[:, 1:]
+                            seg = np.fliplr(seg)
+                            poly = Polygon(seg)
+                            poly = poly.buffer(buffer)
 
-                        seg = np.array(poly.exterior.coords)
-                        seg = np.fliplr(seg)
-                        seg = seg.astype(float)
-                        seg = seg[:-1]
-                        seg = np.insert(seg, 0, frame, axis=1)
-                        segmentations[index] = seg
+                            if simplify == True:
+                                poly = poly.simplify(0.1)
 
+                            seg = np.array(poly.exterior.coords)
+                            seg = np.fliplr(seg)
+                            seg = seg.astype(float)
+                            seg = seg[:-1]
+                            seg = np.insert(seg, 0, frame, axis=1)
+
+                    except:
+                        pass
+
+                    segmentations[index] = seg
 
                 # update layer
+                segLayer.mode = "pan_zoom"
                 segLayer.data = []
                 segLayer.data = segmentations
 
