@@ -13,7 +13,7 @@ All functions are parallelised/GPU accelerated where possible to increase perfor
 
 Single molecule localisations can be filtered by their properties (e.g. photons, width, etc.) and can be rendered as a super resolution image.
 
-Segmentations can be used to exlude regions from single molecule localisaton and tracking. Segmentations can be added automatically using Cellpose or can be added manually.
+Segmentations can be used to exlude regions from single molecule localisaton and tracking. Segmentations can be added automatically using Cellpose or can be added manually. Includes tools for editing/modifying segmentations with at a sub-pixel resolution.
 
 Compatible with single channel .tif and .fits files only.
 
