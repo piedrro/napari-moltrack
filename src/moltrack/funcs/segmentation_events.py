@@ -15,9 +15,7 @@ class _segmentation_events:
         layer.bind_key(key='e', func=lambda event: self.segmentation_modify_mode(mode="extend"), overwrite=True)
         layer.bind_key(key='j', func=lambda event: self.segmentation_modify_mode(mode="join"), overwrite=True)
         layer.bind_key(key='s', func=lambda event: self.segmentation_modify_mode(mode="split"), overwrite=True)
-        layer.bind_key(key='Delete', func=lambda event: self.segmentation_modify_mode(mode="delete"), overwrite=True)
-        layer.bind_key(key='Backspace', func=lambda event: self.segmentation_modify_mode(mode="delete"), overwrite=True)
-
+        layer.bind_key(key='d', func=lambda event: self.segmentation_modify_mode(mode="delete"), overwrite=True)
 
     def initialise_segLayer(self, shapes = None):
 
@@ -37,6 +35,7 @@ class _segmentation_events:
                 opacity=0.5, face_color="red", edge_color="black", edge_width=1)
 
         self.segLayer.mouse_drag_callbacks.append(self.seg_drag_event)
+        self.segLayer.mouse_double_click_callbacks.append(self.delete_clicked)
         self.segLayer.events.data.connect(self.update_shapes)
         self.register_segmentation_keybinds(self.segLayer)
 
@@ -206,6 +205,20 @@ class _segmentation_events:
 
             if event.action in ["added", "changed"]:
                 self.segLayer.mode = "pan_zoom"
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+    def delete_clicked(self, viewer=None, event=None):
+
+        try:
+
+            coords = self.segLayer.world_to_data(event.position)
+            shape_index = self.segLayer.get_value(coords)[0]
+
+            if shape_index is not None:
+                self.remove_shapes([shape_index])
 
         except:
             print(traceback.format_exc())

@@ -211,6 +211,12 @@
              </item>
              <item row="0" column="1">
               <widget class="QComboBox" name="import_picasso_type">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+               <property name="editable">
+                <bool>false</bool>
+               </property>
                <item>
                 <property name="text">
                  <string>Localisations</string>
@@ -223,6 +229,13 @@
                </item>
               </widget>
              </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="import_picasso_dataset">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
              <item row="1" column="0">
               <widget class="QLabel" name="label_2">
                <property name="text">
@@ -230,13 +243,13 @@
                </property>
               </widget>
              </item>
-             <item row="1" column="1">
-              <widget class="QComboBox" name="import_picasso_dataset"/>
-             </item>
             </layout>
            </item>
            <item>
             <widget class="QPushButton" name="import_picasso">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="text">
               <string>Import Picasso Localisations</string>
              </property>
@@ -299,7 +312,7 @@
          </property>
          <widget class="QWidget" name="tab_24">
           <attribute name="title">
-           <string>Cellpose</string>
+           <string>ML Segmentation (Cellpose)</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_28">
            <item>
@@ -789,9 +802,63 @@
          </widget>
          <widget class="QWidget" name="tab_26">
           <attribute name="title">
-           <string>Curate</string>
+           <string>Edit Segmentations</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_30">
+           <item>
+            <widget class="QLabel" name="label_132">
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Keyboard/Mouse Shortcuts</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_15">
+             <property name="text">
+              <string>Add Segmentation [Space]</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_17">
+             <property name="text">
+              <string>Extend Segmentation [E]</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_18">
+             <property name="text">
+              <string>Join Segmentations [J]</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_16">
+             <property name="text">
+              <string>Delete Segmentation [D] or [Double Click]</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_7">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
            <item>
             <widget class="QLabel" name="label_103">
              <property name="font">
@@ -820,10 +887,13 @@
                 <number>1</number>
                </property>
                <property name="minimum">
-                <double>0.100000000000000</double>
+                <double>-10.000000000000000</double>
                </property>
                <property name="maximum">
                 <double>10.000000000000000</double>
+               </property>
+               <property name="singleStep">
+                <double>0.100000000000000</double>
                </property>
                <property name="value">
                 <double>1.000000000000000</double>
@@ -880,7 +950,7 @@
                 <number>1</number>
                </property>
                <property name="minimum">
-                <double>0.100000000000000</double>
+                <double>0.500000000000000</double>
                </property>
               </widget>
              </item>
@@ -1069,7 +1139,7 @@
                 <number>100</number>
                </property>
                <property name="value">
-                <number>5</number>
+                <number>7</number>
                </property>
               </widget>
              </item>
@@ -1114,7 +1184,7 @@
              <item row="5" column="1">
               <widget class="QComboBox" name="picasso_box_size">
                <property name="currentIndex">
-                <number>0</number>
+                <number>1</number>
                </property>
                <item>
                 <property name="text">
@@ -1548,7 +1618,7 @@
              <item row="1" column="1">
               <widget class="QDoubleSpinBox" name="trackpy_search_range">
                <property name="value">
-                <double>1.000000000000000</double>
+                <double>5.000000000000000</double>
                </property>
               </widget>
              </item>
@@ -1560,7 +1630,11 @@
               </widget>
              </item>
              <item row="2" column="1">
-              <widget class="QSpinBox" name="trackpy_memory"/>
+              <widget class="QSpinBox" name="trackpy_memory">
+               <property name="value">
+                <number>1</number>
+               </property>
+              </widget>
              </item>
              <item row="3" column="0">
               <widget class="QLabel" name="label_100">
@@ -1573,6 +1647,9 @@
               <widget class="QSpinBox" name="min_track_length">
                <property name="minimum">
                 <number>1</number>
+               </property>
+               <property name="value">
+                <number>5</number>
                </property>
               </widget>
              </item>
