@@ -60,8 +60,6 @@ class _segmentation_events:
 
             self.segLayer = self.get_seglayer()
 
-            print(f"Segmentation mode: {mode}")
-
             if mode == "add":
                 self.viewer.layers.selection.select_only(self.segLayer)
 
@@ -113,13 +111,23 @@ class _segmentation_events:
         if type(indices) == int:
             indices = [indices]
 
-        self.segLayer.selected_data = indices
-        self.segLayer.remove_selected()
+        if len(indices) > 0:
+
+            self.segLayer.mode = "pan_zoom"
+
+            self.segLayer.events.data.disconnect(self.update_shapes)
+
+            self.segLayer.selected_data = indices
+            self.segLayer.remove_selected()
+
+            self.segLayer.events.data.connect(self.update_shapes)
 
 
     def update_shapes(self, event):
 
         try:
+
+            print(event.action)
 
             if event.action == "added":
 
@@ -156,30 +164,55 @@ class _segmentation_events:
 
                 if self.segmentation_mode == "extend":
 
+                    extend_shapes = False
+
                     if hasattr(self, "extend_indices"):
 
                         if type(self.extend_indices) == list:
 
                             if len(self.extend_indices) == 2:
 
-                                shape_index, extend_index = self.extend_indices
+                                extend_shapes = True
 
-                                shapes = self.segLayer.data.copy()
+                    if extend_shapes:
 
-                                target = shapes[shape_index].copy()
-                                extension = shapes[extend_index].copy()
+                        shape_index, extend_index = self.extend_indices
 
-                                if len(target) > 4 and len(extension) > 4:
+                        shapes = self.segLayer.data.copy()
 
-                                    union_shape = self.join_shapes(target, extension)
+                        target = shapes[shape_index].copy()
+                        extension = shapes[extend_index].copy()
 
-                                    if union_shape is not None:
+                        if len(target) > 4 and len(extension) > 4:
 
-                                        self.segLayer.events.data.disconnect(self.update_shapes)
-                                        self.segLayer.add(union_shape, shape_type="polygon")
-                                        self.segLayer.events.data.connect(self.update_shapes)
+                            union_shape = self.join_shapes(target, extension)
+
+                            if union_shape is not None:
+
+                                self.segLayer.mode = "pan_zoom"
+
+                                self.segLayer.events.data.disconnect(self.update_shapes)
+                                self.segLayer.selected_data = [shape_index, extend_index]
+                                self.segLayer.remove_selected()
+                                self.segLayer.add(union_shape, shape_type="polygon")
+                                self.segLayer.events.data.connect(self.update_shapes)
+
+                    else:
+
+                        shapes = self.segLayer.data.copy()
+                        last_index = len(shapes)-1
+                        self.remove_shapes(last_index)
+
+
+
+
+
+
 
                     self.extend_indices = None
+
+            if event.action in ["added", "changed"]:
+                self.segLayer.mode = "pan_zoom"
 
         except:
             print(traceback.format_exc())
@@ -253,7 +286,6 @@ class _segmentation_events:
                         self.extend_indices = [shape_index, last_index]
 
 
-
     def join_shapes(self, shape1, shape2, simplify = True):
 
         union_shape = None
@@ -269,7 +301,6 @@ class _segmentation_events:
                     union_polygon = unary_union([shape1, shape2])
 
                     if simplify == True:
-                        print("Simplify")
                         union_polygon = union_polygon.simplify(0.1)
 
                     union_shape = np.array(union_polygon.exterior.coords)
