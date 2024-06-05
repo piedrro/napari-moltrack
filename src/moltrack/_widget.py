@@ -19,10 +19,16 @@ from moltrack.funcs.picasso_render_utils import _picasso_render_utils
 from moltrack.funcs.segmentation_events import _segmentation_events
 from moltrack.funcs.segmentation_utils import _segmentation_utils
 from moltrack.funcs.tracking_utils import _tracking_utils
+from moltrack.funcs.bactfit_utils import _bactfit_utils
+
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
-subclasses = [_import_utils, _compute_utils, _events_utils, _segmentation_utils, _picasso_detect_utils, _loc_filter_utils, _picasso_render_utils, _tracking_utils, _export_utils, _segmentation_events, ]
-
+subclasses = [_import_utils, _compute_utils,
+              _events_utils, _segmentation_utils,
+              _picasso_detect_utils, _loc_filter_utils,
+              _picasso_render_utils, _tracking_utils,
+              _export_utils, _segmentation_events,
+              _bactfit_utils]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -109,6 +115,8 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.link_localisations.clicked.connect(self.initialise_tracking)
 
         self.gui.export_localisations.clicked.connect(self.initialise_export_locs)
+
+        self.gui.fit_segmentations.clicked.connect(self.initialise_bactfit)
 
         self.viewer.dims.events.current_step.connect(self.slider_event)
 

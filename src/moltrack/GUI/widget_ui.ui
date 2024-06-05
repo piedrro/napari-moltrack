@@ -990,7 +990,7 @@
             </widget>
            </item>
            <item>
-            <spacer name="verticalSpacer_27">
+            <spacer name="verticalSpacer_8">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
              </property>
@@ -1001,6 +1001,51 @@
               </size>
              </property>
             </spacer>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_133">
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Fit Segmentations (BactFit)</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="fit_segmentations">
+             <property name="text">
+              <string>Fit Cell Segmentations</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QProgressBar" name="bactfit_progressbar">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>10</height>
+              </size>
+             </property>
+             <property name="value">
+              <number>0</number>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>

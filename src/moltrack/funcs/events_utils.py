@@ -46,6 +46,7 @@ class _events_utils:
                         "picasso_render",
                         "link_localisations",
                         "export_localisations",
+                        "fit_segmentations",
                         ]
 
             progressbars = ["import_progressbar",
