@@ -1,0 +1,119 @@
+import random
+import string
+import numpy as np
+from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from multiprocessing import Manager, Event
+from functools import partial
+from scipy.spatial import distance
+import os
+from moltrack.bactfit.fit import BactFit
+from shapely.geometry import Polygon, LineString
+
+class Cell(object):
+
+    def __init__(self, cell_data = None):
+
+        self.cell_polygon = None
+        self.cell_centre = None
+        self.bbox = None
+        self.height = None
+        self.width = None
+        self.vertical = None
+
+        self.data = {}
+        self.locs = []
+
+        #fit data
+        self.cell_fit = None
+        self.cell_midline = None
+        self.cell_poles = None
+        self.polynomial_params = None
+        self.fit_error = None
+
+        if cell_data is not None:
+
+            for key in cell_data.keys():
+                setattr(self, key, cell_data[key])
+
+        if "name" not in cell_data.keys():
+            #create random alphanumeric name
+            self.name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+
+    def optimise(self, refine_fit = True, fit_mode = "directed_hausdorff"):
+
+        bf = BactFit()
+        bf.fit_cell(self, refine_fit = refine_fit, fit_mode = fit_mode)
+
+
+
+
+class CellList(object):
+    def __init__(self, cell_list):
+        self.data = cell_list
+
+    def optimise(self, refine_fit=True, parallel=False, max_workers=None,
+            progress_callback=None, fit_mode="directed_hausdorff", silence_tqdm=True):
+
+        if len(self.data) > 0:
+
+            bf = BactFit()
+
+            cell_list = bf.fit_cell_list(self.data,
+                refine_fit = refine_fit,
+                parallel = parallel,
+                fit_mode = fit_mode,
+                max_workers = max_workers,
+                progress_callback = progress_callback,
+                silence_tqdm = silence_tqdm)
+
+            self.data = cell_list
+
+    def resize_polygon(self, polygon, n_points):
+
+        outline = np.array(polygon.exterior.coords)
+        outline = outline[1:]
+
+        outline = LineString(outline)
+
+        distances = np.linspace(0, outline.length, n_points)
+        outline = LineString([outline.interpolate(distance) for distance in distances])
+
+        outline = outline.coords
+
+        polygon = Polygon(outline)
+
+        return polygon
+
+
+    def get_segmentations(self, n_points = 100):
+
+        segmentations = []
+        names = []
+
+        for cell in self.data:
+            if hasattr(cell, "cell_fit"):
+                cell_fit = cell.cell_fit
+
+                if cell_fit is None:
+                    continue
+
+                name = cell.name
+                cell_fit = cell_fit.simplify(0.2)
+
+                seg = np.array(cell_fit.exterior.coords)
+                seg = seg[1:]
+
+                segmentations.append(seg)
+                names.append(name)
+
+        return segmentations, names
+
+
+
+
+
+
+
+
+

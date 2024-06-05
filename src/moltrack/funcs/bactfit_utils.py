@@ -1,7 +1,8 @@
 import numpy as np
-
+import traceback
 from moltrack.funcs.compute_utils import Worker
 from moltrack.bactfit.fit import BactFit
+from moltrack.bactfit.preprocess import data_to_cells
 from functools import partial
 
 
@@ -10,34 +11,39 @@ class _bactfit_utils:
     def run_bactfit_finished(self):
         self.update_ui()
 
-    def run_bactfit_results(self, results):
+    def run_bactfit_results(self, cell_list):
 
-        fitted_cells = []
+        if cell_list is None:
+            return
 
-        for result in results:
-            seg = result["cell_fit"]
-            seg = seg[1:]
-            fitted_cells.append(seg)
+        fitted_cells, cell_names = cell_list.get_segmentations()
+
+        layer_names = [layer.name for layer in self.viewer.layers]
+
+        if "fitted_cells" in layer_names:
+            self.viewer.layers.remove("fitted_cells")
+
+        properties = {"name": cell_names,}
 
         self.viewer.add_shapes(fitted_cells,
-            shape_type="polygon", name="fitted_cells")
+            shape_type="polygon", name="fitted_cells",
+            properties=properties)
 
 
     def run_bactfit(self, segmentations, progress_callback=None):
 
-        fit_data = None
+        try:
 
-        if segmentations[0].shape[1] == 2:
+            cell_list = data_to_cells(segmentations)
 
-            bf = BactFit()
+            cell_list.optimise(refine_fit=True, parallel=True,
+                progress_callback=progress_callback)
 
-            fit_data = bf.fit_cell_contours(segmentations,
-                fit=True, parallel=False, progress_callback=progress_callback)
+        except:
+            print(traceback.format_exc())
+            return None
 
-        else:
-            print("3D")
-
-        return fit_data
+        return cell_list
 
     def initialise_bactfit(self):
 

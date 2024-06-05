@@ -53,6 +53,7 @@ class _events_utils:
                             "cellpose_progressbar",
                             "picasso_progressbar",
                             "export_progressbar",
+                            "bactfit_progressbar",
                             ]
 
             for progressbar in progressbars:
