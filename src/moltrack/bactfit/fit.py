@@ -30,9 +30,56 @@ from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import Manager, Event
 from functools import partial
-
+import warnings
 
 class BactFit(object):
+
+    def get_vertical(self, polygon):
+
+        minx, miny, maxx, maxy = polygon.bounds
+
+        h = maxy - miny
+        w = maxx - minx
+
+        if h > w:
+            vertical = True
+        else:
+            vertical = False
+
+        return vertical
+
+    def manual_fit(self, cell_coords, medial_axis_coords):
+
+        cell_polygon = Polygon(cell_coords)
+        cell_outline = LineString(cell_coords)
+
+        vertical = self.get_vertical(cell_polygon)
+
+        if vertical:
+            cell_polygon = BactFit.rotate_polygon(cell_polygon)
+            cell_coords = np.array(cell_polygon.exterior.coords)
+            cell_midline = LineString(medial_axis_coords)
+            cell_midline = BactFit.rotate_linestring(cell_midline)
+            medial_axis_coords = np.array(cell_midline.coords)
+
+        medial_axis_fit, poly_params = BactFit.fit_poly(medial_axis_coords,
+            degree=[1, 2, 3], maxiter=100, minimise_curvature=False)
+
+        centroid = cell_polygon.centroid
+        cell_radius = cell_outline.distance(centroid)
+
+        cell_midline = LineString(medial_axis_fit)
+        cell_fit = cell_midline.buffer(cell_radius)
+
+        if vertical:
+            cell_fit = BactFit.rotate_polygon(cell_fit, angle=-90)
+
+        cell_fit_coords = np.array(cell_fit.exterior.coords)
+        cell_fit_coords = cell_fit_coords[:-1]
+
+        return cell_fit_coords
+
+
 
     @staticmethod
     def get_polygon_medial_axis(outline, refine=True):
@@ -178,7 +225,6 @@ class BactFit(object):
                 cell_polygon, fit_mode)
 
         except:
-            print(traceback.format_exc())
             distance = np.inf
 
         return distance
@@ -318,7 +364,7 @@ class BactFit(object):
         return linestring
 
     @staticmethod
-    def fit_cell(cell, refine_fit = True,
+    def fit_cell(cell, refine_fit = True, min_radius = -1, max_radius = -1,
             fit_mode = "directed_hausdorff", **kwargs):
 
 
@@ -332,8 +378,13 @@ class BactFit(object):
 
             medial_axis_coords, radius = BactFit.get_polygon_medial_axis(cell_polygon)
 
+            if min_radius > 0:
+                radius = max(radius, min_radius)
+            if max_radius > 0:
+                radius = min(radius, max_radius)
+
             medial_axis_fit, poly_params = BactFit.fit_poly(medial_axis_coords,
-                degree=[1, 2], maxiter=100, minimise_curvature=False)
+                degree=[1, 2, 3], maxiter=100, minimise_curvature=False)
 
             x_min = np.min(medial_axis_fit[:, 0])
             x_max = np.max(medial_axis_fit[:, 0])
@@ -344,9 +395,23 @@ class BactFit(object):
 
             if refine_fit:
 
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+                bounds = [(None, None),  # x_min
+                          (None, None),  # x_max
+                          (None, None),  # radius
+                          (None, None),  # x_offset
+                          (None, None),  # y_offset
+                          (None, None)]  # rotation
+
+                if min_radius > 0:
+                    bounds[2] = (min_radius, None)
+                if max_radius > 0:
+                    bounds[2] = (None, max_radius)
+
                 result = minimize(BactFit.refine_function, params,
                     args=(cell_polygon, poly_params, fit_mode),
-                    tol=1e-6, options={'maxiter': 500})
+                    tol=1e-6, options={'maxiter': 500}, bounds=bounds)
 
                 params = result.x
 
@@ -364,11 +429,9 @@ class BactFit(object):
     @staticmethod
     def fit_cell_list(cell_list, refine_fit = True,
             fit_mode = "directed_hausdorff",
+            min_radius = -1, max_radius = -1,
             parallel = False, max_workers = None,
             progress_callback = None, silence_tqdm = False, **kwargs):
-
-
-        cell_list = cell_list[:10]
 
         num_cells = len(cell_list)
 
@@ -379,8 +442,12 @@ class BactFit(object):
 
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
 
-                futures = {executor.submit(BactFit.fit_cell, cell_obj,
-                    refine_fit=refine_fit, fit_mode=fit_mode): cell_obj for cell_obj in cell_list}
+                futures = {executor.submit(BactFit.fit_cell,
+                    cell_obj,
+                    refine_fit=refine_fit,
+                    fit_mode=fit_mode,
+                    min_radius=min_radius,
+                    max_radius=max_radius): cell_obj for cell_obj in cell_list}
 
                 completed = 0
                 for future in as_completed(futures):
@@ -401,7 +468,8 @@ class BactFit(object):
             for cell_index, cell in enumerate(cell_list):
 
                 cell = BactFit.fit_cell(cell, refine_fit=refine_fit,
-                    fit_mode=fit_mode)
+                    fit_mode=fit_mode, min_radius=min_radius,
+                    max_radius=max_radius)
 
                 cell_list[cell_index] = cell
 

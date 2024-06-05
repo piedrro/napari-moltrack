@@ -52,8 +52,9 @@ class CellList(object):
     def __init__(self, cell_list):
         self.data = cell_list
 
-    def optimise(self, refine_fit=True, parallel=False, max_workers=None,
-            progress_callback=None, fit_mode="directed_hausdorff", silence_tqdm=True):
+    def optimise(self, refine_fit=True, parallel=False, min_radius = -1, max_radius = -1,
+            max_workers=None, progress_callback=None, fit_mode="directed_hausdorff",
+            silence_tqdm=True):
 
         if len(self.data) > 0:
 
@@ -63,6 +64,8 @@ class CellList(object):
                 refine_fit = refine_fit,
                 parallel = parallel,
                 fit_mode = fit_mode,
+                min_radius = float(min_radius),
+                max_radius = float(max_radius),
                 max_workers = max_workers,
                 progress_callback = progress_callback,
                 silence_tqdm = silence_tqdm)
@@ -85,15 +88,25 @@ class CellList(object):
 
         return polygon
 
+    def resize_line(self, line, n_points):
 
-    def get_segmentations(self, n_points = 100):
+        distances = np.linspace(0, line.length, n_points)
+        line = LineString([line.interpolate(distance) for distance in distances])
 
-        segmentations = []
+        return line
+
+
+    def get_cell_fits(self, n_points = 100):
+
+        fits = []
+        midlines = []
         names = []
 
         for cell in self.data:
             if hasattr(cell, "cell_fit"):
+
                 cell_fit = cell.cell_fit
+                cell_midline = cell.cell_midline
 
                 if cell_fit is None:
                     continue
@@ -102,12 +115,19 @@ class CellList(object):
                 cell_fit = cell_fit.simplify(0.2)
 
                 seg = np.array(cell_fit.exterior.coords)
-                seg = seg[1:]
 
-                segmentations.append(seg)
+                midline = self.resize_line(cell_midline, 6)
+                midline = np.array(midline.coords)
+
+                fits.append(seg)
                 names.append(name)
+                midlines.append(midline)
 
-        return segmentations, names
+        data = {"fits": fits,
+                "midlines": midlines,
+                "names": names}
+
+        return data
 
 
 

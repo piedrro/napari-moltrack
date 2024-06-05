@@ -1023,6 +1023,44 @@
             </widget>
            </item>
            <item>
+            <layout class="QGridLayout" name="gridLayout">
+             <item row="0" column="1">
+              <widget class="QDoubleSpinBox" name="fit_min_radius">
+               <property name="minimum">
+                <double>-1.000000000000000</double>
+               </property>
+               <property name="value">
+                <double>-1.000000000000000</double>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_20">
+               <property name="text">
+                <string>Min Cell Radius (Pixels)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="2">
+              <widget class="QLabel" name="label_21">
+               <property name="text">
+                <string>Max Cell Radius (Pixels)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="3">
+              <widget class="QDoubleSpinBox" name="fit_max_radius">
+               <property name="minimum">
+                <double>-1.000000000000000</double>
+               </property>
+               <property name="value">
+                <double>-1.000000000000000</double>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
             <widget class="QPushButton" name="fit_segmentations">
              <property name="text">
               <string>Fit Cell Segmentations</string>
