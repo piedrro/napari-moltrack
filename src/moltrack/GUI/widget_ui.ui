@@ -847,6 +847,13 @@
             </widget>
            </item>
            <item>
+            <widget class="QLabel" name="label_19">
+             <property name="text">
+              <string>Dilate/Erode Segmentation [Control + Scroll]</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <spacer name="verticalSpacer_7">
              <property name="orientation">
               <enum>Qt::Vertical</enum>

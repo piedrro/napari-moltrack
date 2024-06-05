@@ -9,6 +9,53 @@ import warnings
 
 class _segmentation_events:
 
+    def dilate_cell(self, viewer=None, event=None):
+
+        try:
+            if 'Control' in event.modifiers:
+
+                coords = self.segLayer.world_to_data(event.position)
+                shape_index = self.segLayer.get_value(coords)[0]
+
+                if shape_index is not None:
+
+                    shape_type = self.segLayer.shape_type[shape_index]
+
+                    if shape_type == "polygon":
+
+                        if event.delta[1] > 0:
+                            buffer = 0.5
+                        else:
+                            buffer = -0.5
+
+                        shapes = self.segLayer.data.copy()
+
+                        shape = shapes[shape_index]
+
+                        if shape.shape[1] == 2:
+                            shape = Polygon(shape)
+                            shape = shape.buffer(buffer)
+                            shape = np.array(shape.exterior.coords)
+                            shape = shape[1:]
+                            shape = shape.astype(float)
+                        else:
+                            frame_index = shape[0, 0]
+                            shape = Polygon(shape[:, 1:])
+                            shape = shape.buffer(buffer)
+                            shape = np.array(shape.exterior.coords)
+                            shape = np.insert(shape, 0, frame_index, axis=1)
+                            shape = shape[1:]
+                            shape = shape.astype(float)
+
+                        shapes[shape_index] = shape
+                        self.segLayer.data = shapes
+
+
+
+        except:
+            print(traceback.format_exc())
+            pass
+
     def register_segmentation_keybinds(self, layer):
 
         layer.bind_key(key='Space', func=lambda event: self.segmentation_modify_mode(mode="add"), overwrite=True)
@@ -16,6 +63,7 @@ class _segmentation_events:
         layer.bind_key(key='j', func=lambda event: self.segmentation_modify_mode(mode="join"), overwrite=True)
         layer.bind_key(key='s', func=lambda event: self.segmentation_modify_mode(mode="split"), overwrite=True)
         layer.bind_key(key='d', func=lambda event: self.segmentation_modify_mode(mode="delete"), overwrite=True)
+        layer.bind_key(key='Escape', func=lambda event: self.segmentation_modify_mode(mode="pan_zoom"), overwrite=True)
 
     def initialise_segLayer(self, shapes = None):
 
@@ -37,6 +85,8 @@ class _segmentation_events:
         self.segLayer.mouse_drag_callbacks.append(self.seg_drag_event)
         self.segLayer.mouse_double_click_callbacks.append(self.delete_clicked)
         self.segLayer.events.data.connect(self.update_shapes)
+        self.segLayer.mouse_wheel_callbacks.append(self.dilate_cell)
+
         self.register_segmentation_keybinds(self.segLayer)
 
         return self.segLayer
