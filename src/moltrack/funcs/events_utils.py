@@ -47,6 +47,7 @@ class _events_utils:
                         "link_localisations",
                         "export_localisations",
                         "fit_segmentations",
+                        "export_shapes",
                         ]
 
             progressbars = ["import_progressbar",

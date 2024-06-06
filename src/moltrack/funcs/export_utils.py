@@ -129,6 +129,25 @@ def export_picasso_localisation(loc_data):
 
 class _export_utils:
 
+    def export_shapes_data(self):
+
+        print("Exporting shapes data")
+
+    def update_shape_export_options(self):
+
+        export_data = self.gui.shapes_export_data.currentText()
+
+        if export_data == "Segmentations":
+
+            self.gui.shapes_export_mode.clear()
+            self.gui.shapes_export_mode.addItems(["Binary Mask", "JSON"])
+
+        if export_data == "Cells":
+
+            self.gui.shapes_export_mode.clear()
+            self.gui.shapes_export_mode.addItems(["Binary Mask", "JSON", "Oufti/MicrobTracker Mesh"])
+
+
 
     def get_export_locs(self, dataset):
 

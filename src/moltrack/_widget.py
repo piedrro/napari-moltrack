@@ -119,6 +119,9 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.fit_segmentations.clicked.connect(self.initialise_bactfit)
 
+        self.gui.shapes_export_data.currentIndexChanged.connect(self.update_shape_export_options)
+        self.gui.export_shapes.clicked.connect(self.export_shapes_data)
+
         self.viewer.dims.events.current_step.connect(self.slider_event)
 
     def initialise_keybindings(self):

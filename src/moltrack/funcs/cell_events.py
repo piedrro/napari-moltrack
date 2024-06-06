@@ -14,7 +14,6 @@ import string
 
 class _cell_events:
 
-
     def moltrack_undo(self, viewer=None, event=None):
 
         try:
@@ -70,6 +69,10 @@ class _cell_events:
         self.register_shape_layer_keybinds(self.segLayer)
 
         self.store_cell_shapes(init=True)
+
+        shapes_layers = [layer.name for layer in self.viewer.layers if layer.name in ["Cells", "Segmentations"]]
+        self.gui.shapes_export_data.clear()
+        self.gui.shapes_export_data.addItems(shapes_layers)
 
         return self.cellLayer
 
