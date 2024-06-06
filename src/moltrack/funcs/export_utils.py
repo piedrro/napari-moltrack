@@ -129,9 +129,29 @@ def export_picasso_localisation(loc_data):
 
 class _export_utils:
 
+    def export_segmentations(self, export_mode, mode = "Binary Mask"):
+
+        pass
+
+    def export_cells(self, export_mode, mode = "Binary Mask"):
+
+        pass
+
     def export_shapes_data(self):
 
-        print("Exporting shapes data")
+        export_data = self.gui.shapes_export_data.currentText()
+        export_mode = self.gui.shapes_export_mode.currentText()
+
+        layer_names = [layer.name for layer in self.viewer.layers]
+
+        if export_data in layer_names:
+
+            if export_data == "Segmentations":
+                self.export_segmentations(export_mode, mode = export_mode)
+
+            if export_data == "Cells":
+                self.export_cells(export_mode, mode = export_mode)
+
 
     def update_shape_export_options(self):
 
