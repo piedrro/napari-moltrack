@@ -100,31 +100,40 @@ class CellList(object):
 
         fits = []
         midlines = []
+        cell_widths = []
         names = []
 
         for cell in self.data:
             if hasattr(cell, "cell_fit"):
 
-                cell_fit = cell.cell_fit
-                cell_midline = cell.cell_midline
+                try:
 
-                if cell_fit is None:
-                    continue
+                    cell_fit = cell.cell_fit
+                    cell_width = cell.cell_width
+                    cell_midline = cell.cell_midline
 
-                name = cell.name
-                cell_fit = cell_fit.simplify(0.2)
+                    if cell_fit is not None:
 
-                seg = np.array(cell_fit.exterior.coords)
+                        name = cell.name
+                        cell_fit = cell_fit.simplify(0.2)
+                        seg = np.array(cell_fit.exterior.coords)
 
-                midline = self.resize_line(cell_midline, 6)
-                midline = np.array(midline.coords)
+                        midline = self.resize_line(cell_midline, 6)
+                        midline = np.array(midline.coords)
 
-                fits.append(seg)
-                names.append(name)
-                midlines.append(midline)
+                        seg = seg[1:]
+
+                        fits.append(seg)
+                        names.append(name)
+                        midlines.append(midline)
+                        cell_widths.append(cell_width)
+
+                except:
+                    pass
 
         data = {"fits": fits,
                 "midlines": midlines,
+                "widths": cell_widths,
                 "names": names}
 
         return data

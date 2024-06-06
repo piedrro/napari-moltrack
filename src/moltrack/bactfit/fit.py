@@ -48,36 +48,45 @@ class BactFit(object):
 
         return vertical
 
-    def manual_fit(self, cell_coords, medial_axis_coords):
+    def manual_fit(self, cell_coords, midline_coords, width = None):
 
         cell_polygon = Polygon(cell_coords)
         cell_outline = LineString(cell_coords)
 
         vertical = self.get_vertical(cell_polygon)
 
+        n_medial_points = len(midline_coords)
+
         if vertical:
             cell_polygon = BactFit.rotate_polygon(cell_polygon)
             cell_coords = np.array(cell_polygon.exterior.coords)
-            cell_midline = LineString(medial_axis_coords)
+            cell_midline = LineString(midline_coords)
             cell_midline = BactFit.rotate_linestring(cell_midline)
-            medial_axis_coords = np.array(cell_midline.coords)
+            midline_coords = np.array(cell_midline.coords)
 
-        medial_axis_fit, poly_params = BactFit.fit_poly(medial_axis_coords,
+        medial_axis_fit, poly_params = BactFit.fit_poly(midline_coords,
             degree=[1, 2, 3], maxiter=100, minimise_curvature=False)
 
-        centroid = cell_polygon.centroid
-        cell_radius = cell_outline.distance(centroid)
+        if width is None:
+            centroid = cell_polygon.centroid
+            cell_width = cell_outline.distance(centroid)
+        else:
+            cell_width = width
 
         cell_midline = LineString(medial_axis_fit)
-        cell_fit = cell_midline.buffer(cell_radius)
+        cell_fit = cell_midline.buffer(cell_width)
 
         if vertical:
             cell_fit = BactFit.rotate_polygon(cell_fit, angle=-90)
+            cell_midline = BactFit.rotate_linestring(cell_midline, angle=-90)
 
         cell_fit_coords = np.array(cell_fit.exterior.coords)
         cell_fit_coords = cell_fit_coords[:-1]
 
-        return cell_fit_coords
+        cell_midline = BactFit.resize_line(cell_midline, n_medial_points)
+        midline_coords = np.array(cell_midline.coords)
+
+        return cell_fit_coords, midline_coords
 
 
 
@@ -110,7 +119,16 @@ class BactFit(object):
             return polygon.contains(Point(point))
 
         # Extract the medial axis points from the Voronoi vertices
-        coords = [vor.vertices[i].tolist() for i, region in enumerate(vor.regions) if -1 not in region]
+
+        coords = []
+
+        for i, region in enumerate(vor.regions):
+            if -1 not in region:
+                try:
+                    coords.append(vor.vertices[i].tolist())
+                except:
+                    pass
+
         coords = [point for point in coords if point_in_polygon(point, polygon)]
 
         centroid = polygon.centroid
@@ -185,6 +203,7 @@ class BactFit(object):
         cell.cell_poles = cell_poles
         cell.polynomial_params = poly_params
         cell.fit_error = distance
+        cell.cell_width = cell_width
 
         return cell
 

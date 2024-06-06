@@ -20,6 +20,7 @@ from moltrack.funcs.segmentation_events import _segmentation_events
 from moltrack.funcs.segmentation_utils import _segmentation_utils
 from moltrack.funcs.tracking_utils import _tracking_utils
 from moltrack.funcs.bactfit_utils import _bactfit_utils
+from moltrack.funcs.cell_events import _cell_events
 
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
@@ -28,7 +29,7 @@ subclasses = [_import_utils, _compute_utils,
               _picasso_detect_utils, _loc_filter_utils,
               _picasso_render_utils, _tracking_utils,
               _export_utils, _segmentation_events,
-              _bactfit_utils]
+              _bactfit_utils, _cell_events]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -121,17 +122,31 @@ class QWidget(QWidget, gui, *subclasses):
         self.viewer.dims.events.current_step.connect(self.slider_event)
 
     def initialise_keybindings(self):
-        self.viewer.bind_key("d", self.devfunc)
+
+        self.viewer.bind_key("F1", self.devfunc)
 
         self.viewer.bind_key(key="Control-Right", func=lambda event: self.moltract_translation(direction="right"), overwrite=True, )
         self.viewer.bind_key(key="Control-Left", func=lambda event: self.moltract_translation(direction="left"), overwrite=True, )
         self.viewer.bind_key(key="Control-Up", func=lambda event: self.moltract_translation(direction="up"), overwrite=True, )
         self.viewer.bind_key(key="Control-Down", func=lambda event: self.moltract_translation(direction="down"), overwrite=True, )
+        self.viewer.bind_key(key="Control-Z", func=self.moltrack_undo, overwrite=True, )
 
-        self.register_segmentation_keybinds(self.viewer)
+        self.register_shape_layer_keybinds(self.viewer)
 
     def devfunc(self, viewer=None):
-        self.update_ui()
+
+        self.cellLayer.events.data.disconnect(self.update_cells)
+        self.cellLayer.refresh()
+
+        event_callbacks = list(self.cellLayer.events["data"].callbacks)
+
+        print(event_callbacks)
+
+
+
+
+
+
 
     def check_gpufit_availibility(self):
         self.gpufit_available = False

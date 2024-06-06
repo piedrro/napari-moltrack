@@ -9,7 +9,7 @@ import warnings
 
 class _segmentation_events:
 
-    def dilate_cell(self, viewer=None, event=None):
+    def dilate_segmentation(self, viewer=None, event=None):
 
         try:
             if 'Control' in event.modifiers:
@@ -50,20 +50,19 @@ class _segmentation_events:
                         shapes[shape_index] = shape
                         self.segLayer.data = shapes
 
-
-
         except:
             print(traceback.format_exc())
             pass
 
-    def register_segmentation_keybinds(self, layer):
+    def register_shape_layer_keybinds(self, layer):
 
-        layer.bind_key(key='Space', func=lambda event: self.segmentation_modify_mode(mode="add"), overwrite=True)
-        layer.bind_key(key='e', func=lambda event: self.segmentation_modify_mode(mode="extend"), overwrite=True)
-        layer.bind_key(key='j', func=lambda event: self.segmentation_modify_mode(mode="join"), overwrite=True)
-        layer.bind_key(key='s', func=lambda event: self.segmentation_modify_mode(mode="split"), overwrite=True)
-        layer.bind_key(key='d', func=lambda event: self.segmentation_modify_mode(mode="delete"), overwrite=True)
-        layer.bind_key(key='Escape', func=lambda event: self.segmentation_modify_mode(mode="pan_zoom"), overwrite=True)
+        layer.bind_key(key='Space', func=lambda event: self.modify_mode(mode="add"), overwrite=True)
+        layer.bind_key(key='e', func=lambda event: self.modify_mode(mode="extend"), overwrite=True)
+        layer.bind_key(key='j', func=lambda event: self.modify_mode(mode="join"), overwrite=True)
+        layer.bind_key(key='d', func=lambda event: self.modify_mode(mode="delete"), overwrite=True)
+        layer.bind_key(key='p', func=lambda event: self.modify_mode(mode="pan_zoom"), overwrite=True)
+        layer.bind_key(key='m', func=lambda event: self.modify_mode(mode="midline"), overwrite=True)
+        layer.bind_key(key='s', func=lambda event: self.modify_mode(mode="edit_midlines"), overwrite=True)
 
     def initialise_segLayer(self, shapes = None):
 
@@ -85,9 +84,9 @@ class _segmentation_events:
         self.segLayer.mouse_drag_callbacks.append(self.seg_drag_event)
         self.segLayer.mouse_double_click_callbacks.append(self.delete_clicked)
         self.segLayer.events.data.connect(self.update_shapes)
-        self.segLayer.mouse_wheel_callbacks.append(self.dilate_cell)
+        self.segLayer.mouse_wheel_callbacks.append(self.dilate_segmentation)
 
-        self.register_segmentation_keybinds(self.segLayer)
+        self.register_shape_layer_keybinds(self.segLayer)
 
         return self.segLayer
 
@@ -103,11 +102,15 @@ class _segmentation_events:
         return self.segLayer
 
 
-    def segmentation_modify_mode(self, viewer=None, mode = "add"):
+    def modify_mode(self, viewer=None, mode ="add"):
 
         try:
 
-            self.segLayer = self.get_seglayer()
+            if mode in ["add", "extend", "join", "delete"]:
+                self.segLayer = self.get_seglayer()
+
+            elif mode in ["midline", "edit_midlines"]:
+                self.cellLayer = self.get_cellLayer()
 
             if mode == "add":
                 self.viewer.layers.selection.select_only(self.segLayer)
@@ -133,13 +136,6 @@ class _segmentation_events:
                 self.segLayer.mode = "add_line"
                 show_info("Join (click/drag to join)")
 
-            if mode == "split":
-                self.viewer.layers.selection.select_only(self.segLayer)
-
-                self.interface_mode = "segment"
-                self.segmentation_mode = "split"
-                show_info("Split (click/drag to split)")
-
             if mode == "delete":
                 self.viewer.layers.selection.select_only(self.segLayer)
 
@@ -149,6 +145,22 @@ class _segmentation_events:
                 self.segLayer.mode = "select"
 
                 show_info("Delete (click/drag to delete)")
+
+            if mode == "midline":
+
+                self.viewer.layers.selection.select_only(self.cellLayer)
+                self.cellLayer.mode = "add_path"
+
+                show_info("Midline (click to add midline)")
+
+            if mode == "edit_midlines":
+
+                self.viewer.layers.selection.select_only(self.cellLayer)
+                self.cellLayer.mode = "direct"
+
+                self.select_cell_midlines()
+
+                show_info("Edit midlines (click/drag to edit midline)")
 
         except:
             print(traceback.format_exc())
