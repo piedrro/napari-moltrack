@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 
 class _bactfit_utils:
 
-
     def run_bactfit_finished(self):
         self.update_ui()
 
@@ -55,6 +54,8 @@ class _bactfit_utils:
 
         self.cellLayer = self.initialise_cellLayer(shapes=shapes,
             shape_types=shape_types, properties=properties)
+
+        self.store_cell_shapes()
 
 
     def run_bactfit(self, segmentations, progress_callback=None):

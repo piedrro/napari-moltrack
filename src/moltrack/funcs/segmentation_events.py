@@ -63,6 +63,7 @@ class _segmentation_events:
         layer.bind_key(key='p', func=lambda event: self.modify_mode(mode="pan_zoom"), overwrite=True)
         layer.bind_key(key='m', func=lambda event: self.modify_mode(mode="midline"), overwrite=True)
         layer.bind_key(key='s', func=lambda event: self.modify_mode(mode="edit_midlines"), overwrite=True)
+        layer.bind_key(key='Escape', func=lambda event: self.modify_mode(mode="pan_zoom"), overwrite=True)
 
     def initialise_segLayer(self, shapes = None):
 
@@ -106,7 +107,7 @@ class _segmentation_events:
 
         try:
 
-            if mode in ["add", "extend", "join", "delete"]:
+            if mode in ["add", "extend", "join"]:
                 self.segLayer = self.get_seglayer()
 
             elif mode in ["midline", "edit_midlines"]:
@@ -137,14 +138,36 @@ class _segmentation_events:
                 show_info("Join (click/drag to join)")
 
             if mode == "delete":
-                self.viewer.layers.selection.select_only(self.segLayer)
 
-                self.interface_mode = "segment"
-                self.segmentation_mode = "delete"
+                selected_layer = self.viewer.layers.selection.active
 
-                self.segLayer.mode = "select"
+                if selected_layer is not None:
 
-                show_info("Delete (click/drag to delete)")
+                    if selected_layer.name == "Cells":
+                        self.cellLayer.mode = "select"
+                        show_info("Delete Cell (click/drag to delete)")
+                    if selected_layer.name == "Segmentations":
+                        self.segLayer.mode = "select"
+                        show_info("Delete Segmentation (click/drag to delete)")
+
+                    self.interface_mode = "segment"
+                    self.segmentation_mode = "delete"
+
+            if mode == "pan_zoom":
+
+                selected_layer = self.viewer.layers.selection.active
+
+                if selected_layer is not None:
+
+                    if selected_layer.name == "Cells":
+                        self.cellLayer.mode = "pan_zoom"
+                    if selected_layer.name == "Segmentations":
+                        self.segLayer.mode = "pan_zoom"
+
+                    show_info("Pan/Zoom activated")
+
+                    self.interface_mode = "segment"
+                    self.segmentation_mode = "panzoom"
 
             if mode == "midline":
 

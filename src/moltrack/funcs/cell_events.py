@@ -64,12 +64,58 @@ class _cell_events:
 
         self.move_polygons_to_front()
 
+        self.cellLayer.mouse_drag_callbacks.append(self.celllayer_clicked)
         self.cellLayer.mouse_wheel_callbacks.append(self.dilate_cell)
         self.cellLayer.events.data.connect(self.update_cells)
+        self.register_shape_layer_keybinds(self.segLayer)
 
-        self.store_cell_shapes()
+        self.store_cell_shapes(init=True)
 
         return self.cellLayer
+
+
+    def celllayer_clicked(self, viewer=None, event=None):
+
+        try:
+
+            if hasattr(self, "segmentation_mode"):
+
+                if self.segmentation_mode == "delete":
+
+                    coords = self.cellLayer.world_to_data(event.position)
+                    shape_index = self.cellLayer.get_value(coords)[0]
+
+                    if shape_index is not None:
+
+                        name = self.cellLayer.properties["name"][shape_index]
+
+                        cell = self.get_cell(name)
+
+                        if cell is not None:
+
+                            polygon_index = cell["polygon_index"]
+                            midline_index = cell["midline_index"]
+
+                            self.cellLayer.events.data.disconnect(self.update_cells)
+                            self.cellLayer.refresh()
+
+                            self.cellLayer.selected_data = [polygon_index, midline_index]
+                            self.cellLayer.remove_selected()
+
+                            self.cellLayer.events.data.connect(self.update_cells)
+                            self.cellLayer.refresh()
+
+                            self.store_cell_shapes()
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+
+
+
+
+
 
     def cellLayer_event_manager(self, mode = "connect"):
 
@@ -82,7 +128,7 @@ class _cell_events:
                     self.cellLayer.mouse_wheel_callbacks.remove(callback)
 
 
-    def store_cell_shapes(self, max_stored = 10):
+    def store_cell_shapes(self, max_stored = 10, init = False):
 
         try:
 
@@ -92,15 +138,20 @@ class _cell_events:
 
                 current_shapes = copy.deepcopy(self.cellLayer.data)
 
-                if len(current_shapes) > 0:
+                if init:
+                    self.stored_cells = [current_shapes]
 
-                    if len(self.stored_cells) == 0:
-                        self.stored_cells.append(current_shapes)
-                    else:
-                        previous_shapes = self.stored_cells[-1]
+                else:
 
-                        if not np.array_equal(previous_shapes, current_shapes):
+                    if len(current_shapes) > 0:
+
+                        if len(self.stored_cells) == 0:
                             self.stored_cells.append(current_shapes)
+                        else:
+                            previous_shapes = self.stored_cells[-1]
+
+                            if not np.array_equal(previous_shapes, current_shapes):
+                                self.stored_cells.append(current_shapes)
 
                 if len(self.stored_cells) > max_stored:
                     self.stored_cells.pop(0)
@@ -410,10 +461,10 @@ class _cell_events:
 
             if event.action == "changed":
 
-                modified_indices = list(event.data_indices)
+                # modified_indices = list(event.data_indices)
 
-                # modified_indices = self.get_modified_shape_indices()
-                # print(data_indices, modified_indices)
+                modified_indices = self.get_modified_shape_indices()
+                print(modified_indices)
 
                 if len(modified_indices) == 1:
 

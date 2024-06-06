@@ -459,6 +459,8 @@ class BactFit(object):
             if max_workers == None:
                 max_workers = os.cpu_count()
 
+            print(max_workers)
+
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
 
                 futures = {executor.submit(BactFit.fit_cell,

@@ -854,6 +854,13 @@
             </widget>
            </item>
            <item>
+            <widget class="QLabel" name="label_28">
+             <property name="text">
+              <string>Activate Pan/Zoom [Escape]</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <spacer name="verticalSpacer_7">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
@@ -1176,6 +1183,13 @@
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QLabel" name="label_29">
+         <property name="text">
+          <string>Activate Pan/Zoom [Escape]</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
      <widget class="QWidget" name="tab_2">
@@ -1423,7 +1437,7 @@
            <item>
             <widget class="QCheckBox" name="picasso_segmentation_filtering">
              <property name="text">
-              <string>Remove Localisations Outside Segmentations</string>
+              <string>Remove Localisations Outside Segmentations/Cells</string>
              </property>
             </widget>
            </item>
