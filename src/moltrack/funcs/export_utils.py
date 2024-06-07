@@ -17,6 +17,7 @@ from qtpy.QtWidgets import QFileDialog
 import pandas as pd
 import cv2
 import json
+from moltrack.funcs.compute_utils import Worker
 
 def format_picasso_path(path):
 
@@ -289,6 +290,15 @@ class _export_utils:
         elif export_mode == "JSON":
 
             self.export_shapes_json(path)
+
+        elif export_mode == "Oufti/MicrobTracker Mesh":
+
+            self.update_ui()
+
+            worker = Worker(self.export_mesh, path)
+            worker.signals.finished.connect(self.export_mesh_finished)
+            self.threadpool.start(worker)
+
 
 
     def get_export_polygons(self):

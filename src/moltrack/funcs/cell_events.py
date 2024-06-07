@@ -522,9 +522,6 @@ class _cell_events:
 
                     self.add_manual_cell(last_index)
 
-                else:
-                    self.remove_cells(last_index)
-
                 self.store_cell_shapes()
 
         except:

@@ -3,8 +3,11 @@ from multiprocessing import Manager
 from typing import TYPE_CHECKING
 
 import pyqtgraph as pg
+import tifffile
 from qtpy.QtCore import QThreadPool
 from qtpy.QtWidgets import QVBoxLayout, QWidget
+from skimage import exposure
+import numpy as np
 
 if TYPE_CHECKING:
     import napari
@@ -21,6 +24,7 @@ from moltrack.funcs.segmentation_utils import _segmentation_utils
 from moltrack.funcs.tracking_utils import _tracking_utils
 from moltrack.funcs.bactfit_utils import _bactfit_utils
 from moltrack.funcs.cell_events import _cell_events
+from moltrack.funcs.microbetracker_utils import _microbetracker_utils
 
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
@@ -29,7 +33,8 @@ subclasses = [_import_utils, _compute_utils,
               _picasso_detect_utils, _loc_filter_utils,
               _picasso_render_utils, _tracking_utils,
               _export_utils, _segmentation_events,
-              _bactfit_utils, _cell_events]
+              _bactfit_utils, _cell_events,
+              _microbetracker_utils]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -143,8 +148,39 @@ class QWidget(QWidget, gui, *subclasses):
 
     def devfunc(self, viewer=None):
 
-        self.gui.picasso_segmentation_layer.addItem("test")
-        self.update_picasso_segmentation_filter()
+        image = self.viewer.layers["Segmentation Image"].data[0].copy()
+        path = r"C:\Users\turnerp\Desktop\image.tif"
+
+        image = self.normalize99(image)
+        image = self.rescale01(image)
+        image = (image * 255).astype(np.uint8)
+        tifffile.imwrite(path, image)
+
+        print(image.shape)
+
+        # self.gui.picasso_segmentation_layer.addItem("test")
+        # self.update_picasso_segmentation_filter()
+
+    def normalize99(self, X):
+        """ normalize image so 0.0==0.01st percentile and 1.0==99.99th percentile """
+        X = X.copy()
+
+        if np.max(X) > 0:
+            v_min, v_max = np.percentile(X[X != 0], (0.01, 99.99))
+            X = exposure.rescale_intensity(X, in_range=(v_min, v_max))
+
+        return X
+
+    def rescale01(self, x):
+        """ normalize image from 0 to 1 """
+
+        if np.max(x) > 0:
+            x = (x - np.min(x)) / (np.max(x) - np.min(x))
+
+        x = x.astype(np.float64)
+
+        return x
+
 
     def check_gpufit_availibility(self):
         self.gpufit_available = False
