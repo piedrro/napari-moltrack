@@ -1,10 +1,103 @@
 import traceback
 import numpy as np
+import pandas as pd
+from shapely.geometry import Polygon, Point, MultiPolygon, MultiPoint
+from shapely.strtree import STRtree
 
 class _loc_filter_utils:
 
 
-    def remove_segchannel_locs(self, viewer=None):
+    def remove_seglocs(self, viewer=None):
+
+        try:
+
+            layer_names = [layer.name for layer in self.viewer.layers]
+
+            segmentations = self.gui.remove_seglocs_segmentation.currentText()
+            dataset = self.gui.remove_seglocs_dataset.currentText()
+            loc_datasets = list(self.localisation_dict.keys())
+
+            if segmentations not in layer_names:
+                print(f"Segmentation {segmentations} not found in viewer.")
+                return
+            else:
+                polygons = self.viewer.layers[segmentations].data.copy()
+
+                if len(polygons) == 0:
+                    print(f"No polygons found in segmentation {segmentations}.")
+                    return
+
+            if dataset not in loc_datasets:
+                print(f"Dataset {dataset} not found in localisation dict.")
+                return
+
+            loc_dict = self.localisation_dict[dataset]
+
+            locs = loc_dict["localisations"].copy()
+            n_locs = len(locs)
+
+            if n_locs == 0:
+                print(f"No localisations found in dataset {dataset}.")
+                return
+
+            filtered_locs = []
+
+            polygons = [Polygon(polygon) for polygon in polygons]
+            coords = np.stack([locs["x"], locs["y"]], axis=1)
+            points = [Point(coord) for coord in coords]
+
+            spatial_index = STRtree(points)
+
+            for polygon_index, polygon in enumerate(polygons):
+
+                possible_points = spatial_index.query(polygon)
+
+                polygon_point_indices = []
+
+                for point_index in possible_points:
+
+                    point = points[point_index]
+
+                    if polygon.contains(point):
+
+                        polygon_point_indices.append(point_index)
+
+                if len(polygon_point_indices) > 0:
+
+                    polygon_locs = locs[polygon_point_indices]
+
+                    seg_name = segmentations[:-1].lower() + "_index"
+
+                    polygon_locs = pd.DataFrame(polygon_locs)
+
+                    if "cell_index" in polygon_locs.columns:
+                        polygon_locs = polygon_locs.drop(columns=["cell_index"])
+                    if "segmentation_index" in polygon_locs.columns:
+                        polygon_locs = polygon_locs.drop(columns=["segmentation_index"])
+
+                    polygon_locs[seg_name] = polygon_index
+                    polygon_locs = polygon_locs.to_records(index=False)
+
+                    filtered_locs.append(polygon_locs)
+
+            if len(filtered_locs) > 0:
+                filtered_locs = np.hstack(filtered_locs).view(np.recarray).copy()
+
+                loc_dict["localisations"] = filtered_locs
+                self.localisation_dict[dataset] = loc_dict
+
+                n_filtered = len(filtered_locs)
+                n_removed = n_locs - n_filtered
+
+                print(f"Removed {n_removed} localisations.")
+
+                self.draw_localisations()
+
+                self.update_filter_criterion()
+                self.update_criterion_ranges()
+
+        except:
+            print(traceback.format_exc())
 
         pass
 

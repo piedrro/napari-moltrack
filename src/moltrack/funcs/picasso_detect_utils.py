@@ -10,14 +10,14 @@ from picasso import postprocess
 from functools import partial
 import concurrent.futures
 import multiprocessing
-from shapely.geometry import Point
 from multiprocessing import Manager
 import numpy as np
 import pandas as pd
 import math
 import cv2
 from skimage.feature import peak_local_max
-
+from shapely.geometry import Polygon, Point, MultiPolygon, MultiPoint
+from shapely.strtree import STRtree
 
 def precompute_kernels(lnoise=0, lobject=1):
 
@@ -80,6 +80,12 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
         polygons = dat["polygons"]
         threshold = dat["threshold"]
         window_size = dat["window_size"]
+        segmentation_layer = dat["segmentation_layer"]
+
+        if segmentation_layer != "None":
+            seg_name = segmentation_layer[:-1].lower() + "_index"
+        else:
+            seg_name = "shape_index"
 
         loc_list = []
         spot_list = []
@@ -112,8 +118,11 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
                     if remove_overlapping:
                         locs = remove_overlapping_locs(locs, box_size)
 
+                    polygon_indices = get_polygon_indices(polygons, locs)
+
                     if polygon_filter:
-                        locs = remove_segmentation_locs(locs, polygons)
+                        locs, polygon_indices = remove_segmentation_locs(polygons,
+                            locs, polygon_indices)
 
                     if len(locs) > 0:
 
@@ -125,6 +134,10 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
 
                         locs = pd.DataFrame(locs)
                         locs.insert(0, "dataset", dataset)
+
+                        if segmentation_layer != "None":
+                            locs[seg_name] = polygon_indices
+
                         locs = locs.to_records(index=False)
 
                         for loc, spot in zip(locs, spot_data):
@@ -260,29 +273,86 @@ def fit_spots_lq(spots, locs, box, progress_list):
 
     return locs
 
-def remove_segmentation_locs(locs, polygons):
 
-    if len(polygons) > 0 and len(locs) > 0:
+def get_polygon_indices(polygons, locs):
 
-        loclist = pd.DataFrame(locs).to_dict(orient="records")
+    polygon_indices = [-1] * len(locs)
 
-        filtered_locs = []
+    try:
 
-        for loc in loclist:
-            point = Point(loc["x"], loc["y"])
+        if len(polygons) > 0 and len(locs) > 0:
+
+            coords = np.stack([locs["x"], locs["y"]], axis=1)
+            points = [Point(coord) for coord in coords]
+
+            spatial_index = STRtree(points)
 
             for polygon_index, polygon in enumerate(polygons):
-                if polygon.contains(point):
-                    loc["segmentation"] = polygon_index
-                    filtered_locs.append(loc)
 
-        if len(filtered_locs):
-            locs = pd.DataFrame(filtered_locs).to_records(index=False)
-        else:
-            locs = []
+                possible_points = spatial_index.query(polygon)
 
-    else:
-        locs = []
+                for point_index in possible_points:
+
+                    point = points[point_index]
+
+                    if polygon.contains(point):
+
+                        polygon_indices[point_index] = polygon_index
+
+    except:
+        print(traceback.format_exc())
+        pass
+
+    return polygon_indices
+
+
+
+def remove_segmentation_locs(polygons, locs, polygon_indices):
+
+    try:
+
+        if len(polygon_indices) > 0:
+
+            delete_indices = np.argwhere(np.array(polygon_indices) == -1).flatten()
+
+            polygon_indices = np.delete(np.array(polygon_indices), delete_indices)
+
+            mask = np.ones(len(locs), dtype=bool)
+            mask[delete_indices] = False
+
+            locs = locs[mask]
+
+    except:
+        print(traceback.format_exc())
+        pass
+
+    return locs, polygon_indices
+
+
+
+
+
+    # if len(polygons) > 0 and len(locs) > 0:
+    #
+    #     loclist = pd.DataFrame(locs).to_dict(orient="records")
+    #
+    #     filtered_locs = []
+    #
+    #     for loc in loclist:
+    #         point = Point(loc["x"], loc["y"])
+    #
+    #         for polygon_index, polygon in enumerate(polygons):
+    #             if polygon.contains(point):
+    #                 loc["segmentation"] = polygon_index
+    #                 filtered_locs.append(loc)
+    #
+    #     if len(filtered_locs):
+    #         locs = pd.DataFrame(filtered_locs).to_records(index=False)
+    #     else:
+    #         locs = []
+    #
+    # else:
+    #     locs = []
 
     return locs
 
@@ -530,16 +600,12 @@ class _picasso_detect_utils:
 
             box_size = int(self.gui.picasso_box_size.currentText())
             remove_overlapping = self.gui.picasso_remove_overlapping.isChecked()
-            segmentation_layer = self.gui.picasso_segmentation_filter.currentText()
+            segmentation_layer = self.gui.picasso_segmentation_layer.currentText()
+            polygon_filter = self.gui.picasso_segmentation_filter.isChecked()
             threshold = int(self.gui.moltrack_threshold.text())
             window_size = int(self.gui.moltrack_window_size.text())
 
             segmentation_polygons = self.get_segmentation_polygons(segmentation_layer)
-
-            if len(segmentation_polygons) > 0:
-                polygon_filter = True
-            else:
-                polygon_filter = False
 
             compute_jobs = []
 
@@ -562,6 +628,7 @@ class _picasso_detect_utils:
                                "window_size": window_size,
                                "roi": roi,
                                "remove_overlapping": remove_overlapping,
+                               "segmentation_layer": segmentation_layer,
                                "polygon_filter":polygon_filter,
                                "polygons": segmentation_polygons,
                                "stop_event": self.stop_event, }

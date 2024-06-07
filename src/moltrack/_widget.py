@@ -105,6 +105,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.filter_criterion.currentIndexChanged.connect(self.update_criterion_ranges)
         self.gui.filter_localisations.clicked.connect(self.pixseq_filter_localisations)
         self.gui.picasso_filter_type.currentIndexChanged.connect(self.update_filter_dataset)
+        self.gui.picasso_segmentation_layer.currentIndexChanged.connect(self.update_picasso_segmentation_filter)
 
         self.gui.picasso_vis_mode.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))
         self.gui.picasso_vis_size.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))
@@ -122,7 +123,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.shapes_export_data.currentIndexChanged.connect(self.update_shape_export_options)
         self.gui.export_shapes.clicked.connect(self.export_shapes_data)
 
-        self.gui.remove_seglocs.clicked.connect(self.remove_segchannel_locs)
+        self.gui.remove_seglocs.clicked.connect(self.remove_seglocs)
 
         self.viewer.layers.events.inserted.connect(self.update_layer_combos)
         self.viewer.layers.events.removed.connect(self.update_layer_combos)
@@ -142,18 +143,8 @@ class QWidget(QWidget, gui, *subclasses):
 
     def devfunc(self, viewer=None):
 
-        self.cellLayer.events.data.disconnect(self.update_cells)
-        self.cellLayer.refresh()
-
-        event_callbacks = list(self.cellLayer.events["data"].callbacks)
-
-        print(event_callbacks)
-
-
-
-
-
-
+        self.gui.picasso_segmentation_layer.addItem("test")
+        self.update_picasso_segmentation_filter()
 
     def check_gpufit_availibility(self):
         self.gpufit_available = False

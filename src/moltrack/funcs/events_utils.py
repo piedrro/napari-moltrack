@@ -39,6 +39,23 @@ class _events_utils:
                 getattr(self.gui, selector_name).clear()
                 getattr(self.gui, selector_name).addItems(dataset_names)
 
+
+    def update_picasso_segmentation_filter(self):
+
+        shapes_layers = [layer.name for layer in self.viewer.layers if layer.name in ["Segmentations", "Cells"]]
+
+        segmentation_layer = self.gui.picasso_segmentation_layer.currentText()
+
+        if segmentation_layer in shapes_layers:
+
+            self.gui.picasso_segmentation_filter.setEnabled(True)
+
+        else:
+
+            self.gui.picasso_segmentation_filter.setEnabled(False)
+            self.gui.picasso_segmentation_filter.setChecked(False)
+
+
     def update_layer_combos(self):
 
         try:
@@ -51,10 +68,8 @@ class _events_utils:
             self.gui.remove_seglocs_segmentation.clear()
             self.gui.remove_seglocs_segmentation.addItems(shapes_layers)
 
-            shapes_layers.insert(0, "None")
-
-            self.gui.picasso_segmentation_filter.clear()
-            self.gui.picasso_segmentation_filter.addItems(shapes_layers)
+            self.gui.picasso_segmentation_layer.clear()
+            self.gui.picasso_segmentation_layer.addItems(shapes_layers)
 
         except:
             print(traceback.format_exc())
@@ -86,7 +101,7 @@ class _events_utils:
                         "import_picasso",
                         "cellpose_load_model",
                         "segment_active",
-                        "segment_all",
+                        # "segment_all",
                         "dilate_segmentations",
                         "picasso_detect",
                         "picasso_fit",
