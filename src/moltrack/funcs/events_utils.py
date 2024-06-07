@@ -11,6 +11,34 @@ from scipy.ndimage import shift
 
 class _events_utils:
 
+    def populate_dataset_selectors(self):
+
+        dataset_selectors = ["import_picasso_dataset",
+                             "cellpose_dataset",
+                             "moltrack_dataset_selector",
+                             "picasso_dataset",
+                             "picasso_filter_dataset",
+                             "picasso_render_dataset",
+                             "tracking_dataset",
+                             "locs_export_dataset",
+                             "remove_seglocs_dataset",
+                             ]
+
+        for selector_name in dataset_selectors:
+
+            dataset_names = list(self.dataset_dict.keys())
+
+            if selector_name in ["picasso_dataset","locs_export_dataset"] and len(dataset_names) > 1:
+                dataset_names.insert(0, "All Datasets")
+
+            if selector_name == "cellpose_dataset":
+                if hasattr(self, "segmentation_image"):
+                    dataset_names.insert(0, "Segmentation Image")
+
+            if hasattr(self.gui, selector_name):
+                getattr(self.gui, selector_name).clear()
+                getattr(self.gui, selector_name).addItems(dataset_names)
+
     def update_layer_combos(self):
 
         try:
@@ -19,6 +47,9 @@ class _events_utils:
 
             self.gui.shapes_export_data.clear()
             self.gui.shapes_export_data.addItems(shapes_layers)
+
+            self.gui.remove_seglocs_segmentation.clear()
+            self.gui.remove_seglocs_segmentation.addItems(shapes_layers)
 
             shapes_layers.insert(0, "None")
 
@@ -66,6 +97,7 @@ class _events_utils:
                         "export_localisations",
                         "fit_segmentations",
                         "export_shapes",
+                        "remove_seglocs",
                         ]
 
             progressbars = ["import_progressbar",
@@ -456,13 +488,6 @@ class _events_utils:
 
 
                     self.segLayer.data = seg_data
-
-
-
-
-
-
-
 
 
         except:

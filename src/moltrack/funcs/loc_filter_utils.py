@@ -4,6 +4,11 @@ import numpy as np
 class _loc_filter_utils:
 
 
+    def remove_segchannel_locs(self, viewer=None):
+
+        pass
+
+
     def pixseq_filter_localisations(self, viewer=None):
 
         try:

@@ -196,20 +196,28 @@ class _segmentation_utils:
 
             if dataset == "Segmentation Image":
                 if hasattr(self, "segmentation_image"):
-                    images = self.segmentation_image.copy()
+                    data = self.segmentation_image.copy()
 
                     if mode == "active":
-                        images = [images[current_frame]]
+                        if len(data.shape) == 3:
+                            if data.shape[0] > 1:
+                                if current_frame < data.shape[0]:
+                                    images = [data[current_frame]]
+                            else:
+                                images = [data[0]]
                     else:
-                        if len(images.shape) == 3:
-                            images = [frame for frame in images]
+                        if len(data.shape) == 3:
+                            images = [frame for frame in data]
                         else:
-                            images = [images]
+                            images = [data]
             else:
+                data = self.dataset_dict[dataset]["data"]
                 if mode == "active":
-                    images = [self.dataset_dict[dataset]["data"][current_frame]]
+                    if len(data.shape) == 3:
+                        if current_frame < data.shape[0]:
+                            images = [data[current_frame]]
                 else:
-                    images = self.dataset_dict[dataset]["data"].copy()
+                    images = data.copy()
 
                     if len(images.shape) == 3:
                         images = [frame for frame in images]

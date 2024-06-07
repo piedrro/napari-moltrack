@@ -330,33 +330,6 @@ class _import_utils:
         self.update_active_image()
         self.draw_segmentation_image()
 
-    def populate_dataset_selectors(self):
-
-        dataset_selectors = ["import_picasso_dataset",
-                             "cellpose_dataset",
-                             "moltrack_dataset_selector",
-                             "picasso_dataset",
-                             "picasso_filter_dataset",
-                             "picasso_render_dataset",
-                             "tracking_dataset",
-                             "locs_export_dataset"
-                             ]
-
-        for selector_name in dataset_selectors:
-
-            dataset_names = list(self.dataset_dict.keys())
-
-            if selector_name in ["picasso_dataset","locs_export_dataset"] and len(dataset_names) > 1:
-                dataset_names.insert(0, "All Datasets")
-
-            if selector_name == "cellpose_dataset":
-                if hasattr(self, "segmentation_image"):
-                    dataset_names.insert(0, "Segmentation Image")
-
-            if hasattr(self.gui, selector_name):
-                getattr(self.gui, selector_name).clear()
-                getattr(self.gui, selector_name).addItems(dataset_names)
-
     def init_import_data(self):
 
         try:

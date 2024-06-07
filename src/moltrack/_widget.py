@@ -122,6 +122,8 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.shapes_export_data.currentIndexChanged.connect(self.update_shape_export_options)
         self.gui.export_shapes.clicked.connect(self.export_shapes_data)
 
+        self.gui.remove_seglocs.clicked.connect(self.remove_segchannel_locs)
+
         self.viewer.layers.events.inserted.connect(self.update_layer_combos)
         self.viewer.layers.events.removed.connect(self.update_layer_combos)
         self.viewer.dims.events.current_step.connect(self.slider_event)
