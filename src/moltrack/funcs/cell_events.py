@@ -95,24 +95,13 @@ class _cell_events:
                             polygon_index = cell["polygon_index"]
                             midline_index = cell["midline_index"]
 
-                            self.cellLayer.events.data.disconnect(self.update_cells)
-                            self.cellLayer.refresh()
-
-                            self.cellLayer.selected_data = [polygon_index, midline_index]
-                            self.cellLayer.remove_selected()
-
-                            self.cellLayer.events.data.connect(self.update_cells)
-                            self.cellLayer.refresh()
+                            self.remove_cells([polygon_index, midline_index])
 
                             self.store_cell_shapes()
 
         except:
             print(traceback.format_exc())
             pass
-
-
-
-
 
 
 
@@ -533,9 +522,32 @@ class _cell_events:
 
                     self.add_manual_cell(last_index)
 
+                else:
+                    self.remove_cells(last_index)
+
                 self.store_cell_shapes()
 
         except:
             print(traceback.format_exc())
             pass
+
+    def remove_cells(self, indices = []):
+
+        try:
+
+            if type(indices) == int:
+                indices = [indices]
+
+            self.cellLayer.events.data.disconnect(self.update_cells)
+            self.cellLayer.refresh()
+
+            self.cellLayer.selected_data = indices
+            self.cellLayer.remove_selected()
+
+            self.cellLayer.events.data.connect(self.update_cells)
+            self.cellLayer.refresh()
+
+        except:
+            pass
+
 
