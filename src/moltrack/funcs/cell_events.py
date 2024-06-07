@@ -216,8 +216,8 @@ class _cell_events:
                         midline_index = cell["midline_index"]
 
                         cell_shapes[polygon_index] = polygon_coords
-                        cell_properties["width"][polygon_index] = width
-                        cell_properties["width"][midline_index] = width
+                        cell_properties["cell"][polygon_index]["width"] = width
+                        cell_properties["cell"][midline_index]["width"] = width
 
                         self.cellLayer.data = cell_shapes
                         self.cellLayer.refresh()
