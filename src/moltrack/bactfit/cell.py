@@ -99,6 +99,8 @@ class CellList(object):
     def get_cell_fits(self, n_points = 100):
 
         fits = []
+        poly_params = []
+        cell_poles = []
         midlines = []
         cell_widths = []
         names = []
@@ -111,6 +113,8 @@ class CellList(object):
                     cell_fit = cell.cell_fit
                     cell_width = cell.cell_width
                     cell_midline = cell.cell_midline
+                    params = cell.polynomial_params
+                    poles = cell.cell_poles
 
                     if cell_fit is not None:
 
@@ -127,6 +131,8 @@ class CellList(object):
                         names.append(name)
                         midlines.append(midline)
                         cell_widths.append(cell_width)
+                        poly_params.append(params)
+                        cell_poles.append(poles)
 
                 except:
                     pass
@@ -134,7 +140,10 @@ class CellList(object):
         data = {"fits": fits,
                 "midlines": midlines,
                 "widths": cell_widths,
-                "names": names}
+                "names": names,
+                "poly_params": poly_params,
+                "cell_poles": cell_poles,
+                }
 
         return data
 

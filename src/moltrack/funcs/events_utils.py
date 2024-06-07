@@ -278,7 +278,7 @@ class _events_utils:
 
                 self.active_dataset = None
 
-            # self.draw_localisations(update_vis=True)
+            self.draw_localisations()
             self.update_overlay_text()
 
         except:

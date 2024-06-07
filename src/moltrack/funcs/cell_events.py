@@ -66,7 +66,7 @@ class _cell_events:
         self.cellLayer.mouse_drag_callbacks.append(self.celllayer_clicked)
         self.cellLayer.mouse_wheel_callbacks.append(self.dilate_cell)
         self.cellLayer.events.data.connect(self.update_cells)
-        self.register_shape_layer_keybinds(self.segLayer)
+        self.register_shape_layer_keybinds(self.cellLayer)
 
         self.store_cell_shapes(init=True)
 
@@ -239,13 +239,13 @@ class _cell_events:
             print(traceback.format_exc())
             pass
 
-    def get_cell(self, name, json = True):
+    def get_cell(self, name, json = False):
 
         cell = None
 
         try:
                 name_list = self.cellLayer.properties["name"].copy()
-                width_list = self.cellLayer.properties["width"].copy()
+                cell_list = self.cellLayer.properties["cell"].copy()
 
                 shape_types = self.cellLayer.shape_type.copy()
                 shapes = self.cellLayer.data.copy()
@@ -261,18 +261,23 @@ class _cell_events:
 
                         midline_coords = shapes[path_index[0]]
                         polygon_coords = shapes[polygon_index[0]]
-
-                        width = width_list[polygon_index[0]]
+                        cell_properties = cell_list[path_index[0]]
 
                         if json is True:
                             midline_coords = midline_coords.tolist()
                             polygon_coords = polygon_coords.tolist()
 
-                        cell = {"midline_coords": midline_coords,
-                                "polygon_coords": polygon_coords,
-                                "width": float(width),
-                                "midline_index": int(path_index[0]),
-                                "polygon_index": int(polygon_index[0])}
+                            cell_properties["poly_params"] = list(cell_properties["poly_params"])
+                            cell_properties["cell_poles"] = [list(pole) for pole in cell_properties["cell_poles"]]
+                            cell_properties["width"] = float(cell_properties["width"])
+
+                        cell_coords = {"midline_coords": midline_coords,
+                                       "polygon_coords": polygon_coords,
+                                       "midline_index": int(path_index[0]),
+                                       "polygon_index": int(polygon_index[0])}
+
+                        cell = {**cell_coords, **cell_properties}
+
         except:
             print(traceback.format_exc())
             pass
@@ -344,6 +349,12 @@ class _cell_events:
 
             self.cellLayer.data = shapes
 
+            if properties is not None:
+                self.cellLayer.properties = properties
+
+            if shape_types is not None:
+                self.cellLayer.shape_type = shape_types
+
             self.cellLayer.events.data.connect(self.update_cells)
             self.cellLayer.refresh()
 
@@ -355,7 +366,7 @@ class _cell_events:
 
         try:
 
-            cell = self.get_cell(name)
+            cell = self.get_cell(name, json = False)
 
             if cell is not None:
 
@@ -366,17 +377,28 @@ class _cell_events:
                 polygon_index = cell["polygon_index"]
 
                 bf = BactFit()
-                polygon_fit_coords, midline_fit_coords = bf.manual_fit(polygon_coords, midline_coords, width)
+                fit = bf.manual_fit(polygon_coords, midline_coords, width)
+                polygon_fit_coords, midline_fit_coords, poly_params, cell_width = fit
 
                 if polygon_fit_coords is not None:
+
                     shapes = copy.deepcopy(self.cellLayer.data)
+                    properties = copy.deepcopy(self.cellLayer.properties)
+
                     shapes[polygon_index] = polygon_fit_coords
                     shapes[midline_index] = midline_fit_coords
 
-                    self.update_cellLayer_shapes(shapes)
+                    cell_poles = [midline_fit_coords[0], midline_fit_coords[-1]]
+
+                    properties["cell"][midline_index]["poly_params"] = poly_params
+                    properties["cell"][midline_index]["width"] = cell_width
+                    properties["cell"][midline_index]["cell_poles"] = cell_poles
+
+                    self.update_cellLayer_shapes(shapes, properties=properties)
                     self.store_cell_shapes()
 
         except:
+            print(traceback.format_exc())
             pass
 
 
@@ -407,8 +429,13 @@ class _cell_events:
                 midline_coords[:, 0] += x_shift
                 midline_coords[:, 1] += y_shift
 
+                cell_poles = [midline_coords[0], midline_coords[-1]]
+
                 shapes = copy.deepcopy(self.cellLayer.data)
+                properties = copy.deepcopy(self.cellLayer.properties)
+
                 shapes[midline_index] = midline_coords
+                properties["cell"][midline_index]["cell_poles"] = cell_poles
 
                 self.update_cellLayer_shapes(shapes)
 
@@ -430,26 +457,37 @@ class _cell_events:
             name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
 
             midline_coords = shapes[last_index]
+            cell_poles = [midline_coords[0], midline_coords[-1]]
 
             midline = LineString(midline_coords)
             polygon = midline.buffer(width)
 
             polygon_coords = np.array(polygon.exterior.coords)
-            polygon_coords = polygon_coords[:-1]
 
-            shapes.append(polygon_coords)
-            shape_types.append("polygon")
+            bf = BactFit()
+            fit = bf.manual_fit(polygon_coords, midline_coords, width)
+            polygon_fit_coords, midline_fit_coords, poly_params, cell_width = fit
+
+            shapes[last_index] = midline_fit_coords
 
             properties["name"][midline_index] = name
-            properties["width"][midline_index] = width
+            properties["cell"][midline_index]["name"] = name
+            properties["cell"][midline_index]["width"] = width
+            properties["cell"][midline_index]["poly_params"] = poly_params
+            properties["cell"][midline_index]["cell_poles"] = cell_poles
 
             self.update_cellLayer_shapes(shapes, shape_types, properties)
 
             self.cellLayer.events.data.disconnect(self.update_cells)
             self.cellLayer.refresh()
 
-            self.cellLayer.current_properties = {"name": name, "width": width}
-            self.cellLayer.add_polygons(polygon_coords)
+            cell = {"name": name,
+                    "width": width,
+                    "poly_params": poly_params,
+                    "cell_poles": cell_poles}
+
+            self.cellLayer.current_properties = {"name": name, "cell": cell}
+            self.cellLayer.add_polygons(polygon_fit_coords)
 
             self.cellLayer.events.data.connect(self.update_cells)
             self.cellLayer.refresh()
@@ -466,9 +504,7 @@ class _cell_events:
             if event.action == "changed":
 
                 # modified_indices = list(event.data_indices)
-
                 modified_indices = self.get_modified_shape_indices()
-                print(modified_indices)
 
                 if len(modified_indices) == 1:
 
@@ -480,11 +516,9 @@ class _cell_events:
                     modified_shape_type = shape_types[modified_index]
 
                     if modified_shape_type == "path":
-
                         self.update_cell_model(name)
 
                     if modified_shape_type == "polygon":
-
                         self.update_midline_position(name)
 
             if event.action == "added":

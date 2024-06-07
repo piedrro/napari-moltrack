@@ -23,6 +23,8 @@ class _bactfit_utils:
         cell_names = data["names"]
         cell_fits = data["fits"]
         cell_widths = data["widths"]
+        cell_params = data["poly_params"]
+        cell_poles = data["cell_poles"]
         cell_midlines = data["midlines"]
 
         layer_names = [layer.name for layer in self.viewer.layers]
@@ -32,22 +34,25 @@ class _bactfit_utils:
 
         shapes = []
         shape_types = []
-        properties = {"name": [], "width": []}
+        properties = {"name": [], "cell": []}
 
-        for name, fit, width, midline in zip(cell_names, cell_fits,
-                cell_widths, cell_midlines):
+        for name, fit, width, midline, params, poles in zip(cell_names, cell_fits,
+                cell_widths, cell_midlines, cell_params, cell_poles):
 
             try:
+
+                fit_params = {"name": name, "width": width,
+                              "poly_params": params, "cell_poles": poles}
 
                 shapes.append(fit)
                 shape_types.append("polygon")
                 properties["name"].append(name)
-                properties["width"].append(width)
+                properties["cell"].append(fit_params)
 
                 shapes.append(midline)
                 shape_types.append("path")
                 properties["name"].append(name)
-                properties["width"].append(width)
+                properties["cell"].append(fit_params)
 
             except:
                 pass

@@ -64,8 +64,11 @@ class BactFit(object):
             cell_midline = BactFit.rotate_linestring(cell_midline)
             midline_coords = np.array(cell_midline.coords)
 
+        constraining_points = [midline_coords[0].tolist(), midline_coords[-1].tolist()]
+
         medial_axis_fit, poly_params = BactFit.fit_poly(midline_coords,
-            degree=[1, 2, 3], maxiter=100, minimise_curvature=False)
+            degree=[1, 2, 3], maxiter=100, minimise_curvature=False,
+            constraining_points=constraining_points, constrained=True)
 
         if width is None:
             centroid = cell_polygon.centroid
@@ -86,7 +89,7 @@ class BactFit(object):
         cell_midline = BactFit.resize_line(cell_midline, n_medial_points)
         midline_coords = np.array(cell_midline.coords)
 
-        return cell_fit_coords, midline_coords
+        return cell_fit_coords, midline_coords, poly_params, cell_width
 
 
 
@@ -458,8 +461,6 @@ class BactFit(object):
 
             if max_workers == None:
                 max_workers = os.cpu_count()
-
-            print(max_workers)
 
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
 
