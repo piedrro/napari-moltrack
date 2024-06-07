@@ -11,7 +11,7 @@ class _tracking_utils:
 
     def run_tracking(self, locs, progress_callback=None):
 
-        tracks_array = []
+        tracks = None
 
         try:
 
@@ -56,6 +56,10 @@ class _tracking_utils:
     def process_tracking_results(self, tracks):
 
         try:
+
+            if tracks is None:
+                return
+
             dataset = self.gui.tracking_dataset.currentText()
 
             if dataset not in self.tracking_dict.keys():
