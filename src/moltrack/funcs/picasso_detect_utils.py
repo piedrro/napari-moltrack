@@ -530,11 +530,16 @@ class _picasso_detect_utils:
 
             box_size = int(self.gui.picasso_box_size.currentText())
             remove_overlapping = self.gui.picasso_remove_overlapping.isChecked()
-            polygon_filter = self.gui.picasso_segmentation_filtering.isChecked()
+            segmentation_layer = self.gui.picasso_segmentation_filter.currentText()
             threshold = int(self.gui.moltrack_threshold.text())
             window_size = int(self.gui.moltrack_window_size.text())
 
-            segmentation_polygons = self.get_segmentation_polygons()
+            segmentation_polygons = self.get_segmentation_polygons(segmentation_layer)
+
+            if len(segmentation_polygons) > 0:
+                polygon_filter = True
+            else:
+                polygon_filter = False
 
             compute_jobs = []
 

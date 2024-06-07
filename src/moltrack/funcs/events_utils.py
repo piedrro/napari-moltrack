@@ -11,6 +11,24 @@ from scipy.ndimage import shift
 
 class _events_utils:
 
+    def update_layer_combos(self):
+
+        try:
+
+            shapes_layers = [layer.name for layer in self.viewer.layers if layer.name in ["Segmentations", "Cells"]]
+
+            self.gui.shapes_export_data.clear()
+            self.gui.shapes_export_data.addItems(shapes_layers)
+
+            shapes_layers.insert(0, "None")
+
+            self.gui.picasso_segmentation_filter.clear()
+            self.gui.picasso_segmentation_filter.addItems(shapes_layers)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
     def moltrack_progress(self, progress, progress_bar):
 
         progress_bar.setValue(progress)

@@ -433,50 +433,35 @@ class _segmentation_utils:
 
         return post_processed_mask
 
-    def get_segmentation_polygons(self):
+    def get_segmentation_polygons(self, segmentation_layer = None):
 
-        filter = self.gui.picasso_segmentation_filtering.isChecked()
+        polygons = []
+
         layer_names = [layer.name for layer in self.viewer.layers]
 
-        if "Segmentations" in layer_names and filter:
+        if segmentation_layer in layer_names and filter:
 
-            segmentations = self.viewer.layers["Segmentations"].data.copy()
+            shapes = self.viewer.layers[segmentation_layer].data.copy()
+            shape_types = self.viewer.layers[segmentation_layer].shape_type
 
-            if len(segmentations) > 0:
+            for seg, seg_type in zip(shapes, shape_types):
+                if seg_type == "polygon":
+                    ndim = seg.shape[1]
 
-                ndim = segmentations[0].shape[1]
+                    if ndim == 2:
 
-                if ndim == 2:
-
-                    polygons = []
-
-                    for seg in segmentations:
                         seg = np.fliplr(seg)
                         poly = Polygon(seg)
                         polygons.append(poly)
 
-                    return polygons
-
-                elif ndim == 3:
-
-                    polygons = {}
-
-                    for seg in segmentations:
-
-                        frame = int(seg[0, 0])
-                        if frame not in polygons.keys():
-                            polygons[frame] = []
+                    elif ndim == 3:
 
                         seg = seg[:, 1:]
                         seg = np.fliplr(seg)
                         poly = Polygon(seg)
+                        polygons.append(poly)
 
-                        polygons[frame].append(poly)
-
-                    return polygons
-
-        return []
-
+        return polygons
 
     def dilate_segmentations(self, viewer = None, simplify = True):
 

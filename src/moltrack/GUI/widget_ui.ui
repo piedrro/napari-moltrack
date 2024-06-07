@@ -1415,6 +1415,22 @@
                </property>
               </widget>
              </item>
+             <item row="11" column="0">
+              <widget class="QLabel" name="label_30">
+               <property name="text">
+                <string>Segmentation Filtering</string>
+               </property>
+              </widget>
+             </item>
+             <item row="11" column="1">
+              <widget class="QComboBox" name="picasso_segmentation_filter">
+               <item>
+                <property name="text">
+                 <string>None</string>
+                </property>
+               </item>
+              </widget>
+             </item>
             </layout>
            </item>
            <item>
@@ -1431,13 +1447,6 @@
             <widget class="QCheckBox" name="picasso_window_cropping">
              <property name="text">
               <string>Remove Localisations Outside Field Of View (FOV)</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="picasso_segmentation_filtering">
-             <property name="text">
-              <string>Remove Localisations Outside Segmentations/Cells</string>
              </property>
             </widget>
            </item>

@@ -89,10 +89,6 @@ class _segmentation_events:
 
         self.register_shape_layer_keybinds(self.segLayer)
 
-        shapes_layers = [layer.name for layer in self.viewer.layers if layer.name in ["Cells", "Segmentations"]]
-        self.gui.shapes_export_data.clear()
-        self.gui.shapes_export_data.addItems(shapes_layers)
-
         return self.segLayer
 
 
