@@ -1,3 +1,6 @@
+import matplotlib.pyplot as plt
+import tifffile
+
 from moltrack.funcs.compute_utils import Worker
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor
@@ -12,7 +15,8 @@ import traceback
 import numpy as np
 from qtpy.QtWidgets import QFileDialog
 import pandas as pd
-
+import cv2
+import json
 
 def format_picasso_path(path):
 
@@ -129,13 +133,209 @@ def export_picasso_localisation(loc_data):
 
 class _export_utils:
 
-    def export_segmentations(self, export_mode, mode = "Binary Mask"):
+    def get_export_shapes_path(self, mode = "Binary Mask"):
 
-        pass
+        export_path = None
+        export_dir = None
+        file_name = None
 
-    def export_cells(self, export_mode, mode = "Binary Mask"):
 
-        pass
+
+        for dataset in self.dataset_dict.keys():
+
+            if "path" in self.dataset_dict[dataset]:
+
+                path = self.dataset_dict[dataset]["path"]
+
+                export_dir = os.path.dirname(path)
+
+                file_name, ext = os.path.splitext(path)
+
+        if export_dir is None:
+            export_dir = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
+
+        if file_name is None:
+            file_name = "moltrack"
+
+        if mode == "Binary Mask":
+            file_name = file_name + "_mask.tif"
+            ext = ".tif"
+        elif mode == "JSON":
+            file_name = file_name + "_shapes.json"
+            ext = ".json"
+        elif mode == "Oufti/MicrobTracker Mesh":
+            file_name = file_name + "_mesh.mat"
+            ext = ".mat"
+        else:
+            return None
+
+        export_path = os.path.join(export_dir, file_name)
+
+        if os.path.exists(export_dir):
+            export_path = QFileDialog.getSaveFileName(self, f"Export {mode}",
+                export_path, f"(*{ext})")[0]
+
+        if export_path == "":
+            return None
+
+        export_dir = os.path.dirname(export_path)
+
+        if not os.path.exists(export_dir):
+            os.makedirs(export_dir)
+
+        return export_path
+
+
+    def get_export_mask_shape(self):
+
+        frame_shape = None
+
+        try:
+            shape_layers = ["segmentations", "cells", "localisations"]
+            image_layers = [layer for layer in self.viewer.layers if layer.name.lower() not in shape_layers]
+            frame_shapes = list(set([layer.data.shape[-2:] for layer in image_layers]))
+
+            if len(frame_shapes) > 0:
+                frame_shape = frame_shapes[0]
+
+        except:
+            pass
+
+        return frame_shape
+
+
+    def export_shapes_mask(self, path):
+
+        try:
+
+            export_polygons = self.get_export_polygons()
+
+            frame_shape = self.get_export_mask_shape()
+
+            if frame_shape is None:
+                print("Could not determine mask shape for export.")
+                return
+
+            mask = np.zeros(frame_shape, dtype=np.uint8)
+
+            contours = [np.array(polygon).reshape(-1, 1, 2) for polygon in export_polygons]
+            contours = [contour[:, :, ::-1] for contour in contours]
+            contours = [np.round(contour).astype(np.int32) for contour in contours]
+
+            for contour_index, contour in enumerate(contours):
+                colour = contour_index + 1
+                cv2.drawContours(mask, [contour], -1, colour, -1)
+
+            if path is None:
+                print("No path provided for export.")
+                return
+
+            tifffile.imwrite(path, mask)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+
+    def export_shapes_json(self, path):
+
+        try:
+
+            export_polygons = self.get_export_polygons()
+
+            json_keys = export_polygons[0].keys()
+
+            json_dict = {}
+
+            for key in json_keys:
+                json_dict[key] = []
+
+            for polygon in export_polygons:
+
+                for key in json_keys:
+                    json_dict[key].append(polygon[key])
+
+            if path is None:
+                print("No path provided for export.")
+                return
+
+            with open(path, "w") as f:
+                json.dump(json_dict, f)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+
+
+    def export_segmentations(self, export_mode, path = None):
+
+
+        if export_mode == "Binary Mask":
+
+            self.export_shapes_mask(path)
+
+        elif export_mode == "JSON":
+
+            self.export_shapes_json(path)
+
+
+    def export_cells(self, export_mode, path = None):
+
+        if export_mode == "Binary Mask":
+
+            self.export_shapes_mask(path)
+
+        elif export_mode == "JSON":
+
+            self.export_shapes_json(path)
+
+
+    def get_export_polygons(self):
+
+        export_data = self.gui.shapes_export_data.currentText()
+        export_mode = self.gui.shapes_export_mode.currentText()
+
+        shape_layer = self.viewer.layers[export_data]
+
+        shapes = shape_layer.data.copy()
+        shape_types = shape_layer.shape_type.copy()
+        properties = shape_layer.properties.copy()
+
+        if export_data == "Segmentations":
+
+            if export_mode == "Binary Mask":
+
+                export_polygons = [shapes[i] for i, shape_type in enumerate(shape_types) if shape_type == "polygon"]
+
+                return export_polygons
+
+            else:
+                export_polygons = [shapes[i] for i, shape_type in enumerate(shape_types) if shape_type == "polygon"]
+                export_polygons = [{"polygon_coords": polygon.tolist()} for polygon in export_polygons]
+
+                return export_polygons
+
+        else:
+
+            export_polygons = []
+
+            names = set(properties["name"])
+
+            for name in names:
+
+                cell = self.get_cell(name, json=True)
+
+                if cell is not None:
+
+                    export_polygons.append(cell)
+
+            return export_polygons
+
+
+
+
+
 
     def export_shapes_data(self):
 
@@ -146,11 +346,15 @@ class _export_utils:
 
         if export_data in layer_names:
 
-            if export_data == "Segmentations":
-                self.export_segmentations(export_mode, mode = export_mode)
+            path = self.get_export_shapes_path(export_mode)
 
-            if export_data == "Cells":
-                self.export_cells(export_mode, mode = export_mode)
+            if path is not None:
+
+                if export_data == "Segmentations":
+                    self.export_segmentations(export_mode, path=path)
+
+                if export_data == "Cells":
+                    self.export_cells(export_mode, path=path)
 
 
     def update_shape_export_options(self):

@@ -239,7 +239,7 @@ class _cell_events:
             print(traceback.format_exc())
             pass
 
-    def get_cell(self, name):
+    def get_cell(self, name, json = True):
 
         cell = None
 
@@ -261,13 +261,18 @@ class _cell_events:
 
                         midline_coords = shapes[path_index[0]]
                         polygon_coords = shapes[polygon_index[0]]
+
                         width = width_list[polygon_index[0]]
+
+                        if json is True:
+                            midline_coords = midline_coords.tolist()
+                            polygon_coords = polygon_coords.tolist()
 
                         cell = {"midline_coords": midline_coords,
                                 "polygon_coords": polygon_coords,
-                                "width": width,
-                                "midline_index": path_index[0],
-                                "polygon_index": polygon_index[0]}
+                                "width": float(width),
+                                "midline_index": int(path_index[0]),
+                                "polygon_index": int(polygon_index[0])}
         except:
             print(traceback.format_exc())
             pass
