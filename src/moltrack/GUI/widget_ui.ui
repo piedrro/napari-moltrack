@@ -744,17 +744,10 @@
            </item>
            <item>
             <layout class="QGridLayout" name="gridLayout_12">
-             <item row="0" column="1">
-              <widget class="QPushButton" name="segment_all">
-               <property name="text">
-                <string>Segment All Images</string>
-               </property>
-              </widget>
-             </item>
              <item row="0" column="0">
               <widget class="QPushButton" name="segment_active">
                <property name="text">
-                <string>Segment Active Image</string>
+                <string>Segment Active Image/Frame</string>
                </property>
               </widget>
              </item>

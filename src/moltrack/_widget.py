@@ -91,7 +91,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.moltrack_dataset_selector.currentIndexChanged.connect(self.update_active_image)
 
         self.gui.segment_active.clicked.connect(partial(self.initialise_cellpose, mode="active"))
-        self.gui.segment_all.clicked.connect(partial(self.initialise_cellpose, mode="all"))
+        # self.gui.segment_all.clicked.connect(partial(self.initialise_cellpose, mode="all"))
         self.gui.cellpose_load_model.clicked.connect(self.load_cellpose_model)
         self.gui.dilate_segmentations.clicked.connect(self.dilate_segmentations)
 
