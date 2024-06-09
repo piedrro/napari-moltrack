@@ -13,7 +13,7 @@ import math
 import os
 import scipy
 
-class _microbetracker_utils:
+class _oufti_utils:
 
     def export_mesh_finished(self):
 
@@ -33,87 +33,20 @@ class _microbetracker_utils:
 
                 oufti_data.append(mesh_data)
 
+                print(True)
+
             if len(oufti_data) > 1:
 
                 self.export_oufti(oufti_data,path)
+
+                print("Exported to: ", path)
 
         except:
             print(traceback.format_exc())
             pass
 
-    def export_oufti(self, oufti_data, file_path):
 
-        file_path = os.path.splitext(file_path)[0] + ".mat"
-
-        cell_data = []
-
-        for dat in oufti_data:
-            try:
-
-                if dat is None:
-                    continue
-
-                cell_struct = {'mesh': dat["mesh"], 'model': dat["model"], 'birthframe': 1, 'divisions': [],
-                               'ancestors': [], 'descendants': [], 'timelapse': False,
-                               'algorithm': 5, 'polarity': 0, 'stage': 1, 'box': dat["boundingbox"],
-                               'steplength': dat["steplength"], 'length': np.sum(dat["steplength"]),
-                               'lengthvector': dat["steplength"], 'steparea': dat["steparea"], 'area': np.sum(dat["steparea"]),
-                               'stepvolume': dat["stepvolume"].T, 'volume': np.sum(dat["stepvolume"])}
-
-                cell_data.append(cell_struct)
-
-            except:
-                print(traceback.format_exc())
-                pass
-
-        cellListN = len(cell_data)
-        cellList = np.zeros((1,), dtype=object)
-        cellList_items = np.zeros((1, cellListN), dtype=object)
-
-        microbeTrackerParamsString = "% This file contains MicrobeTracker settings optimized for wildtype E. coli cells at 0.114 um/pixel resolution (using algorithm 4)\n\nalgorithm = 4\n\n% Pixel-based parameters\nareaMin = 120\nareaMax = 2200\nthresFactorM = 1\nthresFactorF = 1\nsplitregions = 1\nedgemode = logvalley\nedgeSigmaL = 3\nedveSigmaV = 1\nvalleythresh1 = 0\nvalleythresh2 = 1\nerodeNum = 1\nopennum = 0\nthreshminlevel = 0.02\n\n% Constraint parameters\nfmeshstep = 1\ncellwidth =6.5\nfsmooth = 18\nimageforce = 4\nwspringconst = 0.3\nrigidityRange = 2.5\nrigidity = 1\nrigidityRangeB = 8\nrigidityB = 5\nattrCoeff = 0.1\nrepCoeff = 0.3\nattrRegion = 4\nhoralign = 0.2\neqaldist = 2.5\n\n% Image force parameters\nfitqualitymax = 0.5\nforceWeights = 0.25 0.5 0.25\ndmapThres = 2\ndmapPower = 2\ngradSmoothArea = 0.5\nrepArea = 0.9\nattrPower = 4\nneighRep = 0.15\n\n% Mesh creation parameters\nroiBorder = 20.5\nnoCellBorder = 5\nmaxmesh = 1000\nmaxCellNumber = 2000\nmaxRegNumber = 10000\nmeshStep = 1\nmeshTolerance = 0.01\n\n% Fitting parameters\nfitConvLevel = 0.0001\nfitMaxIter = 500\nmoveall = 0.1\nfitStep = 0.2\nfitStepM = 0.6\n\n% Joining and splitting\nsplitThreshold = 0.35\njoindist = 5\njoinangle = 0.8\njoinWhenReuse = 0\nsplit1 = 0\n\n% Other\nbgrErodeNum = 5\nsgnResize = 1\naligndepth = 1"
-
-        for i in range(len(cell_data)):
-            cellList_items[0, i] = cell_data[i]
-
-        cellList[0] = cellList_items
-
-        p = [];
-        paramString = np.empty((len(microbeTrackerParamsString.split('\n')), 1), dtype=object)
-        paramSplit = microbeTrackerParamsString.split('\n')
-        for p_index in range(len(microbeTrackerParamsString.split('\n'))):
-            paramString[p_index] = paramSplit[p_index]
-
-        outdict = {'cellList': cellList, 'cellListN': cellListN,
-                   'coefPCA': [], 'mCell': [], 'p': [], 'paramString': paramString,
-                   'rawPhaseFolder': [], 'shiftfluo': np.zeros((2, 2)),
-                   'shiftframes': [], 'weights': []}
-
-        scipy.io.savemat(file_path, outdict)
-
-
-
-
-    def get_vertical(self, polygon):
-
-        minx, miny, maxx, maxy = polygon.bounds
-
-        h = maxy - miny
-        w = maxx - minx
-
-        if h > w:
-            vertical = True
-        else:
-            vertical = False
-
-        return vertical
-
-    def rotate_polygon(self, polygon, angle=90):
-        origin = polygon.centroid.coords[0]
-        polygon = shapely.affinity.rotate(polygon, angle=angle, origin=origin)
-
-        return polygon
-
-    def get_cell_mesh(self, cell):
+    def get_cell_mesh(self, cell, refit = True):
 
         mesh_data = None
 
@@ -131,6 +64,17 @@ class _microbetracker_utils:
 
             if vertical:
                 polygon = self.rotate_polygon(polygon, angle=90)
+
+            if refit:
+
+                if vertical:
+                    midline = self.rotate_polygon(midline, angle=90)
+                    midline_coords = np.array(midline.coords)
+
+                constraining_points = [midline_coords[0], midline_coords[-1]]
+                midline_coords, poly_params = BactFit.fit_poly(midline_coords, degree=[1, 2, 3], maxiter=100, minimise_curvature=True,
+                    constraining_points=constraining_points, constrained=True)
+                midline = LineString(midline_coords)
 
             bisector_coords = BactFit.get_poly_coords(
                 midline_coords[:,0],
@@ -153,7 +97,6 @@ class _microbetracker_utils:
             bisector_coords = np.flip(bisector_coords, axis=1)
             polygon = Polygon(polygon_coords)
             bisector = LineString(bisector_coords)
-
 
             midline = self.get_mid_line(polygon, bisector)
 
@@ -435,3 +378,72 @@ class _microbetracker_utils:
             pass
 
         return midline_coords, end_intersections
+
+    def get_vertical(self, polygon):
+
+        minx, miny, maxx, maxy = polygon.bounds
+
+        h = maxy - miny
+        w = maxx - minx
+
+        if h > w:
+            vertical = True
+        else:
+            vertical = False
+
+        return vertical
+
+    def rotate_polygon(self, polygon, angle=90):
+        origin = polygon.centroid.coords[0]
+        polygon = shapely.affinity.rotate(polygon, angle=angle, origin=origin)
+
+        return polygon
+
+    def export_oufti(self, oufti_data, file_path):
+
+        file_path = os.path.splitext(file_path)[0] + ".mat"
+
+        cell_data = []
+
+        for dat in oufti_data:
+            try:
+
+                if dat is None:
+                    continue
+
+                cell_struct = {'mesh': dat["mesh"], 'model': dat["model"], 'birthframe': 1, 'divisions': [],
+                               'ancestors': [], 'descendants': [], 'timelapse': False,
+                               'algorithm': 5, 'polarity': 0, 'stage': 1, 'box': dat["boundingbox"],
+                               'steplength': dat["steplength"], 'length': np.sum(dat["steplength"]),
+                               'lengthvector': dat["steplength"], 'steparea': dat["steparea"], 'area': np.sum(dat["steparea"]),
+                               'stepvolume': dat["stepvolume"].T, 'volume': np.sum(dat["stepvolume"])}
+
+                cell_data.append(cell_struct)
+
+            except:
+                print(traceback.format_exc())
+                pass
+
+        cellListN = len(cell_data)
+        cellList = np.zeros((1,), dtype=object)
+        cellList_items = np.zeros((1, cellListN), dtype=object)
+
+        microbeTrackerParamsString = "% This file contains MicrobeTracker settings optimized for wildtype E. coli cells at 0.114 um/pixel resolution (using algorithm 4)\n\nalgorithm = 4\n\n% Pixel-based parameters\nareaMin = 120\nareaMax = 2200\nthresFactorM = 1\nthresFactorF = 1\nsplitregions = 1\nedgemode = logvalley\nedgeSigmaL = 3\nedveSigmaV = 1\nvalleythresh1 = 0\nvalleythresh2 = 1\nerodeNum = 1\nopennum = 0\nthreshminlevel = 0.02\n\n% Constraint parameters\nfmeshstep = 1\ncellwidth =6.5\nfsmooth = 18\nimageforce = 4\nwspringconst = 0.3\nrigidityRange = 2.5\nrigidity = 1\nrigidityRangeB = 8\nrigidityB = 5\nattrCoeff = 0.1\nrepCoeff = 0.3\nattrRegion = 4\nhoralign = 0.2\neqaldist = 2.5\n\n% Image force parameters\nfitqualitymax = 0.5\nforceWeights = 0.25 0.5 0.25\ndmapThres = 2\ndmapPower = 2\ngradSmoothArea = 0.5\nrepArea = 0.9\nattrPower = 4\nneighRep = 0.15\n\n% Mesh creation parameters\nroiBorder = 20.5\nnoCellBorder = 5\nmaxmesh = 1000\nmaxCellNumber = 2000\nmaxRegNumber = 10000\nmeshStep = 1\nmeshTolerance = 0.01\n\n% Fitting parameters\nfitConvLevel = 0.0001\nfitMaxIter = 500\nmoveall = 0.1\nfitStep = 0.2\nfitStepM = 0.6\n\n% Joining and splitting\nsplitThreshold = 0.35\njoindist = 5\njoinangle = 0.8\njoinWhenReuse = 0\nsplit1 = 0\n\n% Other\nbgrErodeNum = 5\nsgnResize = 1\naligndepth = 1"
+
+        for i in range(len(cell_data)):
+            cellList_items[0, i] = cell_data[i]
+
+        cellList[0] = cellList_items
+
+        p = [];
+        paramString = np.empty((len(microbeTrackerParamsString.split('\n')), 1), dtype=object)
+        paramSplit = microbeTrackerParamsString.split('\n')
+        for p_index in range(len(microbeTrackerParamsString.split('\n'))):
+            paramString[p_index] = paramSplit[p_index]
+
+        outdict = {'cellList': cellList, 'cellListN': cellListN,
+                   'coefPCA': [], 'mCell': [], 'p': [], 'paramString': paramString,
+                   'rawPhaseFolder': [], 'shiftfluo': np.zeros((2, 2)),
+                   'shiftframes': [], 'weights': []}
+
+        scipy.io.savemat(file_path, outdict)

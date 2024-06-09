@@ -27,7 +27,7 @@ from scipy.spatial.distance import directed_hausdorff
 import shapely
 from scipy.spatial import distance
 from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 from multiprocessing import Manager, Event
 from functools import partial
 import warnings
@@ -64,11 +64,12 @@ class BactFit(object):
             cell_midline = BactFit.rotate_linestring(cell_midline)
             midline_coords = np.array(cell_midline.coords)
 
-        constraining_points = [midline_coords[0].tolist(), midline_coords[-1].tolist()]
+        constraining_points = [midline_coords[0].tolist(),
+                               midline_coords[-1].tolist()]
 
         medial_axis_fit, poly_params = BactFit.fit_poly(midline_coords,
             degree=[1, 2, 3], maxiter=100, minimise_curvature=False,
-            constraining_points=constraining_points, constrained=True)
+            constraining_points=constraining_points, constrained=False)
 
         if width is None:
             centroid = cell_polygon.centroid
@@ -286,7 +287,7 @@ class BactFit(object):
 
     @staticmethod
     def fit_poly(coords, degree=2, constrained=True, constraining_points=[],
-            minimise_curvature=True, maxiter=50):
+            minimise_curvature=True, curvature_weight = 0.1, degree_penalty=0.01, maxiter=50):
         def polynomial_fit(params, x):
             # Reverse the parameters to match np.polyfit order
             params = params[::-1]
@@ -297,8 +298,9 @@ class BactFit(object):
 
             if minimise_curvature:
                 curvature_penalty = np.sum(np.diff(params, n=2) ** 2)
+                fit_error = fit_error + (curvature_penalty*curvature_weight)
 
-                fit_error = fit_error + curvature_penalty
+            fit_error = fit_error + (degree_penalty * len(params))
 
             return fit_error
 
@@ -462,7 +464,7 @@ class BactFit(object):
             if max_workers == None:
                 max_workers = os.cpu_count()
 
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            with ProcessPoolExecutor(max_workers=max_workers) as executor:
 
                 futures = {executor.submit(BactFit.fit_cell,
                     cell_obj,

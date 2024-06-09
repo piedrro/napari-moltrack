@@ -5,7 +5,7 @@ from moltrack.bactfit.fit import BactFit
 from moltrack.bactfit.preprocess import data_to_cells
 from moltrack.bactfit.fit import BactFit
 from functools import partial
-from shapely.geometry import Polygon, LineString
+from shapely.geometry import Polygon, LineString, Point
 import matplotlib.pyplot as plt
 import copy
 import random
@@ -433,6 +433,168 @@ class _cell_events:
         except:
             pass
 
+
+    def find_centerline(self, midline, width):
+
+
+
+        try:
+
+            def resample_line(line, num_points):
+                distances = np.linspace(0, line.length, num_points)
+                points = [line.interpolate(distance) for distance in distances]
+                return LineString(points)
+
+            def extract_end_points(line, num_points=2):
+                coords = list(line.coords)
+                if len(coords) < num_points:
+                    raise ValueError("The LineString does not have enough points.")
+                start_points = coords[:num_points]
+                end_points = coords[-num_points:]
+                return start_points, end_points
+
+            def extend_away(points, distance, ):
+                if len(points) < 2:
+                    raise ValueError("At least two points are required to determine the direction for extension.")
+
+                p1 = Point(points[0])
+                p2 = Point(points[1])
+
+                dx = p2.x - p1.x
+                dy = p2.y - p1.y
+                length = np.hypot(dx, dy)
+                factor = distance / length
+
+                # Extend p1 away from p2
+                extended_x1 = p1.x - factor * dx
+                extended_y1 = p1.y - factor * dy
+
+                # Similarly for the other end
+                p3 = Point(points[-1])
+                p4 = Point(points[-2])
+
+                dx_end = p4.x - p3.x
+                dy_end = p4.y - p3.y
+                length_end = np.hypot(dx_end, dy_end)
+                factor_end = distance / length_end
+
+                # Extend p3 away from p4
+                extended_x2 = p3.x - factor_end * dx_end
+                extended_y2 = p3.y - factor_end * dy_end
+
+                return (extended_x1, extended_y1), (extended_x2, extended_y2)
+
+            def concatenate_lines(start_line, centerline, end_line):
+                coords = list(start_line.coords) + list(centerline.coords) + list(end_line.coords)
+                return LineString(coords)
+
+            def cut_line_at_intersection(line, intersection):
+                if intersection.is_empty:
+                    return line
+                elif isinstance(intersection, Point):
+                    return LineString([pt for pt in line.coords if Point(pt).distance(intersection) >= 0])
+                elif isinstance(intersection, LineString):
+                    intersection_coords = list(intersection.coords)
+                    cropped_coords = [pt for pt in line.coords if Point(pt).distance(Point(intersection_coords[0])) >= 0 and Point(pt).distance(Point(intersection_coords[-1])) >= 0]
+                    return LineString(cropped_coords)
+                return line
+
+            model = midline.buffer(width)
+
+            centerline = resample_line(midline, 1000)  # High resolution with 1000 points
+
+            start_points, end_points = extract_end_points(centerline)
+
+            extension_distance = width * 3
+
+            extended_start = extend_away(start_points, extension_distance)
+            extended_end = extend_away(end_points, extension_distance)
+
+            extended_start_line = LineString([start_points[0], extended_start[0]])
+            extended_end_line = LineString([end_points[-1], extended_end[1]])
+
+            outline = LineString(model.exterior.coords)
+            intersections_start = outline.intersection(extended_start_line).coords[0]
+            intersections_end = outline.intersection(extended_end_line).coords[0]
+
+            centerline_coords = np.array(centerline.coords)
+            centerline_coords = np.insert(centerline_coords, 0, intersections_start, axis = 0)
+            centerline_coords = np.append(centerline_coords, [intersections_end], axis = 0)
+            centerline = LineString(centerline_coords)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+        return centerline
+
+
+
+    def find_end_cap_centroid(self, midline, width):
+
+        try:
+            def find_nearest_index(coords, point):
+                dist = np.linalg.norm(coords - point, axis=1)
+                return np.argmin(dist)
+
+            def find_end_points(coords, end):
+
+                start_index = min(end)
+
+                if end[1] < end[0]:
+                    n_indices = ((len(coords) - end[0]) + end[1])
+                    mid_index = end[0] + n_indices
+                    print("wrap", n_indices,end)
+                else:
+                    n_indices = (end[1] - end[0])
+                    mid_index = end[0] + n_indices
+                    print("norm", n_indices,end)
+
+                rotated_coords = np.concatenate((coords[start_index:], coords[:start_index]))
+
+                print(n_indices//2)
+
+                end_point = rotated_coords[n_indices//2]
+
+                return end_point
+
+
+
+
+
+
+            #offset line
+            polygon = midline.buffer(width)
+            polygon_coords = np.array(polygon.exterior.coords)
+
+            left_line = midline.parallel_offset(width, side = "left", join_style = 2)
+            right_line = midline.parallel_offset(width, side = "right", join_style = 2)
+
+            left_coords = np.array(left_line.coords)
+            right_coords = np.array(right_line.coords)
+
+            left_ends = left_coords[[0, -1]]
+            right_ends = right_coords[[0, -1]]
+
+            end1 = np.array([left_ends[0], right_ends[0]])
+            end2 = np.array([left_ends[1], right_ends[1]])
+
+            end1_indices = [find_nearest_index(polygon_coords, end1[0]), find_nearest_index(polygon_coords, end1[1])]
+            end2_indices = [find_nearest_index(polygon_coords, end2[0]), find_nearest_index(polygon_coords, end2[1])]
+
+            end1_point = find_end_points(polygon_coords, end1_indices)
+            end2_point = find_end_points(polygon_coords, end2_indices)
+
+            # plt.plot(*polygon_coords.T)
+            # plt.scatter(*left_ends.T, c = "b", )
+            # plt.scatter(*right_ends.T, c = "b", )
+            # plt.scatter(*end1_point.T, c = "r", marker = "x", s = 100)
+            # plt.scatter(*end2_point.T, c = "r", marker = "x", s = 100)
+            # plt.show()
+
+        except:
+            print(traceback.format_exc())
+
     def add_manual_cell(self, last_index, width = 5):
 
         try:
@@ -453,17 +615,26 @@ class _cell_events:
 
             polygon_coords = np.array(polygon.exterior.coords)
 
+            # self.find_centerline(midline, width)
+
             bf = BactFit()
             fit = bf.manual_fit(polygon_coords, midline_coords, width)
             polygon_fit_coords, midline_fit_coords, poly_params, cell_width = fit
 
             shapes[last_index] = midline_fit_coords
 
-            properties["name"][midline_index] = name
-            properties["cell"][midline_index]["name"] = name
-            properties["cell"][midline_index]["width"] = width
-            properties["cell"][midline_index]["poly_params"] = poly_params
-            properties["cell"][midline_index]["cell_poles"] = cell_poles
+            cell = {"name": name,
+                    "width": width,
+                    "poly_params": poly_params,
+                    "cell_poles": cell_poles}
+
+            if "name" not in properties.keys():
+                properties["name"] = [name]
+                properties["cell"] = [cell]
+
+            else:
+                properties["name"][last_index] = name
+                properties["cell"][last_index] = cell
 
             self.update_cellLayer_shapes(shapes, shape_types, properties)
 
