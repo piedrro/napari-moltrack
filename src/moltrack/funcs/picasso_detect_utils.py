@@ -114,8 +114,6 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
 
                     frame_index = start_index + array_index
 
-                    print(frame_index,frame.shape)
-
                     filtered_frame = bandpass(frame.copy(),kernels)
 
                     locs = peak_local_max(filtered_frame, min_distance=1,
