@@ -68,6 +68,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.check_gpufit_availibility()
         self.update_detect_options()
         self.initialise_channel_selectors()
+        self.update_import_options()
 
         # create threadpool and stop event
         self.threadpool = QThreadPool()
@@ -94,7 +95,12 @@ class QWidget(QWidget, gui, *subclasses):
         self.interface_mode = "segment"
 
     def initialise_events(self):
+
         self.gui.import_images.clicked.connect(self.init_import_data)
+
+        self.gui.import_mode.currentIndexChanged.connect(self.update_import_options)
+        self.gui.import_multichannel_mode.currentIndexChanged.connect(self.update_import_options)
+
         self.gui.moltrack_dataset_selector.currentIndexChanged.connect(self.update_active_image)
         self.gui.moltrack_channel_selector.currentIndexChanged.connect(self.update_active_image)
 

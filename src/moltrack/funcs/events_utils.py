@@ -66,8 +66,6 @@ class _events_utils:
 
                 if hasattr(self.gui, dataset_selector) and hasattr(self.gui, channel_selector):
 
-                    print(f"Initialising channel selector: {channel_selector} for dataset selector: {dataset_selector}")
-
                     dataset_selector = getattr(self.gui, dataset_selector)
                     channel_selector = getattr(self.gui, channel_selector)
 
@@ -117,7 +115,46 @@ class _events_utils:
 
             channel_selector.blockSignals(False)
 
+        except:
+            print(traceback.format_exc())
+            pass
 
+
+    def update_import_options(self, event=None):
+
+        try:
+
+            self.gui.import_mode.blockSignals(True)
+            self.gui.import_multichannel_mode.blockSignals(True)
+
+            import_mode = self.gui.import_mode.currentText()
+            multichannel_mode = self.gui.import_multichannel_mode.currentText()
+
+            if import_mode == "Data (Single Channel)":
+
+                self.gui.import_multichannel_mode.setEnabled(False)
+                self.gui.import_multichannel_mode.setCurrentIndex(0)
+                self.gui.import_concatenate.setEnabled(True)
+
+            if import_mode == "Data (Multi Channel)":
+
+                self.gui.import_multichannel_mode.setEnabled(True)
+
+                if multichannel_mode != "None":
+
+                    self.gui.import_concatenate.setEnabled(False)
+                    self.gui.import_concatenate.setChecked(False)
+
+                else:
+                    self.gui.import_concatenate.setEnabled(True)
+
+            if import_mode == "Segmentation Image":
+
+                self.gui.import_multichannel_mode.setEnabled(False)
+                self.gui.import_concatenate.setEnabled(False)
+
+            self.gui.import_mode.blockSignals(False)
+            self.gui.import_multichannel_mode.blockSignals(False)
 
         except:
             print(traceback.format_exc())
