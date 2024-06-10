@@ -15,10 +15,6 @@ import scipy
 
 class oufti:
 
-    def export_mesh_finished(self):
-
-        self.update_ui()
-
     def export_mesh(self, path, progress_callback=None):
 
         try:

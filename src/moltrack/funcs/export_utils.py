@@ -293,13 +293,7 @@ class _export_utils:
 
         elif export_mode == "Oufti/MicrobTracker Mesh":
 
-            self.update_ui()
-
-            worker = Worker(self.export_mesh, path)
-            worker.signals.finished.connect(self.export_mesh_finished)
-            self.threadpool.start(worker)
-
-
+            self.export_mesh(path)
 
     def get_export_polygons(self):
 
@@ -346,6 +340,7 @@ class _export_utils:
     def export_shapes_data_finished(self):
 
         self.update_ui()
+
 
     def export_shapes_data(self, path, progress_callback = None):
 
@@ -502,7 +497,6 @@ class _export_utils:
                             progress_callback.emit(progress)
 
         except:
-            self.update_ui()
             print(traceback.format_exc())
             pass
 
