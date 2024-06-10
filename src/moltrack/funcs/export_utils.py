@@ -392,7 +392,7 @@ class _export_utils:
 
 
 
-    def get_export_locs(self, dataset):
+    def get_export_locs(self, dataset, channel):
 
         locs = []
         fitted = False
@@ -402,24 +402,26 @@ class _export_utils:
         locs_export_data = self.gui.locs_export_data.currentText()
 
         if dataset in self.localisation_dict.keys():
-            if "localisations" in self.localisation_dict[dataset].keys():
+            if channel in self.localisation_dict[dataset].keys():
 
-                loc_dict = self.localisation_dict[dataset]
+                loc_dict = self.localisation_dict[dataset][channel]
 
-                fitted = loc_dict["fitted"]
-                box_size = loc_dict["box_size"]
+                if "localisations" in loc_dict.keys():
 
-                if "min_net_gradient" in loc_dict.keys():
-                    min_net_gradient = loc_dict["min_net_gradient"]
+                    fitted = loc_dict["fitted"]
+                    box_size = loc_dict["box_size"]
 
-                locs = loc_dict["localisations"]
+                    if "min_net_gradient" in loc_dict.keys():
+                        min_net_gradient = loc_dict["min_net_gradient"]
 
-            if locs_export_data == "Tracks":
+                    locs = loc_dict["localisations"]
 
-                if dataset in self.tracking_dict.keys():
-                    locs = self.tracking_dict[dataset]
-                else:
-                    locs = []
+                if locs_export_data == "Tracks":
+
+                    if dataset in self.tracking_dict.keys():
+                        locs = self.tracking_dict[dataset]
+                    else:
+                        locs = []
 
         return locs, fitted, box_size, min_net_gradient
 
@@ -437,26 +439,29 @@ class _export_utils:
             else:
                 dataset_list = [export_dataset]
 
+            channel_name = self.gui.locs_export_channel.currentText()
+
             for dataset_name in dataset_list:
 
-                locs, fitted, box_size, min_net_gradient = self.get_export_locs(dataset_name)
+                locs, fitted, box_size, min_net_gradient = self.get_export_locs(dataset_name, channel_name)
 
                 n_locs = len(locs)
 
                 if n_locs > 0:
 
                     import_path = self.dataset_dict[dataset_name]["path"]
-                    image_shape = self.dataset_dict[dataset_name]["data"].shape
+                    image_dict = self.dataset_dict[dataset_name]["images"]
+                    image_shape = image_dict[channel_name].shape
 
                     base, ext = os.path.splitext(import_path)
 
-                    hdf5_path = base + f"_moltrack_localisations.hdf5"
-                    info_path = base + f"_moltrack_localisations.yaml"
+                    hdf5_path = base + f"_{channel_name}_moltrack_localisations.hdf5"
+                    info_path = base + f"_{channel_name}_moltrack_localisations.yaml"
 
                     if export_loc_mode == "CSV":
-                        export_path = base + f"_moltrack_localisations.csv"
+                        export_path = base + f"_{channel_name}_moltrack_localisations.csv"
                     elif export_loc_mode == "POS.OUT":
-                        export_path = base + f"_moltrack_localisations.pos.out"
+                        export_path = base + f"_{channel_name}_moltrack_localisations.pos.out"
 
                     else:
                         export_path = ""

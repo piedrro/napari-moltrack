@@ -451,6 +451,7 @@ class _events_utils:
             if self.dataset_dict  != {}:
 
                 dataset_name = self.gui.moltrack_dataset_selector.currentText()
+                channel_name = self.gui.moltrack_channel_selector.currentText()
 
                 if dataset_name in self.dataset_dict.keys():
 
@@ -466,6 +467,7 @@ class _events_utils:
 
                     overlay_string = ""
                     overlay_string += f"File: {file_name}\n"
+                    overlay_string += f"Channel: {channel_name}\n"
 
                     if overlay_string != "":
                         self.viewer.text_overlay.visible = True
@@ -501,63 +503,64 @@ class _events_utils:
                 layer_names = [layer.name for layer in self.viewer.layers]
 
                 active_frame = self.viewer.dims.current_step[0]
-
                 dataset_name = self.gui.moltrack_dataset_selector.currentText()
+                channel_name = self.gui.moltrack_channel_selector.currentText()
 
                 if dataset_name in self.localisation_dict.keys():
-                    localisation_dict = self.localisation_dict[dataset_name].copy()
+                    if channel_name in self.localisation_dict[dataset_name].keys():
+                        localisation_dict = self.localisation_dict[dataset_name][channel_name].copy()
 
-                    if "localisations" in localisation_dict.keys():
-                        locs = localisation_dict["localisations"]
+                        if "localisations" in localisation_dict.keys():
+                            locs = localisation_dict["localisations"]
 
-                        if active_frame in locs.frame:
-                            frame_locs = locs[locs.frame == active_frame].copy()
-                            render_locs = np.vstack((frame_locs.y, frame_locs.x)).T.tolist()
+                            if active_frame in locs.frame:
+                                frame_locs = locs[locs.frame == active_frame].copy()
+                                render_locs = np.vstack((frame_locs.y, frame_locs.x)).T.tolist()
 
-                            vis_mode = self.gui.picasso_vis_mode.currentText()
-                            vis_size = float(self.gui.picasso_vis_size.currentText())
-                            vis_opacity = float(self.gui.picasso_vis_opacity.currentText())
-                            vis_edge_width = float(self.gui.picasso_vis_edge_width.currentText())
+                                vis_mode = self.gui.picasso_vis_mode.currentText()
+                                vis_size = float(self.gui.picasso_vis_size.currentText())
+                                vis_opacity = float(self.gui.picasso_vis_opacity.currentText())
+                                vis_edge_width = float(self.gui.picasso_vis_edge_width.currentText())
 
-                            if vis_mode.lower() == "square":
-                                symbol = "square"
-                            elif vis_mode.lower() == "disk":
-                                symbol = "disc"
-                            elif vis_mode.lower() == "x":
-                                symbol = "cross"
+                                if vis_mode.lower() == "square":
+                                    symbol = "square"
+                                elif vis_mode.lower() == "disk":
+                                    symbol = "disc"
+                                elif vis_mode.lower() == "x":
+                                    symbol = "cross"
 
-                            remove_localisations = False
+                                remove_localisations = False
 
-                            if "localisations" not in layer_names:
-                                if self.verbose:
-                                    print("Drawing localisations")
+                                if "localisations" not in layer_names:
+                                    if self.verbose:
+                                        print("Drawing localisations")
 
-                                self.loc_layer = self.viewer.add_points(render_locs,
-                                    ndim=2, edge_color="red", face_color=[0, 0, 0, 0],
-                                    opacity=vis_opacity, name="localisations", symbol=symbol,
-                                    size=vis_size, edge_width=vis_edge_width, )
+                                    self.loc_layer = self.viewer.add_points(render_locs,
+                                        ndim=2, edge_color="red", face_color=[0, 0, 0, 0],
+                                        opacity=vis_opacity, name="localisations", symbol=symbol,
+                                        size=vis_size, edge_width=vis_edge_width, )
 
-                                update_vis = True
+                                    update_vis = True
 
-                            else:
-                                if self.verbose:
-                                    print("Updating fiducial data")
+                                else:
+                                    if self.verbose:
+                                        print("Updating fiducial data")
 
-                                self.loc_layer.data = render_locs
-                                self.loc_layer.selected_data = []
+                                    self.loc_layer.data = render_locs
+                                    self.loc_layer.selected_data = []
 
-                            if update_vis:
-                                if self.verbose:
-                                    print("Updating fiducial visualisation settings")
+                                if update_vis:
+                                    if self.verbose:
+                                        print("Updating fiducial visualisation settings")
 
-                                self.loc_layer.selected_data = list(range(len(self.loc_layer.data)))
-                                self.loc_layer.opacity = vis_opacity
-                                self.loc_layer.symbol = symbol
-                                self.loc_layer.size = vis_size
-                                self.loc_layer.edge_width = vis_edge_width
-                                self.loc_layer.edge_color = "red"
-                                self.loc_layer.selected_data = []
-                                self.loc_layer.refresh()
+                                    self.loc_layer.selected_data = list(range(len(self.loc_layer.data)))
+                                    self.loc_layer.opacity = vis_opacity
+                                    self.loc_layer.symbol = symbol
+                                    self.loc_layer.size = vis_size
+                                    self.loc_layer.edge_width = vis_edge_width
+                                    self.loc_layer.edge_color = "red"
+                                    self.loc_layer.selected_data = []
+                                    self.loc_layer.refresh()
 
             if remove_localisations:
                 if "localisations" in layer_names:

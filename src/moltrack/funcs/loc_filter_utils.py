@@ -175,21 +175,23 @@ class _loc_filter_utils:
             columns = []
 
             dataset = self.gui.picasso_filter_dataset.currentText()
+            channel = self.gui.picasso_filter_channel.currentText()
             selector = self.gui.filter_criterion
 
             if dataset in self.localisation_dict.keys():
+                if channel in self.localisation_dict[dataset]:
 
-                loc_dict = self.localisation_dict[dataset]
+                    loc_dict = self.localisation_dict[dataset][channel]
 
-                if "localisations" in loc_dict.keys():
+                    if "localisations" in loc_dict.keys():
 
-                    locs = loc_dict["localisations"].copy()
+                        locs = loc_dict["localisations"].copy()
 
-                    if len(locs) > 0:
+                        if len(locs) > 0:
 
-                        columns = list(locs.dtype.names)
+                            columns = list(locs.dtype.names)
 
-                        columns = [col for col in columns if col not in ["dataset","channel"]]
+                            columns = [col for col in columns if col not in ["dataset","channel"]]
 
             selector.clear()
 
@@ -207,40 +209,42 @@ class _loc_filter_utils:
             self.filter_graph_canvas.clear()
 
             dataset = self.gui.picasso_filter_dataset.currentText()
+            channel = self.gui.picasso_filter_channel.currentText()
             criterion = self.gui.filter_criterion.currentText()
 
             if dataset in self.localisation_dict.keys():
+                if channel in self.localisation_dict[dataset]:
 
-                loc_dict = self.localisation_dict[dataset]
+                    loc_dict = self.localisation_dict[dataset][channel]
 
-                if "localisations" in loc_dict.keys():
+                    if "localisations" in loc_dict.keys():
 
-                    locs = loc_dict["localisations"].copy()
+                        locs = loc_dict["localisations"].copy()
 
-                    if len(locs) > 0:
+                        if len(locs) > 0:
 
-                        columns = list(locs.dtype.names)
+                            columns = list(locs.dtype.names)
 
-                        if criterion in columns:
+                            if criterion in columns:
 
-                            values = locs[criterion]
+                                values = locs[criterion]
 
-                            if values.dtype in [np.float32, np.float64, np.int32, np.int64]:
+                                if values.dtype in [np.float32, np.float64, np.int32, np.int64]:
 
-                                if plot:
-                                    self.plot_filter_graph(criterion, values)
+                                    if plot:
+                                        self.plot_filter_graph(criterion, values)
 
-                                min_value = np.min(values)
-                                max_value = np.max(values)
+                                    min_value = np.min(values)
+                                    max_value = np.max(values)
 
-                                self.gui.filter_min.setMinimum(min_value)
-                                self.gui.filter_min.setMaximum(max_value)
+                                    self.gui.filter_min.setMinimum(min_value)
+                                    self.gui.filter_min.setMaximum(max_value)
 
-                                self.gui.filter_max.setMinimum(min_value)
-                                self.gui.filter_max.setMaximum(max_value)
+                                    self.gui.filter_max.setMinimum(min_value)
+                                    self.gui.filter_max.setMaximum(max_value)
 
-                                self.gui.filter_min.setValue(min_value)
-                                self.gui.filter_max.setValue(max_value)
+                                    self.gui.filter_min.setValue(min_value)
+                                    self.gui.filter_max.setValue(max_value)
 
         except:
             print(traceback.format_exc())

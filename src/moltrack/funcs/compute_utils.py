@@ -10,7 +10,7 @@ import napari
 class _compute_utils:
 
     def create_shared_image_chunks(self, dataset_list = None,
-            chunk_size = 100, frame_index = None):
+            channel_list = None, chunk_size = 100, frame_index = None):
 
         if self.verbose:
             print("Creating shared images")
@@ -20,56 +20,63 @@ class _compute_utils:
         else:
             dataset_list = [dataset for dataset in dataset_list if dataset in self.dataset_dict.keys()]
 
+
         self.shared_chunks = []
 
         for dataset_name in dataset_list:
 
-            data_dict = self.dataset_dict[dataset_name]
+            if "images" in self.dataset_dict[dataset_name].keys():
 
-            if "data" in data_dict.keys():
+                if channel_list is None:
+                    channel_list = list(self.dataset_dict[dataset_name]["images"].keys())
 
-                if type(frame_index) == int:
-                    n_chunks = 1
-                    image = data_dict["data"]
-                    n_frames = 1
-                else:
-                    image = data_dict.pop("data")
-                    n_frames = image.shape[0]
-                    n_chunks = int(np.ceil(n_frames / chunk_size))
+                for channel_name in channel_list:
 
-                for chunk_index in range(n_chunks):
+                    channel_dict = self.dataset_dict[dataset_name]["images"]
 
                     if type(frame_index) == int:
-
-                        start_index = frame_index
-                        end_index = frame_index + 1
-
-                        chunk = image[start_index].copy()
-                        chunk = np.expand_dims(chunk, axis=0)
-
+                        n_chunks = 1
+                        image = channel_dict[channel_name]
+                        n_frames = 1
                     else:
-                        start_index = chunk_index * chunk_size
-                        end_index = (chunk_index + 1) * chunk_size
+                        image = channel_dict.pop(channel_name)
+                        n_frames = image.shape[0]
+                        n_chunks = int(np.ceil(n_frames / chunk_size))
 
-                        if end_index > n_frames:
-                            end_index = n_frames
+                    for chunk_index in range(n_chunks):
 
-                        chunk = image[start_index:end_index]
+                        if type(frame_index) == int:
 
-                    shared_mem = shared_memory.SharedMemory(create=True, size=chunk.nbytes)
-                    shared_memory_name = shared_mem.name
-                    shared_chunk = np.ndarray(chunk.shape, dtype=chunk.dtype, buffer=shared_mem.buf)
-                    shared_chunk[:] = chunk[:]
+                            start_index = frame_index
+                            end_index = frame_index + 1
 
-                    self.shared_chunks.append({"dataset": dataset_name,
-                                               "n_frames": n_frames,
-                                               "shape": chunk.shape,
-                                               "dtype": chunk.dtype,
-                                               "start_index": start_index,
-                                               "end_index": end_index,
-                                               "chunk_size": chunk_size,
-                                               "shared_mem": shared_mem,
-                                               "shared_memory_name": shared_memory_name})
+                            chunk = image[start_index].copy()
+                            chunk = np.expand_dims(chunk, axis=0)
+
+                        else:
+                            start_index = chunk_index * chunk_size
+                            end_index = (chunk_index + 1) * chunk_size
+
+                            if end_index > n_frames:
+                                end_index = n_frames
+
+                            chunk = image[start_index:end_index]
+
+                        shared_mem = shared_memory.SharedMemory(create=True, size=chunk.nbytes)
+                        shared_memory_name = shared_mem.name
+                        shared_chunk = np.ndarray(chunk.shape, dtype=chunk.dtype, buffer=shared_mem.buf)
+                        shared_chunk[:] = chunk[:]
+
+                        self.shared_chunks.append({"dataset": dataset_name,
+                                                   "channel": channel_name,
+                                                   "n_frames": n_frames,
+                                                   "shape": chunk.shape,
+                                                   "dtype": chunk.dtype,
+                                                   "start_index": start_index,
+                                                   "end_index": end_index,
+                                                   "chunk_size": chunk_size,
+                                                   "shared_mem": shared_mem,
+                                                   "shared_memory_name": shared_memory_name})
 
     def restore_shared_image_chunks(self):
 
@@ -85,6 +92,7 @@ class _compute_utils:
                 for dat in self.shared_chunks:
                     try:
                         dataset = dat["dataset"]
+                        channel = dat["channel"]
                         shape = dat["shape"]
                         dtype = dat["dtype"]
                         start_index = dat["start_index"]
@@ -94,16 +102,17 @@ class _compute_utils:
                         shared_mem.close()
                         shared_mem.unlink()
 
-                        image_dict = self.dataset_dict[dataset]
+                        data_dict = self.dataset_dict[dataset]
+                        image_dict = data_dict["images"]
 
-                        if "data" not in image_dict.keys():
-                            image_dict["data"] = []
-                            image_dict["chunk_idices"] = []
+                        if channel not in image_dict.keys():
+                            image_dict[channel] = []
+                            data_dict["chunk_indices"] = []
 
-                        if type(image_dict["data"]) == list:
+                        if type(image_dict[channel]) == list:
 
-                            image_dict["data"].append(np_array)
-                            image_dict["chunk_idices"].append(start_index)
+                            image_dict[channel].append(np_array)
+                            data_dict["chunk_indices"].append(start_index)
 
                             dataset_list.append(dataset)
 
@@ -117,26 +126,28 @@ class _compute_utils:
 
                     try:
 
-                        image_dict = self.dataset_dict[dataset]
+                        data_dict = self.dataset_dict[dataset]
 
-                        if "data" in image_dict.keys():
+                        if "images" in data_dict.keys():
 
-                            chunk_indices = image_dict["chunk_idices"]
-                            images = image_dict["data"]
+                            image_dict = data_dict["images"]
 
+                            chunk_indices = data_dict["chunk_indices"]
                             sorted_indices = np.argsort(chunk_indices)
 
-                            # print(f"Restoring {dataset} {len(images)} chunks")
-                            # print(f"Chunk indices: {chunk_indices}")
-                            # print(f"Sorted indices: {sorted_indices}")
+                            for channel, images in image_dict.items():
 
-                            sorted_images = [images[i] for i in sorted_indices]
-                            image = np.concatenate(sorted_images, axis=0)
+                                if type(images) == list:
 
-                            image_dict["data"] = image
-                            del image_dict["chunk_idices"]
+                                    sorted_images = [images[i] for i in sorted_indices]
+                                    image = np.concatenate(sorted_images, axis=0)
+
+                                    image_dict[channel] = image
+
+                            del data_dict["chunk_indices"]
 
                     except:
+                        print(traceback.format_exc())
                         pass
 
 

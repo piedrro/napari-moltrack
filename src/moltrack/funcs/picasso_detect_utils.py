@@ -70,6 +70,7 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
         box_size = dat["box_size"]
         roi = dat["roi"]
         dataset = dat["dataset"]
+        channel = dat["channel"]
         start_index = dat["start_index"]
         end_index = dat["end_index"]
         detect = dat["detect"]
@@ -134,6 +135,7 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
 
                         locs = pd.DataFrame(locs)
                         locs.insert(0, "dataset", dataset)
+                        locs.insert(1, "channel", channel)
 
                         if segmentation_layer != "None":
                             locs[seg_name] = polygon_indices
@@ -327,34 +329,34 @@ def remove_segmentation_locs(polygons, locs, polygon_indices):
         pass
 
     return locs, polygon_indices
-
-
-
-
-
-    # if len(polygons) > 0 and len(locs) > 0:
     #
-    #     loclist = pd.DataFrame(locs).to_dict(orient="records")
     #
-    #     filtered_locs = []
     #
-    #     for loc in loclist:
-    #         point = Point(loc["x"], loc["y"])
     #
-    #         for polygon_index, polygon in enumerate(polygons):
-    #             if polygon.contains(point):
-    #                 loc["segmentation"] = polygon_index
-    #                 filtered_locs.append(loc)
     #
-    #     if len(filtered_locs):
-    #         locs = pd.DataFrame(filtered_locs).to_records(index=False)
-    #     else:
-    #         locs = []
+    # # if len(polygons) > 0 and len(locs) > 0:
+    # #
+    # #     loclist = pd.DataFrame(locs).to_dict(orient="records")
+    # #
+    # #     filtered_locs = []
+    # #
+    # #     for loc in loclist:
+    # #         point = Point(loc["x"], loc["y"])
+    # #
+    # #         for polygon_index, polygon in enumerate(polygons):
+    # #             if polygon.contains(point):
+    # #                 loc["segmentation"] = polygon_index
+    # #                 filtered_locs.append(loc)
+    # #
+    # #     if len(filtered_locs):
+    # #         locs = pd.DataFrame(filtered_locs).to_records(index=False)
+    # #     else:
+    # #         locs = []
+    # #
+    # # else:
+    # #     locs = []
     #
-    # else:
-    #     locs = []
-
-    return locs
+    # return locs
 
 def detect_picaso_locs(dat, progress_list, fit_list):
 
@@ -365,6 +367,7 @@ def detect_picaso_locs(dat, progress_list, fit_list):
         box_size = dat["box_size"]
         roi = dat["roi"]
         dataset = dat["dataset"]
+        channel = dat["channel"]
         start_index = dat["start_index"]
         end_index = dat["end_index"]
         detect = dat["detect"]
@@ -412,6 +415,7 @@ def detect_picaso_locs(dat, progress_list, fit_list):
 
                         #instert dataset at column 0
                         locs.insert(0, "dataset", dataset)
+                        locs.insert(1, "channel", channel)
 
                         locs = locs.to_records(index=False)
 
@@ -615,6 +619,7 @@ class _picasso_detect_utils:
             for image_chunk in self.shared_chunks:
 
                 compute_job = {"dataset": image_chunk["dataset"],
+                               "channel": image_chunk["channel"],
                                "start_index": image_chunk["start_index"],
                                "end_index": image_chunk["end_index"],
                                "shared_memory_name": image_chunk["shared_memory_name"],
@@ -782,7 +787,8 @@ class _picasso_detect_utils:
 
 
     def _picasso_wrapper(self, progress_callback, detect, fit,
-            min_net_gradient, dataset_list = [], frame_index = None, detect_mode = "Picasso", fit_mode = "Picasso"):
+            min_net_gradient, dataset_list = [], channel_list = [],
+            frame_index = None, detect_mode = "Picasso", fit_mode = "Picasso"):
 
         try:
             locs, fitted = [], False
@@ -806,7 +812,8 @@ class _picasso_detect_utils:
                     if detect is True:
 
                         self.create_shared_image_chunks(dataset_list=dataset_list,
-                            frame_index=frame_index, chunk_size = 1000)
+                            channel_list=channel_list, frame_index=frame_index,
+                            chunk_size = 1000)
 
                         detect_jobs, n_frames = self.populate_picasso_detect_jobs(detect,
                             fit, min_net_gradient, roi)
@@ -874,37 +881,48 @@ class _picasso_detect_utils:
             if len(locs) > 0:
 
                 dataset_list = list(set(locs["dataset"]))
+                channel_list = list(set(locs["channel"]))
 
                 for dataset in dataset_list:
 
                     if dataset not in self.localisation_dict.keys():
                         self.localisation_dict[dataset] = {}
 
-                    result_dict = self.localisation_dict[dataset]
-
                     dataset_locs = locs[locs["dataset"] == dataset]
 
-                    if len(dataset_locs) == 0:
+                    for channel in channel_list:
 
-                        result_dict["localisations"] = []
-                        result_dict["fitted"] = False
-                        result_dict["box_size"] = box_size
+                        channel_locs = dataset_locs[dataset_locs["channel"] == channel]
 
-                    else:
+                        if channel not in self.localisation_dict[dataset].keys():
+                            self.localisation_dict[dataset][channel] = {}
 
-                        loc_cols = list(dataset_locs.dtype.names)
+                        result_dict = self.localisation_dict[dataset][channel]
 
-                        if "dataset" in loc_cols or "channel" in loc_cols:
-                            dataset_locs = pd.DataFrame(dataset_locs)
+                        if len(channel_locs) == 0:
 
-                            if "dataset" in loc_cols:
-                                dataset_locs = dataset_locs.drop(columns=["dataset"])
+                            result_dict["localisations"] = []
+                            result_dict["fitted"] = False
+                            result_dict["box_size"] = box_size
 
-                            dataset_locs = dataset_locs.to_records(index=False)
+                        else:
 
-                        result_dict["localisations"] = dataset_locs.copy()
-                        result_dict["fitted"] = fitted
-                        result_dict["box_size"] = box_size
+                            loc_cols = list(channel_locs.dtype.names)
+
+                            if "dataset" in loc_cols or "channel" in loc_cols:
+                                channel_locs = pd.DataFrame(channel_locs)
+
+                                if "dataset" in loc_cols:
+                                    channel_locs = channel_locs.drop(columns=["dataset"])
+
+                                if "channel" in loc_cols:
+                                    channel_locs = channel_locs.drop(columns=["channel"])
+
+                                channel_locs = channel_locs.to_records(index=False)
+
+                            result_dict["localisations"] = channel_locs.copy()
+                            result_dict["fitted"] = fitted
+                            result_dict["box_size"] = box_size
 
         except:
             print(traceback.format_exc())
@@ -921,6 +939,7 @@ class _picasso_detect_utils:
                 detect_mode = self.gui.smlm_detect_mode.currentText()
                 fit_mode = self.gui.smlm_fit_mode.currentText()
                 dataset_name = self.gui.picasso_dataset.currentText()
+                channel_name = self.gui.picasso_channel.currentText()
                 min_net_gradient = self.gui.picasso_min_net_gradient.text()
                 frame_mode = self.gui.picasso_frame_mode.currentText()
                 minimise_ram = self.gui.picasso_minimise_ram.isChecked()
@@ -948,10 +967,29 @@ class _picasso_detect_utils:
                     else:
                         dataset_list = [dataset_name]
 
+                    if channel_name == "All Channels":
+
+                        channel_list = []
+                        for dataset_name in self.dataset_dict.keys():
+                            try:
+                                image_dict = self.dataset_dict[dataset_name]["images"]
+                                channel_list.append(set(image_dict.keys()))
+                            except:
+                                pass
+
+                        channel_list = set.intersection(*channel_list)
+                        channel_list = list(channel_list)
+
+                    else:
+                        channel_list = [channel_name]
+
+
+
                     self.worker = Worker(self._picasso_wrapper,
                         detect=detect, fit=fit,
                         min_net_gradient=min_net_gradient,
                         dataset_list=dataset_list,
+                        channel_list=channel_list,
                         detect_mode=detect_mode,
                         fit_mode=fit_mode,
                         frame_index=frame_index)
@@ -1003,11 +1041,13 @@ class _picasso_detect_utils:
             if generate_roi:
 
                 dataset = self.gui.picasso_dataset.currentText()
+                channel = self.gui.picasso_channel.currentText()
 
                 if dataset == "All Datasets":
                     dataset = list(self.dataset_dict.keys())[0]
 
-                image_shape = self.dataset_dict[dataset]["data"].shape
+                image_dict = self.dataset_dict[dataset]["images"]
+                image_shape = image_dict[channel].shape
 
                 frame_shape = image_shape[1:]
 

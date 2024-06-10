@@ -157,9 +157,8 @@ class QWidget(QWidget, gui, *subclasses):
 
     def devfunc(self, viewer=None):
 
-        self.initialise_channel_selectors()
-
-
+        self.create_shared_image_chunks()
+        self.restore_shared_image_chunks()
 
     def normalize99(self, X):
         """ normalize image so 0.0==0.01st percentile and 1.0==99.99th percentile """
