@@ -1,7 +1,11 @@
 import traceback
+
+import pandas as pd
+
 from moltrack.funcs.compute_utils import Worker
 from picasso.render import render
 import numpy as np
+import time
 
 class _picasso_render_utils:
 
@@ -9,14 +13,28 @@ class _picasso_render_utils:
     def render_picasso_locs(self, locs, image_shape, blur_method=None, min_blur_width=1,
             pixel_size=1, progress_callback=None, oversampling=20, ):
         try:
+
             h, w = image_shape[-2:]
 
-            viewport = [(0, 0), (h, w)]
+            viewport = [(float(0), float(0)),
+                        (float(h), float(w))]
 
-            n_rendered_locs, image = render(locs, viewport=viewport,
-                blur_method=blur_method, min_blur_width=min_blur_width, oversampling=oversampling, )
+            start_time = time.time()
+
+            n_rendered_locs, image = render(locs,
+                viewport=viewport,
+                blur_method=blur_method,
+                min_blur_width=min_blur_width,
+                oversampling=oversampling,
+                ang=0,
+            )
+
+            end_time = time.time()
+
+            print(f"Rendered {n_rendered_locs} localisations in {end_time - start_time:.2f} seconds.")
 
         except:
+            print(traceback.format_exc())
             image = np.zeros(image_shape[-2:], dtype=np.int8)
 
         return image, pixel_size, oversampling

@@ -89,7 +89,7 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
         window_size = dat["window_size"]
         segmentation_layer = dat["segmentation_layer"]
 
-        if segmentation_layer != "None":
+        if segmentation_layer not in ["None",""]:
             seg_name = segmentation_layer[:-1].lower() + "_index"
         else:
             seg_name = "shape_index"
@@ -144,7 +144,7 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
                         locs.insert(0, "dataset", dataset)
                         locs.insert(1, "channel", channel)
 
-                        if segmentation_layer != "None":
+                        if segmentation_layer not in ["None",""]:
                             locs[seg_name] = polygon_indices
 
                         locs = locs.to_records(index=False)
@@ -336,34 +336,6 @@ def remove_segmentation_locs(polygons, locs, polygon_indices):
         pass
 
     return locs, polygon_indices
-    #
-    #
-    #
-    #
-    #
-    # # if len(polygons) > 0 and len(locs) > 0:
-    # #
-    # #     loclist = pd.DataFrame(locs).to_dict(orient="records")
-    # #
-    # #     filtered_locs = []
-    # #
-    # #     for loc in loclist:
-    # #         point = Point(loc["x"], loc["y"])
-    # #
-    # #         for polygon_index, polygon in enumerate(polygons):
-    # #             if polygon.contains(point):
-    # #                 loc["segmentation"] = polygon_index
-    # #                 filtered_locs.append(loc)
-    # #
-    # #     if len(filtered_locs):
-    # #         locs = pd.DataFrame(filtered_locs).to_records(index=False)
-    # #     else:
-    # #         locs = []
-    # #
-    # # else:
-    # #     locs = []
-    #
-    # return locs
 
 def detect_picaso_locs(dat, progress_list, fit_list):
 
@@ -446,48 +418,6 @@ def detect_picaso_locs(dat, progress_list, fit_list):
 
 class _picasso_detect_utils:
 
-    def populate_localisation_dict(self, loc_dict, render_loc_dict, detect_mode,
-            image_channel, box_size, fitted=False):
-
-        if self.verbose:
-            print("Populating localisation dictionary...")
-
-        detect_mode = detect_mode.lower()
-
-        try:
-
-            for dataset_name, locs in loc_dict.items():
-
-                if detect_mode == "localisations":
-
-                    if dataset_name not in self.localisation_dict["localisations"].keys():
-                        self.localisation_dict["localisations"][dataset_name] = {}
-                    if image_channel not in self.localisation_dict["localisations"][dataset_name].keys():
-                        self.localisation_dict["localisations"][dataset_name][image_channel.lower()] = {}
-
-
-                    fiducial_dict = {"localisations": []}
-
-                    fiducial_dict["localisations"] = locs.copy()
-                    fiducial_dict["fitted"] = fitted
-                    fiducial_dict["box_size"] = box_size
-
-                    self.localisation_dict["localisations"][dataset_name][image_channel.lower()] = fiducial_dict.copy()
-
-                else:
-
-                    self.localisation_dict["bounding_boxes"]["localisations"] = locs.copy()
-                    self.localisation_dict["bounding_boxes"]["fitted"] = fitted
-                    self.localisation_dict["bounding_boxes"]["box_size"] = box_size
-
-
-        except:
-            print(traceback.format_exc())
-            self.gui.picasso_progressbar.setValue(0)
-            self.gui.picasso_detect.setEnabled(True)
-            self.gui.picasso_fit.setEnabled(True)
-            self.gui.picasso_detectfit.setEnabled(True)
-
     def _picasso_wrapper_finished(self):
 
         try:
@@ -552,7 +482,7 @@ class _picasso_detect_utils:
             print(traceback.format_exc())
             return None
 
-    def get_fit_data(self, dataset_list, box_size, frame_index=None):
+    def get_fit_data(self, dataset_list, channel_list, box_size, frame_index=None):
 
         try:
 
@@ -563,31 +493,36 @@ class _picasso_detect_utils:
 
                 if dataset in self.localisation_dict.keys():
 
-                    loc_dict = self.localisation_dict[dataset]
+                    for channel in channel_list:
 
-                    locs = loc_dict["localisations"].copy()
+                        if channel in self.localisation_dict[dataset].keys():
 
-                    if frame_index is not None:
-                        locs = locs[locs.frame == frame_index]
+                            loc_dict = self.localisation_dict[dataset][channel]
 
-                    if len(locs) > 0:
+                            locs = loc_dict["localisations"].copy()
 
-                        image_dict = self.dataset_dict[dataset]
+                            if frame_index is not None:
+                                locs = locs[locs.frame == frame_index]
 
-                        if "dataset" not in locs.dtype.names:
-                            locs = pd.DataFrame(locs)
-                            locs.insert(0, "dataset", dataset)
-                            locs = locs.to_records(index=False)
+                            if len(locs) > 0:
 
-                        image = image_dict.pop("data")
+                                image_dict = self.dataset_dict[dataset]["images"]
 
-                        camera_info = {"baseline": 100.0, "gain": 1, "sensitivity": 1.0, "qe": 0.9, }
-                        spot_data = get_spots(image, locs, box_size, camera_info)
+                                if "dataset" not in locs.dtype.names:
+                                    locs = pd.DataFrame(locs)
+                                    locs.insert(0, "dataset", dataset)
+                                    locs.insert(1, "channel", channel)
+                                    locs = locs.to_records(index=False)
 
-                        loc_list.append(locs)
-                        spot_list.append(spot_data)
+                                image = image_dict.pop(channel)
 
-                        image_dict["data"] = image
+                                camera_info = {"baseline": 100.0, "gain": 1, "sensitivity": 1.0, "qe": 0.9, }
+                                spot_data = get_spots(image, locs, box_size, camera_info)
+
+                                loc_list.append(locs)
+                                spot_list.append(spot_data)
+
+                                image_dict[channel] = image
 
         except:
             print(traceback.format_exc())
@@ -840,7 +775,8 @@ class _picasso_detect_utils:
 
                     if detect is False and fit is True:
 
-                        locs, spots = self.get_fit_data(dataset_list, box_size, frame_index)
+                        locs, spots = self.get_fit_data(dataset_list, channel_list,
+                            box_size, frame_index)
 
                     if len(locs) > 0 and fit == True:
 
@@ -900,6 +836,10 @@ class _picasso_detect_utils:
                     for channel in channel_list:
 
                         channel_locs = dataset_locs[dataset_locs["channel"] == channel]
+
+                        if "lpx" in channel_locs.dtype.names:
+                            channel_locs = channel_locs[~np.isnan(channel_locs["lpx"])]
+                            channel_locs = channel_locs[~np.isnan(channel_locs["lpy"])]
 
                         if channel not in self.localisation_dict[dataset].keys():
                             self.localisation_dict[dataset][channel] = {}
