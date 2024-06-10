@@ -343,11 +343,23 @@ class _export_utils:
             return export_polygons
 
 
+    def export_shapes_data_finished(self):
+
+        self.update_ui()
+
+    def export_shapes_data(self, path, progress_callback = None):
+
+        export_data = self.gui.shapes_export_data.currentText()
+        export_mode = self.gui.shapes_export_mode.currentText()
+
+        if export_data == "Segmentations":
+            self.export_segmentations(export_mode, path=path)
+
+        if export_data == "Cells":
+            self.export_cells(export_mode, path=path)
 
 
-
-
-    def export_shapes_data(self):
+    def init_export_shapes_data(self):
 
         export_data = self.gui.shapes_export_data.currentText()
         export_mode = self.gui.shapes_export_mode.currentText()
@@ -360,11 +372,13 @@ class _export_utils:
 
             if path is not None:
 
-                if export_data == "Segmentations":
-                    self.export_segmentations(export_mode, path=path)
+                self.update_ui(init=True)
 
-                if export_data == "Cells":
-                    self.export_cells(export_mode, path=path)
+                worker = Worker(self.export_shapes_data, path)
+                worker.signals.finished.connect(self.export_shapes_data_finished)
+                self.threadpool.start(worker)
+
+
 
 
     def update_shape_export_options(self):

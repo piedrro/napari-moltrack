@@ -101,7 +101,6 @@ class _events_utils:
                         "import_picasso",
                         "cellpose_load_model",
                         "segment_active",
-                        # "segment_all",
                         "dilate_segmentations",
                         "picasso_detect",
                         "picasso_fit",
@@ -113,6 +112,7 @@ class _events_utils:
                         "fit_segmentations",
                         "export_shapes",
                         "remove_seglocs",
+                        "export_shapes",
                         ]
 
             progressbars = ["import_progressbar",
