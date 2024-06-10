@@ -13,31 +13,115 @@ class _events_utils:
 
     def populate_dataset_selectors(self):
 
-        dataset_selectors = ["import_picasso_dataset",
-                             "cellpose_dataset",
-                             "moltrack_dataset_selector",
-                             "picasso_dataset",
-                             "picasso_filter_dataset",
-                             "picasso_render_dataset",
-                             "tracking_dataset",
-                             "locs_export_dataset",
-                             "remove_seglocs_dataset",
-                             ]
+        try:
 
-        for selector_name in dataset_selectors:
+            dataset_selectors = ["import_picasso_dataset",
+                                 "cellpose_dataset",
+                                 "moltrack_dataset_selector",
+                                 "picasso_dataset",
+                                 "picasso_filter_dataset",
+                                 "picasso_render_dataset",
+                                 "tracking_dataset",
+                                 "locs_export_dataset",
+                                 "remove_seglocs_dataset",
+                                 ]
 
-            dataset_names = list(self.dataset_dict.keys())
+            for selector_name in dataset_selectors:
 
-            if selector_name in ["picasso_dataset","locs_export_dataset"] and len(dataset_names) > 1:
-                dataset_names.insert(0, "All Datasets")
+                dataset_names = list(self.dataset_dict.keys())
 
-            if selector_name == "cellpose_dataset":
-                if hasattr(self, "segmentation_image"):
-                    dataset_names.insert(0, "Segmentation Image")
+                if selector_name in ["picasso_dataset","locs_export_dataset"] and len(dataset_names) > 1:
+                    dataset_names.insert(0, "All Datasets")
 
-            if hasattr(self.gui, selector_name):
-                getattr(self.gui, selector_name).clear()
-                getattr(self.gui, selector_name).addItems(dataset_names)
+                if selector_name == "cellpose_dataset":
+                    if hasattr(self, "segmentation_image"):
+                        dataset_names.insert(0, "Segmentation Image")
+
+                if hasattr(self.gui, selector_name):
+                    getattr(self.gui, selector_name).clear()
+                    getattr(self.gui, selector_name).addItems(dataset_names)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+    def initialise_channel_selectors(self):
+
+        try:
+
+            channel_selectors = ["import_picasso_channel",
+                                 "cellpose_channel",
+                                 "moltrack_channel_selector",
+                                 "picasso_channel",
+                                 "picasso_filter_channel",
+                                 "picasso_render_channel",
+                                 "tracking_channel",
+                                 "locs_export_channel",
+                                 "remove_seglocs_channel",
+                                 ]
+
+            for channel_selector in channel_selectors:
+
+                dataset_selector = channel_selector.replace("channel", "dataset")
+
+                if hasattr(self.gui, dataset_selector) and hasattr(self.gui, channel_selector):
+
+                    print(f"Initialising channel selector: {channel_selector} for dataset selector: {dataset_selector}")
+
+                    dataset_selector = getattr(self.gui, dataset_selector)
+                    channel_selector = getattr(self.gui, channel_selector)
+
+                    dataset_selector.currentTextChanged.connect(partial(self.update_channel_selector,
+                        dataset_selector=dataset_selector, channel_selector=channel_selector))
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+    def update_channel_selector(self, channel_selector, dataset_selector):
+
+        try:
+
+            dataset_name = dataset_selector.currentText()
+            channel_names = []
+
+            if dataset_name != "All Datasets":
+
+                if dataset_name in self.dataset_dict.keys():
+
+                    image_dict = self.dataset_dict[dataset_name]["images"]
+
+                    channel_names = list(image_dict.keys())
+
+            else:
+
+                channel_names = []
+
+                for dataset_name in self.dataset_dict.keys():
+
+                    image_dict = self.dataset_dict[dataset_name]["images"]
+                    channel_names.append(set(image_dict.keys()))
+
+                channel_names = set.intersection(*channel_names)
+                channel_names = list(channel_names)
+
+            current_channel = channel_selector.currentText()
+
+            channel_selector.blockSignals(True)
+            channel_selector.clear()
+            channel_selector.addItems(channel_names)
+
+            if current_channel in channel_names:
+                selector_index = channel_names.index(current_channel)
+                channel_selector.setCurrentIndex(selector_index)
+
+            channel_selector.blockSignals(False)
+
+
+
+        except:
+            print(traceback.format_exc())
+            pass
 
 
     def update_picasso_segmentation_filter(self):
@@ -153,7 +237,7 @@ class _events_utils:
 
 
 
-    def image_layer_auto_contrast(self, image, dataset):
+    def image_layer_auto_contrast(self, image, dataset, channel):
 
         contrast_limits = None
 
@@ -162,14 +246,18 @@ class _events_utils:
 
             if dataset in self.contrast_dict.keys():
 
-                autocontrast = False
+                if channel in self.contrast_dict[dataset].keys():
 
-                contrast_limits = self.contrast_dict[dataset]["contrast_limits"]
-                gamma = self.contrast_dict[dataset]["gamma"]
+                    if "contrast_limits" in self.contrast_dict[dataset][channel].keys():
 
-                if hasattr(self, "image_layer"):
-                    self.image_layer.gamma = gamma
-                    self.image_layer.contrast_limits = contrast_limits
+                        autocontrast = False
+
+                        contrast_limits = self.contrast_dict[dataset][channel]["contrast_limits"]
+                        gamma = self.contrast_dict[dataset][channel]["gamma"]
+
+                        if hasattr(self, "image_layer"):
+                            self.image_layer.gamma = gamma
+                            self.image_layer.contrast_limits = contrast_limits
 
             if autocontrast is True:
 
@@ -196,22 +284,33 @@ class _events_utils:
 
         try:
             dataset = self.active_dataset
+            channel = self.active_channel
 
             if dataset in self.dataset_dict.keys():
 
-                if dataset not in self.contrast_dict.keys():
-                    self.contrast_dict[dataset] = {}
+                if "images" in self.dataset_dict[dataset].keys():
 
-                layer_name = [layer.name for layer in self.viewer.layers if dataset in layer.name]
+                    image_dict = self.dataset_dict[dataset]["images"]
 
-                if len(layer_name) > 0:
+                    if channel in image_dict.keys():
 
-                    image_layer = self.viewer.layers[layer_name[0]]
-                    contrast_limits = image_layer.contrast_limits
-                    gamma = image_layer.gamma
+                        if dataset not in self.contrast_dict.keys():
+                            self.contrast_dict[dataset] = {}
+                        if channel not in self.contrast_dict[dataset].keys():
+                            self.contrast_dict[dataset][channel] = {}
 
-                    self.contrast_dict[dataset] = {"contrast_limits": contrast_limits,
-                                                   "gamma": gamma}
+                        layer_names = [layer.name for layer in self.viewer.layers if dataset in layer.name]
+
+                        image_name = f"{dataset}[{channel}]"
+
+                        if image_name in layer_names:
+
+                            image_layer = self.viewer.layers[image_name]
+                            contrast_limits = image_layer.contrast_limits
+                            gamma = image_layer.gamma
+
+                            self.contrast_dict[dataset][channel] = {"contrast_limits": contrast_limits,
+                                                                    "gamma": gamma}
 
         except:
             print(traceback.format_exc())
@@ -229,7 +328,7 @@ class _events_utils:
                     name="Segmentation Image", visible=True)
                 self.segmentation_layer.refresh()
 
-    def update_active_image(self, dataset=None, event=None):
+    def update_active_image(self, dataset=None, channel=None, event=None):
 
         try:
 
@@ -238,41 +337,64 @@ class _events_utils:
             else:
                 dataset_name = dataset
 
+            image_dict = self.dataset_dict[dataset_name]["images"]
+
+            if channel == None or channel not in image_dict.keys():
+                channel_name = self.gui.moltrack_channel_selector.currentText()
+            else:
+                channel_name = channel
+
             if dataset_name in self.dataset_dict.keys():
 
-                self.update_contrast_dict()
+                if "images" in self.dataset_dict[dataset_name].keys():
 
-                self.active_dataset = dataset_name
+                    self.update_contrast_dict()
 
-                if "data" in self.dataset_dict[dataset_name].keys():
+                    self.active_dataset = dataset_name
+                    self.active_channel = channel_name
 
-                    image = self.dataset_dict[dataset_name]["data"]
+                    image_dict = self.dataset_dict[dataset_name]["images"]
 
-                    if hasattr(self, "image_layer") == False:
+                    if channel_name in image_dict.keys():
 
-                        self.image_layer = self.viewer.add_image(image,
-                            name=dataset_name,
-                            colormap="gray",
-                            blending="additive",
-                            visible=True)
+                        image = image_dict[channel_name]
+                        image_name = f"{dataset_name}[{channel_name}]"
 
-                    else:
-                        self.image_layer.data = image
-                        self.image_layer.name = dataset_name
-                        self.image_layer.refresh()
+                        if hasattr(self, "image_layer") == False:
 
-                    self.image_layer_auto_contrast(image, dataset_name)
+                            self.image_layer = self.viewer.add_image(image,
+                                name=image_name,
+                                colormap="gray",
+                                blending="additive",
+                                visible=True)
 
-                    dataset_names = self.dataset_dict.keys()
-                    active_dataset_index = list(dataset_names).index(dataset_name)
+                        else:
+                            self.image_layer.data = image
+                            self.image_layer.name = image_name
+                            self.image_layer.refresh()
 
-                    dataset_selector = self.gui.moltrack_dataset_selector
+                        self.image_layer_auto_contrast(image, dataset_name, channel_name)
 
-                    dataset_selector.blockSignals(True)
-                    dataset_selector.clear()
-                    dataset_selector.addItems(dataset_names)
-                    dataset_selector.setCurrentIndex(active_dataset_index)
-                    dataset_selector.blockSignals(False)
+                        dataset_names = self.dataset_dict.keys()
+                        active_dataset_index = list(dataset_names).index(dataset_name)
+
+                        channel_names = list(image_dict.keys())
+                        active_channel_index = list(channel_names).index(channel_name)
+
+                        dataset_selector = self.gui.moltrack_dataset_selector
+                        channel_selector = self.gui.moltrack_channel_selector
+
+                        dataset_selector.blockSignals(True)
+                        dataset_selector.clear()
+                        dataset_selector.addItems(dataset_names)
+                        dataset_selector.setCurrentIndex(active_dataset_index)
+                        dataset_selector.blockSignals(False)
+
+                        channel_selector.blockSignals(True)
+                        channel_selector.clear()
+                        channel_selector.addItems(channel_names)
+                        channel_selector.setCurrentIndex(active_channel_index)
+                        channel_selector.blockSignals(False)
 
             else:
 

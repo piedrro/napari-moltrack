@@ -67,6 +67,7 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.check_gpufit_availibility()
         self.update_detect_options()
+        self.initialise_channel_selectors()
 
         # create threadpool and stop event
         self.threadpool = QThreadPool()
@@ -85,6 +86,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.contrast_dict = {}
 
         self.active_dataset = None
+        self.active_channel = None
 
         self.verbose = False
 
@@ -94,6 +96,7 @@ class QWidget(QWidget, gui, *subclasses):
     def initialise_events(self):
         self.gui.import_images.clicked.connect(self.init_import_data)
         self.gui.moltrack_dataset_selector.currentIndexChanged.connect(self.update_active_image)
+        self.gui.moltrack_channel_selector.currentIndexChanged.connect(self.update_active_image)
 
         self.gui.segment_active.clicked.connect(partial(self.initialise_cellpose, mode="active"))
         # self.gui.segment_all.clicked.connect(partial(self.initialise_cellpose, mode="all"))
@@ -148,18 +151,9 @@ class QWidget(QWidget, gui, *subclasses):
 
     def devfunc(self, viewer=None):
 
-        image = self.viewer.layers["Segmentation Image"].data[0].copy()
-        path = r"C:\Users\turnerp\Desktop\image.tif"
+        self.initialise_channel_selectors()
 
-        image = self.normalize99(image)
-        image = self.rescale01(image)
-        image = (image * 255).astype(np.uint8)
-        tifffile.imwrite(path, image)
 
-        print(image.shape)
-
-        # self.gui.picasso_segmentation_layer.addItem("test")
-        # self.update_picasso_segmentation_filter()
 
     def normalize99(self, X):
         """ normalize image so 0.0==0.01st percentile and 1.0==99.99th percentile """

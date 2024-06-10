@@ -42,9 +42,13 @@ def import_image_data(dat, progress_dict={}, index=0):
         crop_mode = dat["import_crop_mode"]
         import_limit = dat["import_limit"]
         frame_averaging = dat["frame_averaging"]
+        multichannel_mode = dat["multichannel_mode"]
+        channel_name = dat["channel_name"]
+        import_mode = dat["import_mode"]
 
         base, ext = os.path.splitext(path)
 
+        image_dict = {}
         images = []
 
         if ext.lower() == ".tif":
@@ -97,11 +101,28 @@ def import_image_data(dat, progress_dict={}, index=0):
         if len(images) > 0:
             images = np.stack(images, axis=0)
 
-            if frame_averaging == True:
-                images = np.mean(images, axis=0)
-                images = np.expand_dims(images, axis=0)
+            if import_mode != "Segmentation Image":
+                if multichannel_mode == "None":
+                    image_dict = {channel_name: images}
+                if multichannel_mode == "FRET":
+                    donor, acceptor = np.split(images, 2, axis=-1)
+                    image_dict = {"Donor": donor, "Acceptor": acceptor}
+                if multichannel_mode == "ALEX":
+                    donor, acceptor = np.split(images, 2, axis=-1)
+                    DD, DA = donor[::2], donor[1::2]
+                    AD, AA = acceptor[::2], acceptor[1::2]
+                    image_dict = {"DD": DD, "DA": DA, "AD": AD, "AA": AA}
+            else:
+                image_dict = {"Segmentation Image": images}
 
-            dat["data"] = images
+            if frame_averaging == True:
+                for channel in image_dict.keys():
+                    image = image_dict[channel]
+                    image = np.mean(image, axis=0)
+                    image = np.expand_dims(image, axis=0)
+                    image_dict[channel] = image
+
+            dat["images"] = image_dict
 
     except:
         print(traceback.format_exc())
@@ -196,6 +217,9 @@ class _import_utils:
             import_crop_mode = self.gui.import_crop_mode.currentText()
             import_limit = self.gui.import_limit.currentText()
             frame_averaging = self.gui.frame_averaging.isChecked()
+            multichannel_mode = self.gui.import_multichannel_mode.currentText()
+            channel_name = self.gui.import_channel_name.text()
+            import_mode = self.gui.import_mode.currentText()
 
             for path_index, path in enumerate(paths):
 
@@ -206,7 +230,10 @@ class _import_utils:
                               "dataset_name": dataset_name,
                               "import_limit": import_limit,
                               "import_crop_mode": import_crop_mode,
-                              "frame_averaging": frame_averaging
+                              "frame_averaging": frame_averaging,
+                              "multichannel_mode": multichannel_mode,
+                              "channel_name": channel_name,
+                              "import_mode": import_mode
                               }
 
                 import_jobs.append(image_dict)
@@ -269,10 +296,13 @@ class _import_utils:
 
                 if type(import_data) == dict:
 
-                    if "data" in import_data.keys():
+                    if "images" in import_data.keys():
 
                         dataset_name = import_data["dataset_name"]
-                        import_dict[dataset_name] = import_data
+                        image_dict = import_data["images"]
+
+                        if image_dict != {}:
+                            import_dict[dataset_name] = import_data
 
             if concat_images == True:
 
@@ -314,21 +344,20 @@ class _import_utils:
         results = self.process_compute_jobs(import_jobs,
             progress_callback=progress_callback)
 
-        if import_mode.lower() == "data":
+        if import_mode.lower() != "segmentation image":
             self.populate_import_dataset_dict(results)
         else:
-
             if len(results) > 0:
                 if type(results[0]) == dict:
-                    if "data" in results[0].keys():
-                        self.segmentation_image = results[0]["data"]
+                    if "images" in results[0].keys():
+                        self.segmentation_image = results[0]["images"]["Segmentation Image"]
 
     def import_data_finished(self):
 
         self.populate_dataset_selectors()
-        self.update_ui()
         self.update_active_image()
         self.draw_segmentation_image()
+        self.update_ui()
 
     def init_import_data(self):
 
@@ -337,7 +366,7 @@ class _import_utils:
             import_mode = self.gui.import_mode.currentText()
             desktop = os.path.expanduser("~/Desktop")
 
-            if import_mode.lower() == "data":
+            if import_mode.lower() != ["segmentation image"]:
 
                 paths = QFileDialog.getOpenFileNames(self, 'Open file',
                     desktop, "Image files (*.tif *.fits)")[0]

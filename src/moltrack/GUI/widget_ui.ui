@@ -54,14 +54,14 @@
           <layout class="QVBoxLayout" name="verticalLayout_18">
            <item>
             <layout class="QFormLayout" name="formLayout">
-             <item row="2" column="0">
+             <item row="4" column="0">
               <widget class="QLabel" name="label_22">
                <property name="text">
                 <string>Image Crop Mode</string>
                </property>
               </widget>
              </item>
-             <item row="2" column="1">
+             <item row="4" column="1">
               <widget class="QComboBox" name="import_crop_mode">
                <item>
                 <property name="text">
@@ -85,14 +85,14 @@
                </item>
               </widget>
              </item>
-             <item row="1" column="0">
+             <item row="3" column="0">
               <widget class="QLabel" name="label_32">
                <property name="text">
                 <string>Import Limit</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="1">
+             <item row="3" column="1">
               <widget class="QComboBox" name="import_limit">
                <item>
                 <property name="text">
@@ -147,7 +147,12 @@
               <widget class="QComboBox" name="import_mode">
                <item>
                 <property name="text">
-                 <string>Data</string>
+                 <string>Data (Single Channel)</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Data (Multi Channel)</string>
                 </property>
                </item>
                <item>
@@ -155,6 +160,46 @@
                  <string>Segmentation Image</string>
                 </property>
                </item>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="import_multichannel_mode_label">
+               <property name="text">
+                <string>Multi Channel Mode</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="import_multichannel_mode">
+               <item>
+                <property name="text">
+                 <string>None</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>FRET</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>ALEX</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_39">
+               <property name="text">
+                <string>Channel Name</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QLineEdit" name="import_channel_name">
+               <property name="text">
+                <string>Channel1</string>
+               </property>
               </widget>
              </item>
             </layout>
@@ -240,6 +285,20 @@
               <widget class="QLabel" name="label_2">
                <property name="text">
                 <string>Dataset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_40">
+               <property name="text">
+                <string>Dataset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QComboBox" name="import_picasso_channel">
+               <property name="enabled">
+                <bool>false</bool>
                </property>
               </widget>
              </item>
@@ -339,6 +398,16 @@
              </item>
              <item row="0" column="1">
               <widget class="QComboBox" name="cellpose_dataset"/>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_136">
+               <property name="text">
+                <string>Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="cellpose_channel"/>
              </item>
             </layout>
            </item>
@@ -1233,14 +1302,14 @@
              <item row="2" column="1">
               <widget class="QComboBox" name="picasso_dataset"/>
              </item>
-             <item row="3" column="0">
+             <item row="4" column="0">
               <widget class="QLabel" name="label_8">
                <property name="text">
                 <string>Frame Mode</string>
                </property>
               </widget>
              </item>
-             <item row="3" column="1">
+             <item row="4" column="1">
               <widget class="QComboBox" name="picasso_frame_mode">
                <item>
                 <property name="text">
@@ -1270,21 +1339,21 @@
                </item>
               </widget>
              </item>
-             <item row="10" column="1">
+             <item row="11" column="1">
               <widget class="QLineEdit" name="picasso_roi_border_width">
                <property name="text">
                 <string>5</string>
                </property>
               </widget>
              </item>
-             <item row="10" column="0">
+             <item row="11" column="0">
               <widget class="QLabel" name="label_35">
                <property name="text">
                 <string>ROI Border Width (Pixels)</string>
                </property>
               </widget>
              </item>
-             <item row="8" column="1">
+             <item row="9" column="1">
               <widget class="QSpinBox" name="moltrack_window_size">
                <property name="maximum">
                 <number>100</number>
@@ -1294,14 +1363,14 @@
                </property>
               </widget>
              </item>
-             <item row="8" column="0">
+             <item row="9" column="0">
               <widget class="QLabel" name="moltrack_window_size_label">
                <property name="text">
                 <string>Window Size</string>
                </property>
               </widget>
              </item>
-             <item row="7" column="1">
+             <item row="8" column="1">
               <widget class="QSpinBox" name="moltrack_threshold">
                <property name="maximum">
                 <number>255</number>
@@ -1311,28 +1380,28 @@
                </property>
               </widget>
              </item>
-             <item row="7" column="0">
+             <item row="8" column="0">
               <widget class="QLabel" name="moltrack_threshold_label">
                <property name="text">
                 <string>Threshold</string>
                </property>
               </widget>
              </item>
-             <item row="6" column="1">
+             <item row="7" column="1">
               <widget class="QLineEdit" name="picasso_min_net_gradient">
                <property name="text">
                 <string>1000</string>
                </property>
               </widget>
              </item>
-             <item row="6" column="0">
+             <item row="7" column="0">
               <widget class="QLabel" name="picasso_min_net_gradient_label">
                <property name="text">
                 <string>Min Net Gradient</string>
                </property>
               </widget>
              </item>
-             <item row="5" column="1">
+             <item row="6" column="1">
               <widget class="QComboBox" name="picasso_box_size">
                <property name="currentIndex">
                 <number>1</number>
@@ -1374,36 +1443,46 @@
                </item>
               </widget>
              </item>
-             <item row="5" column="0">
+             <item row="6" column="0">
               <widget class="QLabel" name="picasso_box_size_label">
                <property name="text">
                 <string>Box Size</string>
                </property>
               </widget>
              </item>
-             <item row="4" column="0">
+             <item row="5" column="0">
               <widget class="QLabel" name="label_4">
                <property name="text">
                 <string/>
                </property>
               </widget>
              </item>
-             <item row="9" column="0">
+             <item row="10" column="0">
               <widget class="QLabel" name="label_5">
                <property name="text">
                 <string/>
                </property>
               </widget>
              </item>
-             <item row="11" column="0">
+             <item row="12" column="0">
               <widget class="QLabel" name="label_30">
                <property name="text">
                 <string>Segmentation layer</string>
                </property>
               </widget>
              </item>
-             <item row="11" column="1">
+             <item row="12" column="1">
               <widget class="QComboBox" name="picasso_segmentation_layer"/>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_38">
+               <property name="text">
+                <string>Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QComboBox" name="picasso_channel"/>
              </item>
             </layout>
            </item>
@@ -1514,14 +1593,14 @@
            </item>
            <item>
             <layout class="QFormLayout" name="formLayout_5">
-             <item row="1" column="0">
+             <item row="2" column="0">
               <widget class="QLabel" name="label_34">
                <property name="text">
                 <string>Segmentations</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="1">
+             <item row="2" column="1">
               <widget class="QComboBox" name="remove_seglocs_segmentation"/>
              </item>
              <item row="0" column="0">
@@ -1533,6 +1612,16 @@
              </item>
              <item row="0" column="1">
               <widget class="QComboBox" name="remove_seglocs_dataset"/>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_41">
+               <property name="text">
+                <string>Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="remove_seglocs_channel"/>
              </item>
             </layout>
            </item>
@@ -1609,15 +1698,25 @@
              <item row="1" column="1">
               <widget class="QComboBox" name="picasso_filter_dataset"/>
              </item>
-             <item row="2" column="0">
+             <item row="3" column="0">
               <widget class="QLabel" name="label_90">
                <property name="text">
                 <string>Filter By</string>
                </property>
               </widget>
              </item>
-             <item row="2" column="1">
+             <item row="3" column="1">
               <widget class="QComboBox" name="filter_criterion"/>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="picasso_filter_dataset_label_2">
+               <property name="text">
+                <string>Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QComboBox" name="picasso_filter_channel"/>
              </item>
             </layout>
            </item>
@@ -1729,14 +1828,14 @@
              <item row="0" column="1">
               <widget class="QComboBox" name="picasso_render_dataset"/>
              </item>
-             <item row="1" column="0">
+             <item row="2" column="0">
               <widget class="QLabel" name="label_83">
                <property name="text">
                 <string>Blur Method</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="1">
+             <item row="2" column="1">
               <widget class="QComboBox" name="picasso_render_blur_method">
                <item>
                 <property name="text">
@@ -1765,19 +1864,29 @@
                </item>
               </widget>
              </item>
-             <item row="2" column="0">
+             <item row="3" column="0">
               <widget class="QLabel" name="label_84">
                <property name="text">
                 <string>Min. Blur (cam. pixel)</string>
                </property>
               </widget>
              </item>
-             <item row="2" column="1">
+             <item row="3" column="1">
               <widget class="QDoubleSpinBox" name="picasso_render_min_blur">
                <property name="singleStep">
                 <double>0.100000000000000</double>
                </property>
               </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_82">
+               <property name="text">
+                <string>Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="picasso_render_channel"/>
              </item>
             </layout>
            </item>
@@ -1833,42 +1942,42 @@
              <item row="0" column="1">
               <widget class="QComboBox" name="tracking_dataset"/>
              </item>
-             <item row="1" column="0">
+             <item row="2" column="0">
               <widget class="QLabel" name="label_98">
                <property name="text">
                 <string>Search Range (Pixels)</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="1">
+             <item row="2" column="1">
               <widget class="QDoubleSpinBox" name="trackpy_search_range">
                <property name="value">
                 <double>5.000000000000000</double>
                </property>
               </widget>
              </item>
-             <item row="2" column="0">
+             <item row="3" column="0">
               <widget class="QLabel" name="label_99">
                <property name="text">
                 <string>Memory (Frames)</string>
                </property>
               </widget>
              </item>
-             <item row="2" column="1">
+             <item row="3" column="1">
               <widget class="QSpinBox" name="trackpy_memory">
                <property name="value">
                 <number>1</number>
                </property>
               </widget>
              </item>
-             <item row="3" column="0">
+             <item row="4" column="0">
               <widget class="QLabel" name="label_100">
                <property name="text">
                 <string>Min Track Length (Frames)</string>
                </property>
               </widget>
              </item>
-             <item row="3" column="1">
+             <item row="4" column="1">
               <widget class="QSpinBox" name="min_track_length">
                <property name="minimum">
                 <number>1</number>
@@ -1877,6 +1986,16 @@
                 <number>5</number>
                </property>
               </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_96">
+               <property name="text">
+                <string>Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="tracking_channel"/>
              </item>
             </layout>
            </item>
@@ -2255,6 +2374,16 @@
                </item>
               </widget>
              </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_73">
+               <property name="text">
+                <string>Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QComboBox" name="locs_export_channel"/>
+             </item>
             </layout>
            </item>
            <item>
@@ -2376,6 +2505,16 @@
      </item>
      <item row="0" column="1">
       <widget class="QComboBox" name="moltrack_dataset_selector"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_37">
+       <property name="text">
+        <string>Channel</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="moltrack_channel_selector"/>
      </item>
     </layout>
    </item>
