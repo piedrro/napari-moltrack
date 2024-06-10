@@ -13,7 +13,7 @@ import math
 import os
 import scipy
 
-class _oufti_utils:
+class oufti:
 
     def export_mesh_finished(self):
 
@@ -33,8 +33,6 @@ class _oufti_utils:
 
                 oufti_data.append(mesh_data)
 
-                print(True)
-
             if len(oufti_data) > 1:
 
                 self.export_oufti(oufti_data,path)
@@ -46,7 +44,7 @@ class _oufti_utils:
             pass
 
 
-    def get_cell_mesh(self, cell, refit = True):
+    def get_cell_mesh(self, cell, n_segments = 50):
 
         mesh_data = None
 
@@ -55,61 +53,17 @@ class _oufti_utils:
             midline_coords = np.array(cell["midline_coords"])
             polygon_coords = np.array(cell["polygon_coords"])
             width = cell["width"]
-            poly_params = cell["poly_params"]
 
             polygon = Polygon(polygon_coords)
             midline = LineString(midline_coords)
 
-            vertical = self.get_vertical(polygon)
+            centerline = oufti.find_centerline(midline,width,True)
+            centerline_coords = np.array(centerline.coords)
 
-            if vertical:
-                polygon = self.rotate_polygon(polygon, angle=90)
+            left_coords, right_coords = oufti.get_boundary_lines(centerline, polygon)
 
-            if refit:
-
-                if vertical:
-                    midline = self.rotate_polygon(midline, angle=90)
-                    midline_coords = np.array(midline.coords)
-
-                constraining_points = [midline_coords[0], midline_coords[-1]]
-                midline_coords, poly_params = BactFit.fit_poly(midline_coords, degree=[1, 2, 3], maxiter=100, minimise_curvature=True,
-                    constraining_points=constraining_points, constrained=True)
-                midline = LineString(midline_coords)
-
-            bisector_coords = BactFit.get_poly_coords(
-                midline_coords[:,0],
-                midline_coords[:,1],
-                poly_params,
-                n_points=100,
-                margin=width*3)
-
-            bisector = LineString(bisector_coords)
-
-            if vertical:
-                bisector = self.rotate_polygon(bisector, angle=-90)
-                polygon = self.rotate_polygon(polygon, angle=-90)
-
-            bisector_coords = np.array(bisector.coords)
-            polygon_coords = np.array(polygon.exterior.coords)
-
-            #flip x and y
-            polygon_coords = np.flip(polygon_coords, axis=1)
-            bisector_coords = np.flip(bisector_coords, axis=1)
-            polygon = Polygon(polygon_coords)
-            bisector = LineString(bisector_coords)
-
-            midline = self.get_mid_line(polygon, bisector)
-
-            if midline is None:
-                return None
-
-            left_coords, right_coords, midline_coords = self.get_boundary_lines(midline, polygon)
-
-            midline_coords, end_intersections = self.trim_midline(left_coords,
-                right_coords, midline_coords, margin=10)
-
-            mesh_data = self.get_mesh_data(left_coords,right_coords,
-                midline_coords, end_intersections)
+            mesh_data = oufti.get_mesh(left_coords, right_coords,
+                centerline_coords, n_segments=n_segments)
 
         except:
             print(traceback.format_exc())
@@ -117,32 +71,75 @@ class _oufti_utils:
 
         return mesh_data
 
+    @staticmethod
+    def get_boundary_lines(centerline, polygon):
+        try:
+            polygon_coords = np.array(polygon.exterior.coords)
 
-    def get_mesh_data(self, left_coords, right_coords, midline_coords,
-            end_intersections, bisector_length=100, n_segments=20):
+            start_point = centerline.coords[0]
+            end_point = centerline.coords[-1]
 
-        mesh_data = {}
+            start_index = np.argmin(cdist(polygon_coords, [start_point]))
+            end_index = np.argmin(cdist(polygon_coords, [end_point]))
+
+            start_point = polygon_coords[start_index]
+            end_point = polygon_coords[end_index]
+
+            if end_index < start_index:
+                length = len(polygon_coords) - start_index + end_index
+            else:
+                length = end_index - start_index
+
+            # rotate polygon so that start point is at the beginning
+            polygon_coords = np.concatenate([polygon_coords[start_index:],
+                                             polygon_coords[:start_index]], axis=0)
+
+            left_coords = polygon_coords[:length + 1]
+            right_coords = polygon_coords[length:]
+            right_coords = np.concatenate([right_coords, [polygon_coords[0]]], axis=0)
+
+            # check start of left_coords is equal to start_point, else flip
+            if not np.allclose(left_coords[0], start_point):
+                left_coords = np.flip(left_coords, axis=0)
+            if not np.allclose(right_coords[0], start_point):
+                right_coords = np.flip(right_coords, axis=0)
+
+        except:
+            left_coords = None
+            right_coords = None
+
+        return left_coords, right_coords
+
+    @staticmethod
+    def get_mesh(left_coords, right_coords, centerline_coords,
+            n_segments=50, bisector_length=100):
+
+        mesh_data = None
 
         try:
+            line_resolution = n_segments * 10
+            centerline = LineString(centerline_coords)
 
-            left_line = LineString(left_coords)
+            # resize left and right lines to have the same number of points
             right_line = LineString(right_coords)
+            left_line = LineString(left_coords)
+            right_line = BactFit.resize_line(right_line, line_resolution)
+            left_line = BactFit.resize_line(left_line, line_resolution)
+            right_coords = np.array(right_line.coords)
+            left_coords = np.array(left_line.coords)
 
-            left_line = self.resize_line(left_line, n_segments)
-            right_line = self.resize_line(right_line, n_segments)
+            # initialize lists for indices
+            left_indices = []
+            right_indices = []
 
-            midline = LineString(midline_coords)
-            midline = self.resize_line(midline, n_segments)
+            distances = np.linspace(0, centerline.length, n_segments)
+            centerline_segments = [LineString([centerline.interpolate(distance - 0.01),
+                                               centerline.interpolate(distance + 0.01)]) for distance in distances]
 
-            distances = np.linspace(0, midline.length, n_segments)[1:]
+            centerline_segments = centerline_segments[1:-1]
 
-            mid_line_segments = [LineString([midline.interpolate(distance - 0.01),
-                                             midline.interpolate(distance + 0.01)]) for distance in distances]
-
-            right_line_data = [end_intersections[0].tolist()]
-            left_line_data = [end_intersections[0].tolist()]
-
-            for segment in mid_line_segments:
+            # iterate over centerline segments and find intersection with left and right lines
+            for segment in centerline_segments:
                 left_bisector = segment.parallel_offset(bisector_length, 'left')
                 right_bisector = segment.parallel_offset(bisector_length, 'right')
 
@@ -155,22 +152,57 @@ class _oufti_utils:
                 right_intersection = bisector.intersection(right_line)
 
                 if left_intersection.geom_type == "Point" and right_intersection.geom_type == "Point":
-                    right_line_data.append(np.array(left_intersection.xy).reshape(2).tolist())
-                    left_line_data.append(np.array(right_intersection.xy).reshape(2).tolist())
+                    left_index = np.argmin(cdist(left_coords, [left_intersection.coords[0]]))
+                    right_index = np.argmin(cdist(right_coords, [right_intersection.coords[0]]))
 
-            right_line_data.append(end_intersections[-1].tolist())
-            left_line_data.append(end_intersections[-1].tolist())
+                    # check if indices are already in list
+                    if len(left_indices) == 0:
+                        left_indices.append(left_index)
+                        right_indices.append(right_index)
+                    else:
+                        # ensure that indices are always increasing
+                        max_left = max(left_indices)
+                        max_right = max(right_indices)
 
-            left_line_data = np.array(left_line_data)
-            right_line_data = np.array(right_line_data)
+                        if max_left > left_index:
+                            max_left += 1
+                            if max_left > len(left_coords) - 2:
+                                left_index = None
+                            else:
+                                left_index = max_left
 
-            mesh = np.hstack((left_line_data, right_line_data))
-            model = np.vstack((left_line_data, np.flipud(right_line_data)))
+                        if max_right > right_index:
+                            max_right += 1
+                            if max_left > len(right_coords) - 2:
+                                right_index = None
+                            else:
+                                right_index = max_right
+
+                        if left_index is not None and right_index is not None:
+                            left_indices.append(left_index)
+                            right_indices.append(right_index)
+
+            # add start and end points to indices
+            left_indices.insert(0, 0)
+            right_indices.insert(0, 0)
+            left_indices.append(len(left_coords) - 1)
+            right_indices.append(len(right_coords) - 1)
+
+            # get coordinates from indices
+            left_coords = left_coords[np.array(left_indices)]
+            right_coords = right_coords[np.array(right_indices)]
+
+            #swap x and y
+            left_coords = np.array([left_coords[:,1], left_coords[:,0]]).T
+            right_coords = np.array([right_coords[:,1], right_coords[:,0]]).T
+
+            mesh = np.hstack((left_coords, right_coords))
+            model = np.vstack((left_coords, np.flipud(right_coords)))
 
             mesh = mesh + 1
             model = model + 1
 
-            steplength, steparea, stepvolume = self.compute_line_metrics(mesh)
+            steplength, steparea, stepvolume = oufti.compute_line_metrics(mesh)
 
             polygon = Polygon(model)
             polygon = orient(polygon)
@@ -190,135 +222,94 @@ class _oufti_utils:
 
         return mesh_data
 
-    def resize_line(self, line, length):
-        distances = np.linspace(0, line.length, length)
-        line = LineString([line.interpolate(distance) for distance in distances])
-
-        return line
-
-    def get_mid_line(self, polygon, bisector):
-
-        splitted = shapely.ops.split(polygon, bisector)
-
-        midline = None
-
-        if len(splitted.geoms) == 2:
-
-            intersecting_points = bisector.intersection(polygon)
-            intersecting_points = np.array(intersecting_points.coords)
-
-            first_point = intersecting_points[0]
-            last_point = intersecting_points[-1]
-
-            polygon_coords = np.array(polygon.exterior.coords)
-            first_index = np.argmin(distance.cdist([first_point], polygon_coords)[0])
-            last_index = np.argmin(distance.cdist([last_point], polygon_coords)[0])
-
-            if first_index > last_index:
-                first_index, last_index = last_index, first_index
-
-            # Rotate the cell model coordinates so that the first index is the first point
-            polygon_coords = np.roll(polygon_coords, -first_index, axis=0)
-
-            # If the polygon was closed, ensure the first and last points are the same
-            if (polygon_coords[0] != polygon_coords[-1]).any():
-                polygon_coords = np.vstack([polygon_coords, polygon_coords[0]])
-
-            split_index = last_index - first_index
-
-            left_line = polygon_coords[:split_index + 1]
-            right_line = polygon_coords[split_index:]
-
-            right_line = np.flipud(right_line)
-
-            right_line = self.resize_line(LineString(right_line), 100)
-            left_line = self.resize_line(LineString(left_line), 100)
-
-            left_coords = np.array(left_line.coords)
-            right_coords = np.array(right_line.coords)
-
-            midline = (left_coords + right_coords) / 2
-            midline = LineString(midline)
-
-        return midline
-
-    def get_boundary_lines(self, midline, polygon, smooth=True, n_segments=100):
-
+    @staticmethod
+    def find_centerline(midline, width, smooth=True):
         try:
+            def extract_end_points(line, num_points=2):
+                coords = list(line.coords)
+                if len(coords) < num_points:
+                    raise ValueError("The LineString does not have enough points.")
+                start_points = coords[:num_points]
+                end_points = coords[-num_points:]
+                return start_points, end_points
 
-            intersect_splitter = midline.intersection(polygon)
-            geomcollect = split(polygon, midline)
-            left_coords, right_coords = geomcollect.geoms[0], geomcollect.geoms[1]
+            def extend_away(points, distance, ):
+                if len(points) < 2:
+                    raise ValueError("At least two points are required to determine the direction for extension.")
 
-            left_coords = self.remove_intersecting(left_coords, midline)
-            right_coords = self.remove_intersecting(right_coords, midline)
+                p1 = Point(points[0])
+                p2 = Point(points[1])
 
-            distances = np.min(cdist(left_coords, right_coords), axis=0)
-            distances_flip = np.min(cdist(left_coords, np.flip(right_coords)), axis=0)
+                dx = p2.x - p1.x
+                dy = p2.y - p1.y
+                length = np.hypot(dx, dy)
+                factor = distance / length
 
-            distances = np.sum(np.take(distances, [0, -1]))
-            distances_flip = np.sum(np.take(distances_flip, [0, -1]))
+                # Extend p1 away from p2
+                extended_x1 = p1.x - factor * dx
+                extended_y1 = p1.y - factor * dy
 
-            if distances_flip > distances:
-                right_coords = np.flip(right_coords, axis=0)
+                # Similarly for the other end
+                p3 = Point(points[-1])
+                p4 = Point(points[-2])
 
-            p1 = (right_coords[0] + left_coords[0]) / 2
-            p2 = (right_coords[-1] + left_coords[-1]) / 2
+                dx_end = p4.x - p3.x
+                dy_end = p4.y - p3.y
+                length_end = np.hypot(dx_end, dy_end)
+                factor_end = distance / length_end
 
-            p1 = self.find_closest_point(p1, midline)
-            p2 = self.find_closest_point(p2, midline)
+                # Extend p3 away from p4
+                extended_x2 = p3.x - factor_end * dx_end
+                extended_y2 = p3.y - factor_end * dy_end
 
-            left_coords = np.concatenate(([p1], left_coords, [p2]))
-            right_coords = np.concatenate(([p1], right_coords, [p2]))
+                return (extended_x1, extended_y1), (extended_x2, extended_y2)
 
-            right_coords = np.flip(right_coords, axis=0)
+            model = midline.buffer(width)
 
-            left_line = LineString(left_coords)
-            right_line = LineString(right_coords)
+            centerline = BactFit.resize_line(midline, 1000)  # High resolution with 1000 points
 
-            left_line = self.resize_line(left_line, n_segments)
-            right_line = self.resize_line(right_line, n_segments)
+            start_points, end_points = extract_end_points(centerline)
 
-            left_coords = np.array(left_line.xy).T
-            right_coords = np.array(right_line.xy).T
-            midline_coords = (left_coords + np.flipud(right_coords)) / 2
+            extension_distance = width * 3
+
+            extended_start = extend_away(start_points, extension_distance)
+            extended_end = extend_away(end_points, extension_distance)
+
+            extended_start_line = LineString([start_points[0], extended_start[0]])
+            extended_end_line = LineString([end_points[-1], extended_end[1]])
+
+            outline = LineString(model.exterior.coords)
+            intersections_start = outline.intersection(extended_start_line).coords[0]
+            intersections_end = outline.intersection(extended_end_line).coords[0]
+
+            centerline_coords = np.array(centerline.coords)
+            centerline_coords = np.insert(centerline_coords, 0, intersections_start, axis=0)
+            centerline_coords = np.append(centerline_coords, [intersections_end], axis=0)
+            centerline = LineString(centerline_coords)
+
+            if smooth:
+                vertical = BactFit.get_vertical(model)
+
+                if vertical:
+                    centerline = BactFit.rotate_linestring(centerline, angle=90)
+
+                centerline_coords = np.array(centerline.coords)
+                constraining_points = [centerline_coords[0], centerline_coords[-1]]
+
+                centerline_coords, _ = BactFit.fit_poly(centerline_coords, degree=[1, 2, 3],
+                    maxiter=100, constraining_points=constraining_points, constrained=True)
+
+                centerline = LineString(centerline_coords)
+
+                if vertical:
+                    centerline = BactFit.rotate_linestring(centerline, angle=-90)
 
         except:
-            left_coords, right_coords, midline_coords = None, None, None
+            print(traceback.format_exc())
+            pass
 
-        return left_coords, right_coords, midline_coords
+        return centerline
 
-    def remove_intersecting(self, line, intersecting_line):
-
-        line = LineString(line.exterior)
-
-        intersection = line.intersection(intersecting_line)
-        intersection = np.array([[geom.xy[0][0], geom.xy[1][0]] for geom in intersection.geoms])
-
-        line = np.array(line.xy).T
-
-        distance = cdist(line, intersection)
-        end_indexes = sorted([np.argmin(dist).tolist() for dist in distance.T])
-
-        end_indexes = np.unique(end_indexes).tolist()
-
-        if end_indexes[1] - end_indexes[0] > 1:
-            line = np.roll(line, -end_indexes[1], 0)
-            distance = cdist(line, intersection)
-            end_indexes = sorted([np.argmin(dist).tolist() for dist in distance.T])
-
-        overlap_length = abs(end_indexes[0] - end_indexes[-1])
-
-        line = np.roll(line, -end_indexes[0], 0)
-        line = line[overlap_length:]
-
-        distances = cdist(line, np.array(intersecting_line.xy).T)
-        distances = np.min(distances, axis=1)
-        del_indexes = np.argwhere(distances < 0.5).flatten()
-
-        line = np.delete(line, del_indexes, axis=0)
-
-        return line
 
     def find_closest_point(self, point, line):
         point = Point(point)
@@ -330,74 +321,31 @@ class _oufti_utils:
 
         return closet_point
 
-    def euclidian_distance(self, x1, y1, x2, y2):
+    @staticmethod
+    def euclidian_distance(x1, y1, x2, y2):
         distance = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
 
         return distance
 
-    def polyarea(self, x, y):
+    @staticmethod
+    def polyarea( x, y):
         return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
-    def compute_line_metrics(self, mesh):
-        steplength = self.euclidian_distance(mesh[1:, 0] + mesh[1:, 2], mesh[1:, 1] + mesh[1:, 3], mesh[:-1, 0] + mesh[:-1, 2], mesh[:-1, 1] + mesh[:-1, 3]) / 2
+    @staticmethod
+    def compute_line_metrics(mesh):
+        steplength = oufti.euclidian_distance(mesh[1:, 0] + mesh[1:, 2], mesh[1:, 1] + mesh[1:, 3], mesh[:-1, 0] + mesh[:-1, 2], mesh[:-1, 1] + mesh[:-1, 3]) / 2
 
         steparea = []
         for i in range(len(mesh) - 1):
-            steparea.append(self.polyarea([*mesh[i:i + 2, 0], *mesh[i:i + 2, 2][::-1]], [*mesh[i:i + 2, 1], *mesh[i:i + 2, 3][::-1]]))
+            steparea.append(oufti.polyarea([*mesh[i:i + 2, 0], *mesh[i:i + 2, 2][::-1]],
+                [*mesh[i:i + 2, 1], *mesh[i:i + 2, 3][::-1]]))
 
         steparea = np.array(steparea)
 
-        d = self.euclidian_distance(mesh[:, 0], mesh[:, 1], mesh[:, 2], mesh[:, 3])
+        d = oufti.euclidian_distance(mesh[:, 0], mesh[:, 1], mesh[:, 2], mesh[:, 3])
         stepvolume = (d[:-1] * d[1:] + (d[:-1] - d[1:]) ** 2 / 3) * steplength * math.pi / 4
 
         return steplength, steparea, stepvolume
-
-    def trim_midline(self, left_coords, right_coords, midline_coords, margin=10):
-        try:
-            start_point = left_coords[0]
-            end_point = left_coords[-1]
-
-            start_index = np.argmin(cdist([start_point], midline_coords))
-            end_index = np.argmin(cdist([end_point], midline_coords))
-
-            if start_index > end_index:
-                start_index, end_index = end_index, start_index
-
-            end_intersections = [midline_coords[start_index], midline_coords[end_index]]
-
-            margin = 10
-
-            if start_index >= margin:
-                start_index -= margin
-            if end_index <= len(midline_coords) + margin:
-                end_index += margin
-
-            midline_coords = midline_coords[start_index:end_index]
-
-        except:
-            pass
-
-        return midline_coords, end_intersections
-
-    def get_vertical(self, polygon):
-
-        minx, miny, maxx, maxy = polygon.bounds
-
-        h = maxy - miny
-        w = maxx - minx
-
-        if h > w:
-            vertical = True
-        else:
-            vertical = False
-
-        return vertical
-
-    def rotate_polygon(self, polygon, angle=90):
-        origin = polygon.centroid.coords[0]
-        polygon = shapely.affinity.rotate(polygon, angle=angle, origin=origin)
-
-        return polygon
 
     def export_oufti(self, oufti_data, file_path):
 

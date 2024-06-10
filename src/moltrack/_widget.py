@@ -24,7 +24,7 @@ from moltrack.funcs.segmentation_utils import _segmentation_utils
 from moltrack.funcs.tracking_utils import _tracking_utils
 from moltrack.funcs.bactfit_utils import _bactfit_utils
 from moltrack.funcs.cell_events import _cell_events
-from moltrack.funcs.oufti_utils import _oufti_utils
+from moltrack.funcs.oufti_utils import oufti
 
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
@@ -34,7 +34,7 @@ subclasses = [_import_utils, _compute_utils,
               _picasso_render_utils, _tracking_utils,
               _export_utils, _segmentation_events,
               _bactfit_utils, _cell_events,
-              _oufti_utils]
+              oufti]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 

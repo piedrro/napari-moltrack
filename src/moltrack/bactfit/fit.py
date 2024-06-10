@@ -34,7 +34,8 @@ import warnings
 
 class BactFit(object):
 
-    def get_vertical(self, polygon):
+    @staticmethod
+    def get_vertical(polygon):
 
         minx, miny, maxx, maxy = polygon.bounds
 
@@ -53,7 +54,7 @@ class BactFit(object):
         cell_polygon = Polygon(cell_coords)
         cell_outline = LineString(cell_coords)
 
-        vertical = self.get_vertical(cell_polygon)
+        vertical = BactFit.get_vertical(cell_polygon)
 
         n_medial_points = len(midline_coords)
 

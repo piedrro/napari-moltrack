@@ -436,8 +436,6 @@ class _cell_events:
 
     def find_centerline(self, midline, width):
 
-
-
         try:
 
             def resample_line(line, num_points):

@@ -82,3 +82,5 @@ venv/
 
 # written by setuptools_scm
 **/_version.py
+/src/moltrack/bactfit/bactfit_dev.py
+/src/moltrack/bactfit/mask.tif
