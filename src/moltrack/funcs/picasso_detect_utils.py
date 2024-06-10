@@ -21,16 +21,22 @@ from shapely.strtree import STRtree
 
 def precompute_kernels(lnoise=0, lobject=1):
 
+    # Determine the kernel size based on the larger of the two scales
+    size = 2 * max(math.ceil(5 * lnoise), round(lobject)) + 1
+
+    # Handling Gaussian Kernel
     if lnoise == 0:
-        gaussian_kernel = 1
+        gaussian_kernel = np.array([[1]])
     else:
-        gaussian_kernel = cv2.getGaussianKernel(2 * math.ceil(5 * lnoise) + 1, math.sqrt(2) * lnoise)
+        gaussian_kernel_1d = cv2.getGaussianKernel(size, math.sqrt(2) * lnoise)
+        gaussian_kernel = np.outer(gaussian_kernel_1d, gaussian_kernel_1d)
 
     gaussian_kernel_convolved = cv2.filter2D(gaussian_kernel, -1, gaussian_kernel)
 
+    # Handling Boxcar Kernel
     if lobject != 0:
-        boxcar_kernel = np.ones(2 * round(lobject) + 1)
-        boxcar_kernel = boxcar_kernel / sum(boxcar_kernel)
+        boxcar_kernel = np.ones((size, size))
+        boxcar_kernel = boxcar_kernel / np.sum(boxcar_kernel)
         boxcar_kernel_convolved = cv2.filter2D(boxcar_kernel, -1, boxcar_kernel)
     else:
         boxcar_kernel_convolved = None
@@ -108,9 +114,12 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
 
                     frame_index = start_index + array_index
 
+                    print(frame_index,frame.shape)
+
                     filtered_frame = bandpass(frame.copy(),kernels)
 
-                    locs = peak_local_max(filtered_frame, min_distance=1, threshold_abs=threshold)
+                    locs = peak_local_max(filtered_frame, min_distance=1,
+                        threshold_abs=threshold)
 
                     locs = pd.DataFrame(locs, columns=["y", "x"])
                     locs.insert(0, "frame", 0)
