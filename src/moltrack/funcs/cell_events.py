@@ -99,6 +99,9 @@ class _cell_events:
 
                             self.store_cell_shapes()
 
+                    self.segmentation_mode = "panzoom"
+                    self.cellLayer.mode = "pan_zoom"
+
         except:
             print(traceback.format_exc())
             pass
