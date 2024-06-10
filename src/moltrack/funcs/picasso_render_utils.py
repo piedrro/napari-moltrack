@@ -6,11 +6,12 @@ from moltrack.funcs.compute_utils import Worker
 from picasso.render import render
 import numpy as np
 import time
+from functools import partial
 
 class _picasso_render_utils:
 
 
-    def render_picasso_locs(self, locs, image_shape, blur_method=None, min_blur_width=1,
+    def render_picasso_locs(self, loc_list, image_shape, blur_method=None, min_blur_width=1,
             pixel_size=1, progress_callback=None, oversampling=20, ):
         try:
 
@@ -21,17 +22,29 @@ class _picasso_render_utils:
 
             start_time = time.time()
 
-            n_rendered_locs, image = render(locs,
-                viewport=viewport,
-                blur_method=blur_method,
-                min_blur_width=min_blur_width,
-                oversampling=oversampling,
-                ang=0,
-            )
+            images = []
+            total_rendered_locs = 0
+
+            print(f"Rendering localisations from {len(loc_list)} dataset(s)/channel(s).")
+
+            for locs in loc_list:
+
+                n_rendered_locs, image = render(locs,
+                    viewport=viewport,
+                    blur_method=blur_method,
+                    min_blur_width=min_blur_width,
+                    oversampling=oversampling,
+                    ang=0,
+                )
+
+                images.append(image)
+                total_rendered_locs += n_rendered_locs
+
+            image = images[0]
 
             end_time = time.time()
 
-            print(f"Rendered {n_rendered_locs} localisations in {end_time - start_time:.2f} seconds.")
+            print(f"Rendered {total_rendered_locs} localisations in {end_time - start_time:.2f} seconds.")
 
         except:
             print(traceback.format_exc())
@@ -74,38 +87,62 @@ class _picasso_render_utils:
             blur_method = self.gui.picasso_render_blur_method.currentText()
             min_blur_width = float(self.gui.picasso_render_min_blur.text())
 
-            if dataset in self.localisation_dict.keys():
-                if channel in self.localisation_dict[dataset].keys():
+            if dataset == "All Datasets":
+                dataset_list = list(self.localisation_dict.keys())
+            else:
+                dataset_list = [dataset]
 
+            if channel == "All Channels":
+                channel_list = []
+                for dataset_name in self.dataset_dict.keys():
+                    try:
+                        image_dict = self.dataset_dict[dataset_name]["images"]
+                        channel_list.append(set(image_dict.keys()))
+                    except:
+                        pass
+
+                channel_list = set.intersection(*channel_list)
+                channel_list = list(channel_list)
+
+            else:
+                channel_list = [channel]
+
+
+            loc_list = []
+
+            for dataset in dataset_list:
+
+                if channel in self.localisation_dict[dataset].keys():
                     loc_dict = self.localisation_dict[dataset][channel]
 
                     if "localisations" in loc_dict.keys():
+                        loc_list.append(loc_dict["localisations"].copy())
 
-                        locs = loc_dict["localisations"].copy()
+            if len(loc_list) > 0:
 
-                        image_dict = self.dataset_dict[dataset]["images"]
+                image_dict = self.dataset_dict[dataset_list[0]]["images"]
 
-                        image_shape = list(image_dict[channel].shape)
-                        pixel_size = 1
+                image_shape = list(image_dict[channel_list[0]].shape)
+                pixel_size = 1
 
-                        if blur_method == "One-Pixel-Blur":
-                            blur_method = "smooth"
-                        elif blur_method == "Global Localisation Precision":
-                            blur_method = "convolve"
-                        elif (blur_method == "Individual Localisation Precision, iso"):
-                            blur_method = "gaussian_iso"
-                        elif blur_method == "Individual Localisation Precision":
-                            blur_method = "gaussian"
-                        else:
-                            blur_method = None
+                if blur_method == "One-Pixel-Blur":
+                    blur_method = "smooth"
+                elif blur_method == "Global Localisation Precision":
+                    blur_method = "convolve"
+                elif (blur_method == "Individual Localisation Precision, iso"):
+                    blur_method = "gaussian_iso"
+                elif blur_method == "Individual Localisation Precision":
+                    blur_method = "gaussian"
+                else:
+                    blur_method = None
 
-                        self.update_ui(init=True)
+                self.update_ui(init=True)
 
-                        worker = Worker(self.render_picasso_locs, locs=locs, image_shape=image_shape,
-                            blur_method=blur_method, min_blur_width=min_blur_width, pixel_size=pixel_size)
-                        worker.signals.result.connect(self.draw_picasso_render)
-                        worker.signals.finished.connect(self.picasso_render_finished)
-                        self.threadpool.start(worker)
+                worker = Worker(self.render_picasso_locs, loc_list=loc_list, image_shape=image_shape,
+                    blur_method=blur_method, min_blur_width=min_blur_width, pixel_size=pixel_size)
+                worker.signals.result.connect(self.draw_picasso_render)
+                worker.signals.finished.connect(self.picasso_render_finished)
+                self.threadpool.start(worker)
 
         except:
             print(traceback.format_exc())
