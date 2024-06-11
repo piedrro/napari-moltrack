@@ -537,7 +537,7 @@ class _picasso_detect_utils:
 
 
     def populate_picasso_detect_jobs(self, detect, fit,
-            min_net_gradient, roi):
+            min_net_gradient, roi_dict):
 
         try:
 
@@ -560,6 +560,9 @@ class _picasso_detect_utils:
 
             for image_chunk in self.shared_chunks:
 
+                dataset = image_chunk["dataset"]
+                channel = image_chunk["channel"]
+
                 compute_job = {"dataset": image_chunk["dataset"],
                                "channel": image_chunk["channel"],
                                "start_index": image_chunk["start_index"],
@@ -573,7 +576,7 @@ class _picasso_detect_utils:
                                "box_size": int(box_size),
                                "threshold": threshold,
                                "window_size": window_size,
-                               "roi": roi,
+                               "roi": roi_dict[dataset][channel],
                                "remove_overlapping": remove_overlapping,
                                "segmentation_layer": segmentation_layer,
                                "polygon_filter":polygon_filter,
@@ -738,7 +741,7 @@ class _picasso_detect_utils:
             frame_mode = self.gui.picasso_frame_mode.currentText()
             detect_mode = self.gui.smlm_detect_mode.currentText()
             box_size = int(self.gui.picasso_box_size.currentText())
-            roi = self.generate_roi()
+            roi_dict = self.generate_roi()
 
             if frame_mode.lower() == "active":
                 executor_class = concurrent.futures.ThreadPoolExecutor
@@ -758,7 +761,7 @@ class _picasso_detect_utils:
                             chunk_size = 1000)
 
                         detect_jobs, n_frames = self.populate_picasso_detect_jobs(detect,
-                            fit, min_net_gradient, roi)
+                            fit, min_net_gradient, roi_dict)
 
                         print(f"Starting Picasso {len(detect_jobs)} compute jobs...")
 
@@ -961,7 +964,7 @@ class _picasso_detect_utils:
         border_width = self.gui.picasso_roi_border_width.text()
         window_cropping = self.gui.picasso_window_cropping .isChecked()
 
-        roi = None
+        roi_dict = {}
 
         try:
 
@@ -991,38 +994,56 @@ class _picasso_detect_utils:
                 channel = self.gui.picasso_channel.currentText()
 
                 if dataset == "All Datasets":
-                    dataset = list(self.dataset_dict.keys())[0]
-
-                image_dict = self.dataset_dict[dataset]["images"]
-                image_shape = image_dict[channel].shape
-
-                frame_shape = image_shape[1:]
-
-                if window_cropping:
-
-                    border_width = int(border_width)
-
-                    if x1 < border_width:
-                        x1 = border_width
-                    if y1 < border_width:
-                        y1 = border_width
-                    if x2 > frame_shape[1] - border_width:
-                        x2 = frame_shape[1] - border_width
-                    if y2 > frame_shape[0] - border_width:
-                        y2 = frame_shape[0] - border_width
-
-                    roi = [[y1, x1], [y2, x2]]
-
+                    dataset_list = list(self.dataset_dict.keys())
                 else:
+                    dataset_list = [dataset]
 
-                    roi = [[int(border_width), int(border_width)],
-                           [int(frame_shape[0] - border_width), int(frame_shape[1] - border_width)]]
+                for dataset_name in dataset_list:
+
+                    if channel == "All Channels":
+                        channel_list = list(self.dataset_dict[dataset_name]["images"].keys())
+                    else:
+                        channel_list = [channel]
+
+                    for channel_name in channel_list:
+
+                        if dataset_name not in roi_dict.keys():
+                            roi_dict[dataset_name] = {}
+                        if channel_name not in roi_dict[dataset_name].keys():
+                            roi_dict[dataset_name][channel_name] = {}
+
+                        image_dict = self.dataset_dict[dataset_name]["images"]
+                        image_shape = image_dict[channel_name].shape
+
+                        frame_shape = image_shape[1:]
+
+                        if window_cropping:
+
+                            border_width = int(border_width)
+
+                            if x1 < border_width:
+                                x1 = border_width
+                            if y1 < border_width:
+                                y1 = border_width
+                            if x2 > frame_shape[1] - border_width:
+                                x2 = frame_shape[1] - border_width
+                            if y2 > frame_shape[0] - border_width:
+                                y2 = frame_shape[0] - border_width
+
+                            roi = [[y1, x1], [y2, x2]]
+
+                        else:
+
+                            roi = [[int(border_width), int(border_width)],
+                                   [int(frame_shape[0] - border_width), int(frame_shape[1] - border_width)]]
+
+                        roi_dict[dataset_name][channel_name] = roi
 
         except:
             print(traceback.format_exc())
             pass
 
-        return roi
+        return roi_dict
 
     def export_picasso_locs(self, locs):
 

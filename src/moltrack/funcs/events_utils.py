@@ -30,14 +30,11 @@ class _events_utils:
 
                 dataset_names = list(self.dataset_dict.keys())
 
-                multi_dataset_selectors = ["import_picasso_dataset",
-                                           "locs_export_dataset",
-                                           "picasso_render_dataset",
-                                           ]
+                single_dataset_selectors = ["moltrack_dataset_selector",
+                                            "cellpose_dataset"]
 
-
-                if selector_name in multi_dataset_selectors and len(dataset_names) > 1:
-                    dataset_names.insert(0, "All Datasets")
+                if selector_name not in single_dataset_selectors and len(dataset_names) > 1:
+                    dataset_names.append("All Datasets")
 
                 if selector_name == "cellpose_dataset":
                     if hasattr(self, "segmentation_image"):
@@ -85,6 +82,8 @@ class _events_utils:
     def update_channel_selector(self, channel_selector, dataset_selector):
 
         try:
+            single_channel_selectors = ["moltrack_channel_selector",
+                                        "cellpose_channel"]
 
             dataset_name = dataset_selector.currentText()
             channel_names = []
@@ -108,6 +107,11 @@ class _events_utils:
 
                 channel_names = set.intersection(*channel_names)
                 channel_names = list(channel_names)
+
+            channel_selector_name = channel_selector.objectName()
+
+            if channel_selector_name not in single_channel_selectors and len(channel_names) > 1:
+                channel_names.append("All Channels")
 
             current_channel = channel_selector.currentText()
 

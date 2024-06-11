@@ -15,6 +15,7 @@ class _loc_filter_utils:
 
             segmentations = self.gui.remove_seglocs_segmentation.currentText()
             dataset = self.gui.remove_seglocs_dataset.currentText()
+            channel = self.gui.remove_seglocs_channel.currentText()
             loc_datasets = list(self.localisation_dict.keys())
 
             if segmentations not in layer_names:
@@ -31,7 +32,7 @@ class _loc_filter_utils:
                 print(f"Dataset {dataset} not found in localisation dict.")
                 return
 
-            loc_dict = self.localisation_dict[dataset]
+            loc_dict = self.localisation_dict[dataset][channel]
 
             locs = loc_dict["localisations"].copy()
             n_locs = len(locs)
@@ -84,7 +85,7 @@ class _loc_filter_utils:
                 filtered_locs = np.hstack(filtered_locs).view(np.recarray).copy()
 
                 loc_dict["localisations"] = filtered_locs
-                self.localisation_dict[dataset] = loc_dict
+                self.localisation_dict[dataset][channel] = loc_dict
 
                 n_filtered = len(filtered_locs)
                 n_removed = n_locs - n_filtered
