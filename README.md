@@ -20,7 +20,7 @@ Segmentations can be added automatically using Cellpose or can be added manually
 
 Compatible with both single and multi channel .tif and .fits files.
 
-napari-moltrack was written by Piers Turner, Kapanidis Group, University of Oxford.
+napari-moltrack was written by Piers Turner, Kapanidis Group, University of Oxford....
 
 https://www.physics.ox.ac.uk/research/group/gene-machines
 
