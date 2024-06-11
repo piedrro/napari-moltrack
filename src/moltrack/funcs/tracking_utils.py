@@ -261,12 +261,13 @@ class _tracking_utils:
 
                     if "Tracks" not in layer_names:
                         self.track_layer = self.viewer.add_tracks(render_tracks,
-                            name="Tracks")
+                            name="Tracks", blending="opaque")
                     else:
                         self.track_layer.data = render_tracks
 
                     self.track_layer.selected_data = []
                     self.track_layer.tail_length = n_frames * 2
+                    self.track_layer.blending = "opaque"
 
             if remove_tracks:
                 if "Tracks" in layer_names:
