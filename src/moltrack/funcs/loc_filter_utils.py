@@ -122,57 +122,61 @@ class _loc_filter_utils:
 
             for dataset_name in dataset_list:
 
-                if dataset_name in self.localisation_dict.keys():
+                if dataset_name not in self.localisation_dict.keys():
+                    continue
 
-                    if channel == "All Channels":
-                        channel_list = list(self.localisation_dict[dataset_name].keys())
-                    else:
-                        channel_list = [channel]
+                if channel == "All Channels":
+                    channel_list = list(self.localisation_dict[dataset_name].keys())
+                else:
+                    channel_list = [channel]
 
-                    for channel_name in channel_list:
+                for channel_name in channel_list:
 
-                        loc_dict = self.localisation_dict[dataset_name][channel_name]
+                    if channel_name not in self.localisation_dict[dataset_name].keys():
+                        continue
 
-                        if "localisations" in loc_dict.keys():
+                    loc_dict = self.localisation_dict[dataset_name][channel_name]
 
-                            locs = loc_dict["localisations"].copy()
+                    if "localisations" in loc_dict.keys():
 
-                            locs = pd.DataFrame(locs)
+                        locs = loc_dict["localisations"].copy()
 
-                            if include_metadata:
-                                if "dataset" not in locs.columns:
-                                    locs.insert(0, "dataset", dataset_name)
-                                if "channel" not in locs.columns:
-                                    locs.insert(1, "channel", channel_name)
+                        locs = pd.DataFrame(locs)
+
+                        if include_metadata:
+                            if "dataset" not in locs.columns:
+                                locs.insert(0, "dataset", dataset_name)
+                            if "channel" not in locs.columns:
+                                locs.insert(1, "channel", channel_name)
+                        else:
+                            if "dataset" in locs.columns:
+                                locs = locs.drop(columns=["dataset"])
+                            if "channel" in locs.columns:
+                                locs = locs.drop(columns=["channel"])
+                            if "cell_index" in locs.columns:
+                                locs = locs.drop(columns=["cell_index"])
+                            if "segmentation_index" in locs.columns:
+                                locs = locs.drop(columns=["segmentation_index"])
+
+                        locs = locs.to_records(index=False)
+
+                        n_locs = len(locs)
+
+                        if n_locs > 0:
+
+                            if return_dict == False:
+                                loc_data.append(locs)
                             else:
-                                if "dataset" in locs.columns:
-                                    locs = locs.drop(columns=["dataset"])
-                                if "channel" in locs.columns:
-                                    locs = locs.drop(columns=["channel"])
-                                if "cell_index" in locs.columns:
-                                    locs = locs.drop(columns=["cell_index"])
-                                if "segmentation_index" in locs.columns:
-                                    locs = locs.drop(columns=["segmentation_index"])
 
-                            locs = locs.to_records(index=False)
+                                image_dict = self.dataset_dict[dataset_name]["images"]
+                                image_shape = list(image_dict[channel_name].shape)
 
-                            n_locs = len(locs)
-
-                            if n_locs > 0:
-
-                                if return_dict == False:
-                                    loc_data.append(locs)
-                                else:
-
-                                    image_dict = self.dataset_dict[dataset_name]["images"]
-                                    image_shape = list(image_dict[channel_name].shape)
-
-                                    loc_dict = {"dataset": dataset_name,
-                                                "channel": channel_name,
-                                                "localisations": locs,
-                                                "image_shape": image_shape,
-                                                }
-                                    loc_data.append(loc_dict)
+                                loc_dict = {"dataset": dataset_name,
+                                            "channel": channel_name,
+                                            "localisations": locs,
+                                            "image_shape": image_shape,
+                                            }
+                                loc_data.append(loc_dict)
 
         except:
             print(traceback.format_exc())

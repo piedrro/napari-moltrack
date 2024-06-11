@@ -19,12 +19,20 @@ class _tracking_utils:
                 dataset_list = [dataset]
 
             for dataset_name in dataset_list:
+
+                if dataset_name not in self.tracking_dict.keys():
+                    continue
+
                 if channel == "All Channels":
                     channel_list = list(self.tracking_dict[dataset_name].keys())
                 else:
                     channel_list = [channel]
 
                 for channel_name in channel_list:
+
+                    if channel_name not in self.tracking_dict[dataset_name].keys():
+                        continue
+
                     track_dict = self.tracking_dict[dataset_name][channel_name]
 
                     if "tracks" in track_dict.keys():
@@ -218,10 +226,10 @@ class _tracking_utils:
                 tracks = self.get_tracks(dataset_name, channel_name,
                     return_dict=False, include_metadata=True)
 
-                image_dict = self.dataset_dict[dataset_name]["images"]
-                n_frames = image_dict[channel_name].shape[0]
-
                 if len(tracks) > 0:
+
+                    image_dict = self.dataset_dict[dataset_name]["images"]
+                    n_frames = image_dict[channel_name].shape[0]
 
                     remove_tracks = False
 

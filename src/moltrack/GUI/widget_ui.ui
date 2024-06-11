@@ -2387,6 +2387,13 @@
             </layout>
            </item>
            <item>
+            <widget class="QCheckBox" name="locs_export_concat">
+             <property name="text">
+              <string>Concatenate Tracks/Localisations</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QPushButton" name="export_localisations">
              <property name="text">
               <string>Export Localisations</string>
