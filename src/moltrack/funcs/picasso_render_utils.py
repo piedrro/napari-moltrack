@@ -7,12 +7,13 @@ from picasso.render import render
 import numpy as np
 import time
 from functools import partial
+import cv2
 
 class _picasso_render_utils:
 
 
     def render_picasso_locs(self, loc_list, image_shape, blur_method=None, min_blur_width=1,
-            pixel_size=1, progress_callback=None, oversampling=20, ):
+            pixel_size=1, progress_callback=None, oversampling=10, ):
         try:
 
             h, w = image_shape[-2:]
@@ -40,7 +41,13 @@ class _picasso_render_utils:
                 images.append(image)
                 total_rendered_locs += n_rendered_locs
 
-            image = images[0]
+
+            if len(images) == 0:
+                image = np.zeros(image_shape[-2:], dtype=np.int8)
+            elif len(images) == 1:
+                image = images[0]
+            else:
+                image = self.create_rgb_render(images, normalise=True)
 
             end_time = time.time()
 
@@ -51,6 +58,83 @@ class _picasso_render_utils:
             image = np.zeros(image_shape[-2:], dtype=np.int8)
 
         return image, pixel_size, oversampling
+
+    def create_rgb_render(self, images, normalise=True,
+            histogram_equalize=False, bit_depth=32):
+        def get_colors(num_colors):
+            """Generate a list of colors for the given number of images."""
+            colors = [(1.0, 0.0, 0.0),  # Red
+                      (0.0, 1.0, 0.0),  # Green
+                      (0.0, 0.0, 1.0),  # Blue
+                      (1.0, 1.0, 0.0),  # Yellow
+                      (1.0, 0.0, 1.0),  # Magenta
+                      (0.0, 1.0, 1.0),  # Cyan
+                      ]
+            return colors[:num_colors]
+
+        def normalise_image(image):
+            """Normalize an image to the range [0, 1]."""
+            min_val = np.min(image)
+            max_val = np.max(image)
+            if max_val - min_val == 0:
+                return image - min_val
+            return (image - min_val) / (max_val - min_val)
+
+        def histogram_equalization(image):
+            """Apply histogram equalization to the image."""
+            return cv2.equalizeHist((image * 255).astype(np.uint8)) / 255.0
+
+        def to_8bit(image):
+            """Convert floating-point image in range [0, 1] to 8-bit image."""
+            return (image * 255).astype(np.uint8)
+
+        def to_16bit(image):
+            """Convert floating-point image in range [0, 1] to 16-bit image."""
+            return (image * 65535).astype(np.uint16)
+
+        def to_32bit(image):
+            """Convert floating-point image in range [0, 1] to 32-bit image."""
+            return (image * 4294967295).astype(np.uint32)
+
+        try:
+            # Determine the shape of the images
+            Y, X = images[0].shape
+            rgb = np.zeros((Y, X, 3), dtype=np.float32)
+            colors = get_colors(len(images))
+
+            for color, image in zip(colors, images):
+
+                if normalise:
+                    image = normalise_image(image)
+
+                if histogram_equalize:
+                    image = histogram_equalization(image)
+
+                rgb[:, :, 0] += color[0] * image  # Red channel
+                rgb[:, :, 1] += color[1] * image  # Green channel
+                rgb[:, :, 2] += color[2] * image  # Blue channel
+
+            rgb = np.minimum(rgb, 1)  # Ensure values are within [0, 1]
+
+            if bit_depth == 8:
+                rgb = to_8bit(rgb)
+            elif bit_depth == 8:
+                rgb = to_16bit(rgb)
+            elif bit_depth == 32:
+                rgb = to_32bit(rgb)
+
+        except Exception as e:
+            print(traceback.format_exc())
+            Y, X = images[0].shape
+            if bit_depth == 16:
+                rgb = np.zeros((Y, X, 3), dtype=np.uint16)
+            else:
+                rgb = np.zeros((Y, X, 3), dtype=np.uint8)
+
+        return rgb
+
+
+
 
     def picasso_render_finished(self):
 
@@ -70,10 +154,24 @@ class _picasso_render_utils:
             layer_names = [layer.name for layer in self.viewer.layers]
 
             if "SMLM Render" not in layer_names:
-                self.viewer.add_image(image, name="SMLM Render", colormap="viridis", scale=scale, )
+                self.viewer.add_image(image, name="SMLM Render",
+                    colormap="inferno", scale=scale,
+                    blending="opaque")
             else:
+
+                active_layer = self.viewer.layers["SMLM Render"].data
+
+                if active_layer.shape != image.shape:
+                    self.viewer.layers.remove("SMLM Render")
+                    self.viewer.add_image(image, name="SMLM Render",
+                        colormap="inferno", scale=scale,
+                        blending="opaque")
+
                 self.viewer.layers["SMLM Render"].data = image
                 self.viewer.layers["SMLM Render"].scale = scale
+
+            self.viewer.layers["SMLM Render"].gamma = 0.2
+
 
         except:
             print(traceback.format_exc())
