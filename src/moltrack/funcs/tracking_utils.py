@@ -9,6 +9,57 @@ from moltrack.funcs.compute_utils import Worker
 
 class _tracking_utils:
 
+    def get_tracks(self, dataset, channel, return_dict=False, include_metadata=True):
+        track_data = []
+
+        try:
+            if dataset == "All Datasets":
+                dataset_list = list(self.tracking_dict.keys())
+            else:
+                dataset_list = [dataset]
+
+            for dataset_name in dataset_list:
+                if channel == "All Channels":
+                    channel_list = list(self.tracking_dict[dataset_name].keys())
+                else:
+                    channel_list = [channel]
+
+                for channel_name in channel_list:
+                    track_dict = self.tracking_dict[dataset_name][channel_name]
+
+                    if "tracks" in track_dict.keys():
+                        tracks = track_dict["tracks"].copy()
+
+                        if include_metadata:
+                            tracks = pd.DataFrame(tracks)
+
+                            if "dataset" not in tracks.columns:
+                                tracks.insert(0, "dataset", dataset_name)
+                            if "channel" not in tracks.columns:
+                                tracks.insert(1, "channel", channel_name)
+
+                            tracks = tracks.to_records(index=False)
+
+                        n_tracks = len(tracks)
+
+                        if n_tracks > 0:
+                            if return_dict == False:
+                                track_data.append(tracks)
+                            else:
+                                track_dict = {"dataset": dataset_name, "channel": channel_name, "tracks": tracks}
+                                track_data.append(track_dict)
+
+        except:
+            print(traceback.format_exc())
+
+        if return_dict == False:
+            if len(track_data) == 1:
+                track_data = track_data[0]
+            else:
+                track_data = np.hstack(track_data).view(np.recarray).copy()
+
+        return track_data
+
     def run_tracking(self, locs, progress_callback=None):
         tracks = None
 

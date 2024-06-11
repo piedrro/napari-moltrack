@@ -114,6 +114,7 @@ class _loc_filter_utils:
         pass
 
 
+
     def get_locs(self, dataset, channel,
             return_dict = False, include_metadata=True):
 
