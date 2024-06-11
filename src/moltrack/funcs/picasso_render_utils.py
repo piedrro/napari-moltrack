@@ -12,7 +12,7 @@ import cv2
 class _picasso_render_utils:
 
 
-    def render_picasso_locs(self, loc_list, image_shape, blur_method=None, min_blur_width=1,
+    def render_picasso_locs(self, loc_data, image_shape, blur_method=None, min_blur_width=1,
             pixel_size=1, progress_callback=None, oversampling=10, ):
         try:
 
@@ -26,9 +26,11 @@ class _picasso_render_utils:
             images = []
             total_rendered_locs = 0
 
-            print(f"Rendering localisations from {len(loc_list)} dataset(s)/channel(s).")
+            print(f"Rendering localisations from {len(loc_data)} dataset(s)/channel(s).")
 
-            for locs in loc_list:
+            for dat in loc_data:
+
+                locs = dat["localisations"]
 
                 n_rendered_locs, image = render(locs,
                     viewport=viewport,
@@ -41,13 +43,10 @@ class _picasso_render_utils:
                 images.append(image)
                 total_rendered_locs += n_rendered_locs
 
-
             if len(images) == 0:
                 image = np.zeros(image_shape[-2:], dtype=np.int8)
-            elif len(images) == 1:
-                image = images[0]
             else:
-                image = self.create_rgb_render(images, normalise=True)
+                image = self.create_rgb_render(images)
 
             end_time = time.time()
 
@@ -104,17 +103,11 @@ class _picasso_render_utils:
 
             for color, image in zip(colors, images):
 
-                if normalise:
-                    image = normalise_image(image)
-
-                if histogram_equalize:
-                    image = histogram_equalization(image)
-
                 rgb[:, :, 0] += color[0] * image  # Red channel
                 rgb[:, :, 1] += color[1] * image  # Green channel
                 rgb[:, :, 2] += color[2] * image  # Blue channel
 
-            rgb = np.minimum(rgb, 1)  # Ensure values are within [0, 1]
+            rgb = np.clip(rgb, 0, 1)
 
             if bit_depth == 8:
                 rgb = to_8bit(rgb)
@@ -185,42 +178,13 @@ class _picasso_render_utils:
             blur_method = self.gui.picasso_render_blur_method.currentText()
             min_blur_width = float(self.gui.picasso_render_min_blur.text())
 
-            if dataset == "All Datasets":
-                dataset_list = list(self.localisation_dict.keys())
-            else:
-                dataset_list = [dataset]
+            loc_data = self.get_locs(dataset, channel,
+                return_dict=True, include_metadata=False)
 
-            if channel == "All Channels":
-                channel_list = []
-                for dataset_name in self.dataset_dict.keys():
-                    try:
-                        image_dict = self.dataset_dict[dataset_name]["images"]
-                        channel_list.append(set(image_dict.keys()))
-                    except:
-                        pass
+            if len(loc_data) > 0:
 
-                channel_list = set.intersection(*channel_list)
-                channel_list = list(channel_list)
+                image_shape = loc_data[0]["image_shape"]
 
-            else:
-                channel_list = [channel]
-
-
-            loc_list = []
-
-            for dataset in dataset_list:
-
-                if channel in self.localisation_dict[dataset].keys():
-                    loc_dict = self.localisation_dict[dataset][channel]
-
-                    if "localisations" in loc_dict.keys():
-                        loc_list.append(loc_dict["localisations"].copy())
-
-            if len(loc_list) > 0:
-
-                image_dict = self.dataset_dict[dataset_list[0]]["images"]
-
-                image_shape = list(image_dict[channel_list[0]].shape)
                 pixel_size = 1
 
                 if blur_method == "One-Pixel-Blur":
@@ -236,7 +200,7 @@ class _picasso_render_utils:
 
                 self.update_ui(init=True)
 
-                worker = Worker(self.render_picasso_locs, loc_list=loc_list, image_shape=image_shape,
+                worker = Worker(self.render_picasso_locs, loc_data=loc_data, image_shape=image_shape,
                     blur_method=blur_method, min_blur_width=min_blur_width, pixel_size=pixel_size)
                 worker.signals.result.connect(self.draw_picasso_render)
                 worker.signals.finished.connect(self.picasso_render_finished)
