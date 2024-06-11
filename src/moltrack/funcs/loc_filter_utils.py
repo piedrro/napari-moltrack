@@ -27,80 +27,72 @@ class _loc_filter_utils:
                     print(f"No polygons found in segmentation {segmentations}.")
                     return
 
-            if dataset == "All Datasets":
-                dataset_list = list(self.localisation_dict.keys())
-            else:
-                dataset_list = [dataset]
+            polygons = [Polygon(polygon) for polygon in polygons]
 
             total_locs = 0
             total_removed = 0
 
-            for dataset_name in dataset_list:
+            loc_data = self.get_locs(dataset, channel, return_dict=True)
 
-                if channel == "All Channels":
-                    channel_list = list(self.localisation_dict[dataset_name].keys())
-                else:
-                    channel_list = [channel]
+            for dat in loc_data:
 
-                for channel_name in channel_list:
+                dataset_name = dat["dataset"]
+                channel_name = dat["channel"]
+                locs = dat["localisations"]
+
+                n_locs = len(locs)
+
+                if n_locs == 0:
+                    print(f"No localisations found in dataset {dataset_name}.")
+                    return
+
+                filtered_locs = []
+
+                coords = np.stack([locs["x"], locs["y"]], axis=1)
+                points = [Point(coord) for coord in coords]
+                spatial_index = STRtree(points)
+
+                for polygon_index, polygon in enumerate(polygons):
+
+                    possible_points = spatial_index.query(polygon)
+
+                    polygon_point_indices = []
+
+                    for point_index in possible_points:
+
+                        point = points[point_index]
+
+                        if polygon.contains(point):
+
+                            polygon_point_indices.append(point_index)
+
+                    if len(polygon_point_indices) > 0:
+
+                        polygon_locs = locs[polygon_point_indices]
+
+                        seg_name = segmentations[:-1].lower() + "_index"
+
+                        polygon_locs = pd.DataFrame(polygon_locs)
+
+                        if "cell_index" in polygon_locs.columns:
+                            polygon_locs = polygon_locs.drop(columns=["cell_index"])
+                        if "segmentation_index" in polygon_locs.columns:
+                            polygon_locs = polygon_locs.drop(columns=["segmentation_index"])
+
+                        polygon_locs[seg_name] = polygon_index
+                        polygon_locs = polygon_locs.to_records(index=False)
+
+                        filtered_locs.append(polygon_locs)
+
+                if len(filtered_locs) > 0:
+
+                    total_locs += n_locs
+                    total_removed += (n_locs - len(filtered_locs))
+
+                    filtered_locs = np.hstack(filtered_locs).view(np.recarray).copy()
 
                     loc_dict = self.localisation_dict[dataset_name][channel_name]
-
-                    locs = loc_dict["localisations"].copy()
-                    n_locs = len(locs)
-
-                    if n_locs == 0:
-                        print(f"No localisations found in dataset {dataset_name}.")
-                        return
-
-                    filtered_locs = []
-
-                    polygons = [Polygon(polygon) for polygon in polygons]
-                    coords = np.stack([locs["x"], locs["y"]], axis=1)
-                    points = [Point(coord) for coord in coords]
-                    spatial_index = STRtree(points)
-
-                    for polygon_index, polygon in enumerate(polygons):
-
-                        possible_points = spatial_index.query(polygon)
-
-                        polygon_point_indices = []
-
-                        for point_index in possible_points:
-
-                            point = points[point_index]
-
-                            if polygon.contains(point):
-
-                                polygon_point_indices.append(point_index)
-
-                        if len(polygon_point_indices) > 0:
-
-                            polygon_locs = locs[polygon_point_indices]
-
-                            seg_name = segmentations[:-1].lower() + "_index"
-
-                            polygon_locs = pd.DataFrame(polygon_locs)
-
-                            if "cell_index" in polygon_locs.columns:
-                                polygon_locs = polygon_locs.drop(columns=["cell_index"])
-                            if "segmentation_index" in polygon_locs.columns:
-                                polygon_locs = polygon_locs.drop(columns=["segmentation_index"])
-
-                            polygon_locs[seg_name] = polygon_index
-                            polygon_locs = polygon_locs.to_records(index=False)
-
-                            filtered_locs.append(polygon_locs)
-
-                    if len(filtered_locs) > 0:
-
-                        total_locs += n_locs
-                        total_removed += (n_locs - len(filtered_locs))
-
-                        filtered_locs = np.hstack(filtered_locs).view(np.recarray).copy()
-
-                        loc_dict["localisations"] = filtered_locs
-                        self.localisation_dict[dataset_name][channel_name] = loc_dict
+                    loc_dict["localisations"] = filtered_locs
 
             print(f"Removed {total_removed} localisations.")
 
