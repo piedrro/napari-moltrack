@@ -170,6 +170,18 @@ class _events_utils:
             print(traceback.format_exc())
             pass
 
+    def update_locs_export_options(self, event=None):
+
+        locs_export_data = self.gui.locs_export_data.currentText()
+
+        if locs_export_data == "Localisations":
+            export_modes = ["Picasso HDF5", "CSV", "POS.OUT"]
+        else:
+            export_modes = ["CSV", "POS.OUT"]
+
+        self.gui.locs_export_mode.clear()
+        self.gui.locs_export_mode.addItems(export_modes)
+
 
     def update_picasso_segmentation_filter(self):
 

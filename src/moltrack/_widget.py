@@ -137,6 +137,8 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.shapes_export_data.currentIndexChanged.connect(self.update_shape_export_options)
         self.gui.export_shapes.clicked.connect(self.init_export_shapes_data)
 
+        self.gui.locs_export_data.currentIndexChanged.connect(self.update_locs_export_options)
+
         self.gui.remove_seglocs.clicked.connect(self.remove_seglocs)
 
         self.viewer.layers.events.inserted.connect(self.update_layer_combos)
@@ -157,8 +159,11 @@ class QWidget(QWidget, gui, *subclasses):
 
     def devfunc(self, viewer=None):
 
-        print(True)
-        self.tracking_dict = {}
+        self.update_ui()
+        self.gui.locs_export_data.currentIndexChanged.connect(self.update_locs_export_options)
+
+        # print(True)
+        # self.tracking_dict = {}
 
         # self.populate_dataset_selectors()
 

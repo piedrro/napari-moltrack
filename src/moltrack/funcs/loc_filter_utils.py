@@ -110,8 +110,17 @@ class _loc_filter_utils:
     def get_locs(self, dataset, channel,
             return_dict = False, include_metadata=True):
 
+        order = ["dataset", "channel", "group", "particle", "frame",
+                 "cell_index", "segmentation_index",
+                 "x", "y", "photons", "bg", "sx", "sy",
+                 "lpx", "lpy", "ellipticity", "net_gradient",
+                 "iterations"]
 
         loc_data = []
+
+        fitted = False
+        box_size = int(self.gui.picasso_box_size.currentText())
+        min_net_gradient = int(self.gui.picasso_min_net_gradient.text())
 
         try:
 
@@ -119,6 +128,8 @@ class _loc_filter_utils:
                 dataset_list = list(self.localisation_dict.keys())
             else:
                 dataset_list = [dataset]
+
+            group = 0
 
             for dataset_name in dataset_list:
 
@@ -140,29 +151,45 @@ class _loc_filter_utils:
                     if "localisations" in loc_dict.keys():
 
                         locs = loc_dict["localisations"].copy()
-
-                        locs = pd.DataFrame(locs)
-
-                        if include_metadata:
-                            if "dataset" not in locs.columns:
-                                locs.insert(0, "dataset", dataset_name)
-                            if "channel" not in locs.columns:
-                                locs.insert(1, "channel", channel_name)
-                        else:
-                            if "dataset" in locs.columns:
-                                locs = locs.drop(columns=["dataset"])
-                            if "channel" in locs.columns:
-                                locs = locs.drop(columns=["channel"])
-                            if "cell_index" in locs.columns:
-                                locs = locs.drop(columns=["cell_index"])
-                            if "segmentation_index" in locs.columns:
-                                locs = locs.drop(columns=["segmentation_index"])
-
-                        locs = locs.to_records(index=False)
-
                         n_locs = len(locs)
 
                         if n_locs > 0:
+
+                            locs = pd.DataFrame(locs)
+
+                            if include_metadata:
+                                if "dataset" not in locs.columns:
+                                    locs.insert(0, "dataset", dataset_name)
+                                if "channel" not in locs.columns:
+                                    locs.insert(1, "channel", channel_name)
+                                if len(dataset_list) > 1:
+                                    if "group" not in locs.columns:
+                                        locs.insert(2, "group", group)
+                                    else:
+                                        locs["group"] = group
+                            else:
+                                if "dataset" in locs.columns:
+                                    locs = locs.drop(columns=["dataset"])
+                                if "channel" in locs.columns:
+                                    locs = locs.drop(columns=["channel"])
+                                if "cell_index" in locs.columns:
+                                    locs = locs.drop(columns=["cell_index"])
+                                if "segmentation_index" in locs.columns:
+                                    locs = locs.drop(columns=["segmentation_index"])
+                                    if len(dataset_list) > 1:
+                                        if "group" not in locs.columns:
+                                            locs.insert(0, "group", group)
+                                        else:
+                                            locs["group"] = group
+
+                            mask = []
+
+                            for col in order:
+                                if col in locs.columns:
+                                    mask.append(col)
+
+                            locs = locs[mask]
+                            locs = locs.to_records(index=False)
 
                             if return_dict == False:
                                 loc_data.append(locs)
@@ -171,12 +198,24 @@ class _loc_filter_utils:
                                 image_dict = self.dataset_dict[dataset_name]["images"]
                                 image_shape = list(image_dict[channel_name].shape)
 
+                                if "fitted" in loc_dict.keys():
+                                    fitted = loc_dict["fitted"]
+                                if "box_size" in loc_dict.keys():
+                                    box_size = loc_dict["box_size"]
+                                if "min_net_gradient" in loc_dict.keys():
+                                    min_net_gradient = loc_dict["min_net_gradient"]
+
                                 loc_dict = {"dataset": dataset_name,
                                             "channel": channel_name,
                                             "localisations": locs,
                                             "image_shape": image_shape,
+                                            "fitted": fitted,
+                                            "box_size": box_size,
+                                            "min_net_gradient": min_net_gradient,
                                             }
                                 loc_data.append(loc_dict)
+
+                            group += 1
 
         except:
             print(traceback.format_exc())

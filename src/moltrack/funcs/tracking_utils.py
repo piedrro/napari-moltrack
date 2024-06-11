@@ -10,7 +10,15 @@ from moltrack.funcs.compute_utils import Worker
 class _tracking_utils:
 
     def get_tracks(self, dataset, channel, return_dict=False, include_metadata=True):
+
+        order = ["dataset", "channel", "group", "particle", "frame",
+                 "cell_index", "segmentation_index",
+                 "x", "y", "photons", "bg", "sx", "sy",
+                 "lpx", "lpy", "ellipticity", "net_gradient",
+                 "iterations"]
+
         track_data = []
+        group = 0
 
         try:
             if dataset == "All Datasets":
@@ -38,15 +46,26 @@ class _tracking_utils:
                     if "tracks" in track_dict.keys():
                         tracks = track_dict["tracks"].copy()
 
-                        if include_metadata:
-                            tracks = pd.DataFrame(tracks)
+                        tracks = pd.DataFrame(tracks)
 
+                        if include_metadata:
                             if "dataset" not in tracks.columns:
                                 tracks.insert(0, "dataset", dataset_name)
                             if "channel" not in tracks.columns:
                                 tracks.insert(1, "channel", channel_name)
+                            if len(dataset_list) > 1:
+                                if "group" not in tracks.columns:
+                                    tracks.insert(2, "group", group)
 
-                            tracks = tracks.to_records(index=False)
+                        mask = []
+
+                        for col in order:
+                            if col in tracks.columns:
+                                mask.append(col)
+
+                        tracks = tracks[mask]
+
+                        tracks = tracks.to_records(index=False)
 
                         n_tracks = len(tracks)
 
