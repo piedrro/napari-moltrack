@@ -16,7 +16,6 @@ class _loc_filter_utils:
             segmentations = self.gui.remove_seglocs_segmentation.currentText()
             dataset = self.gui.remove_seglocs_dataset.currentText()
             channel = self.gui.remove_seglocs_channel.currentText()
-            loc_datasets = list(self.localisation_dict.keys())
 
             if segmentations not in layer_names:
                 print(f"Segmentation {segmentations} not found in viewer.")
@@ -28,74 +27,86 @@ class _loc_filter_utils:
                     print(f"No polygons found in segmentation {segmentations}.")
                     return
 
-            if dataset not in loc_datasets:
-                print(f"Dataset {dataset} not found in localisation dict.")
-                return
+            if dataset == "All Datasets":
+                dataset_list = list(self.localisation_dict.keys())
+            else:
+                dataset_list = [dataset]
 
-            loc_dict = self.localisation_dict[dataset][channel]
+            total_locs = 0
+            total_removed = 0
 
-            locs = loc_dict["localisations"].copy()
-            n_locs = len(locs)
+            for dataset_name in dataset_list:
 
-            if n_locs == 0:
-                print(f"No localisations found in dataset {dataset}.")
-                return
+                if channel == "All Channels":
+                    channel_list = list(self.localisation_dict[dataset_name].keys())
+                else:
+                    channel_list = [channel]
 
-            filtered_locs = []
+                for channel_name in channel_list:
 
-            polygons = [Polygon(polygon) for polygon in polygons]
-            coords = np.stack([locs["x"], locs["y"]], axis=1)
-            points = [Point(coord) for coord in coords]
+                    loc_dict = self.localisation_dict[dataset_name][channel_name]
 
-            spatial_index = STRtree(points)
+                    locs = loc_dict["localisations"].copy()
+                    n_locs = len(locs)
 
-            for polygon_index, polygon in enumerate(polygons):
+                    if n_locs == 0:
+                        print(f"No localisations found in dataset {dataset_name}.")
+                        return
 
-                possible_points = spatial_index.query(polygon)
+                    filtered_locs = []
 
-                polygon_point_indices = []
+                    polygons = [Polygon(polygon) for polygon in polygons]
+                    coords = np.stack([locs["x"], locs["y"]], axis=1)
+                    points = [Point(coord) for coord in coords]
+                    spatial_index = STRtree(points)
 
-                for point_index in possible_points:
+                    for polygon_index, polygon in enumerate(polygons):
 
-                    point = points[point_index]
+                        possible_points = spatial_index.query(polygon)
 
-                    if polygon.contains(point):
+                        polygon_point_indices = []
 
-                        polygon_point_indices.append(point_index)
+                        for point_index in possible_points:
 
-                if len(polygon_point_indices) > 0:
+                            point = points[point_index]
 
-                    polygon_locs = locs[polygon_point_indices]
+                            if polygon.contains(point):
 
-                    seg_name = segmentations[:-1].lower() + "_index"
+                                polygon_point_indices.append(point_index)
 
-                    polygon_locs = pd.DataFrame(polygon_locs)
+                        if len(polygon_point_indices) > 0:
 
-                    if "cell_index" in polygon_locs.columns:
-                        polygon_locs = polygon_locs.drop(columns=["cell_index"])
-                    if "segmentation_index" in polygon_locs.columns:
-                        polygon_locs = polygon_locs.drop(columns=["segmentation_index"])
+                            polygon_locs = locs[polygon_point_indices]
 
-                    polygon_locs[seg_name] = polygon_index
-                    polygon_locs = polygon_locs.to_records(index=False)
+                            seg_name = segmentations[:-1].lower() + "_index"
 
-                    filtered_locs.append(polygon_locs)
+                            polygon_locs = pd.DataFrame(polygon_locs)
 
-            if len(filtered_locs) > 0:
-                filtered_locs = np.hstack(filtered_locs).view(np.recarray).copy()
+                            if "cell_index" in polygon_locs.columns:
+                                polygon_locs = polygon_locs.drop(columns=["cell_index"])
+                            if "segmentation_index" in polygon_locs.columns:
+                                polygon_locs = polygon_locs.drop(columns=["segmentation_index"])
 
-                loc_dict["localisations"] = filtered_locs
-                self.localisation_dict[dataset][channel] = loc_dict
+                            polygon_locs[seg_name] = polygon_index
+                            polygon_locs = polygon_locs.to_records(index=False)
 
-                n_filtered = len(filtered_locs)
-                n_removed = n_locs - n_filtered
+                            filtered_locs.append(polygon_locs)
 
-                print(f"Removed {n_removed} localisations.")
+                    if len(filtered_locs) > 0:
 
-                self.draw_localisations()
+                        total_locs += n_locs
+                        total_removed += (n_locs - len(filtered_locs))
 
-                self.update_filter_criterion()
-                self.update_criterion_ranges()
+                        filtered_locs = np.hstack(filtered_locs).view(np.recarray).copy()
+
+                        loc_dict["localisations"] = filtered_locs
+                        self.localisation_dict[dataset_name][channel_name] = loc_dict
+
+            print(f"Removed {total_removed} localisations.")
+
+            self.draw_localisations()
+            self.update_filter_criterion()
+            self.update_criterion_ranges()
 
         except:
             print(traceback.format_exc())

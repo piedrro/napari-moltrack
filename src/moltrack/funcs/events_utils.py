@@ -384,16 +384,16 @@ class _events_utils:
             else:
                 dataset_name = dataset
 
-            image_dict = self.dataset_dict[dataset_name]["images"]
-
-            if channel == None or channel not in image_dict.keys():
-                channel_name = self.gui.moltrack_channel_selector.currentText()
-            else:
-                channel_name = channel
-
             if dataset_name in self.dataset_dict.keys():
 
                 if "images" in self.dataset_dict[dataset_name].keys():
+
+                    image_dict = self.dataset_dict[dataset_name]["images"]
+
+                    if channel == None or channel not in image_dict.keys():
+                        channel_name = self.gui.moltrack_channel_selector.currentText()
+                    else:
+                        channel_name = channel
 
                     self.update_contrast_dict()
 
