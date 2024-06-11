@@ -114,6 +114,71 @@ class _loc_filter_utils:
         pass
 
 
+    def get_locs(self, dataset, channel,
+            return_dict = False, include_metadata=True):
+
+
+        loc_data = []
+
+        try:
+
+            if dataset == "All Datasets":
+                dataset_list = list(self.localisation_dict.keys())
+            else:
+                dataset_list = [dataset]
+
+            for dataset_name in dataset_list:
+
+                if channel == "All Channels":
+                    channel_list = list(self.localisation_dict[dataset_name].keys())
+                else:
+                    channel_list = [channel]
+
+                for channel_name in channel_list:
+
+                    loc_dict = self.localisation_dict[dataset_name][channel_name]
+
+                    if "localisations" in loc_dict.keys():
+
+                        locs = loc_dict["localisations"].copy()
+
+                        if include_metadata:
+
+                            locs = pd.DataFrame(locs)
+
+                            if "dataset" not in locs.columns:
+                                locs.insert(0, "dataset", dataset_name)
+                            if "channel" not in locs.columns:
+                                locs.insert(1, "channel", channel_name)
+
+                            locs = locs.to_records(index=False)
+
+                        n_locs = len(locs)
+
+                        if n_locs > 0:
+
+                            if return_dict == False:
+                                loc_data.append(locs)
+                            else:
+                                loc_dict = {"dataset": dataset_name,
+                                            "channel": channel_name,
+                                            "localisations": locs}
+                                loc_data.append(loc_dict)
+
+        except:
+            print(traceback.format_exc())
+
+        if return_dict == False:
+            if len(loc_data) == 1:
+                loc_data = loc_data[0]
+            else:
+                loc_data = np.hstack(loc_data).view(np.recarray).copy()
+
+        return loc_data
+
+
+
+
     def pixseq_filter_localisations(self, viewer=None):
 
         try:
@@ -126,38 +191,37 @@ class _loc_filter_utils:
 
             n_removed = 0
 
-            if dataset in self.localisation_dict.keys():
-                if channel in self.localisation_dict[dataset].keys():
+            loc_data = self.get_locs(dataset, channel, return_dict=True)
 
-                    loc_dict = self.localisation_dict[dataset][channel]
+            for dat in loc_data:
 
-                    if "localisations" in loc_dict.keys():
+                dataset_name = dat["dataset"]
+                channel_name = dat["channel"]
+                locs = dat["localisations"]
 
-                        locs = loc_dict["localisations"].copy()
+                if len(locs) > 0:
 
-                        if len(locs) > 0:
+                    columns = list(locs.dtype.names)
 
-                            columns = list(locs.dtype.names)
+                    if criterion in columns:
 
-                            if criterion in columns:
+                        self.gui.filter_localisations.setEnabled(False)
 
-                                self.gui.filter_localisations.setEnabled(False)
+                        n_locs = len(locs)
 
-                                n_locs = len(locs)
+                        locs = locs[locs[criterion] > min_value]
+                        locs = locs[locs[criterion] < max_value]
 
-                                locs = locs[locs[criterion] > min_value]
-                                locs = locs[locs[criterion] < max_value]
+                        n_filtered = len(locs)
 
-                                n_filtered = len(locs)
+                        if n_filtered < n_locs:
 
-                                if n_filtered < n_locs:
+                            n_removed = n_locs - n_filtered
 
-                                    n_removed = n_locs - n_filtered
+                            loc_dict = self.localisation_dict[dataset_name][channel_name]
+                            loc_dict["localisations"] = locs
 
-                                    loc_dict["localisations"] = locs
-
-                                    self.localisation_dict[dataset][channel] = loc_dict
-                                    self.draw_localisations(update_vis=True)
+                            self.draw_localisations(update_vis=True)
 
             self.update_criterion_ranges()
             print(f"Filtered {n_removed} localisations.")
@@ -194,20 +258,13 @@ class _loc_filter_utils:
             channel = self.gui.picasso_filter_channel.currentText()
             selector = self.gui.filter_criterion
 
-            if dataset in self.localisation_dict.keys():
-                if channel in self.localisation_dict[dataset]:
+            locs = self.get_locs(dataset, channel)
 
-                    loc_dict = self.localisation_dict[dataset][channel]
+            if len(locs) > 0:
 
-                    if "localisations" in loc_dict.keys():
+                columns = list(locs.dtype.names)
 
-                        locs = loc_dict["localisations"].copy()
-
-                        if len(locs) > 0:
-
-                            columns = list(locs.dtype.names)
-
-                            columns = [col for col in columns if col not in ["dataset","channel"]]
+                columns = [col for col in columns if col not in ["dataset","channel"]]
 
             selector.clear()
 
@@ -228,41 +285,34 @@ class _loc_filter_utils:
             channel = self.gui.picasso_filter_channel.currentText()
             criterion = self.gui.filter_criterion.currentText()
 
-            if dataset in self.localisation_dict.keys():
-                if channel in self.localisation_dict[dataset]:
+            locs = self.get_locs(dataset, channel)
 
-                    loc_dict = self.localisation_dict[dataset][channel]
+            if len(locs) > 0:
 
-                    if "localisations" in loc_dict.keys():
+                columns = list(locs.dtype.names)
 
-                        locs = loc_dict["localisations"].copy()
+                if criterion in columns:
 
-                        if len(locs) > 0:
+                    values = locs[criterion]
 
-                            columns = list(locs.dtype.names)
+                    if values.dtype in [np.float32, np.float64,
+                                        np.int32, np.int64,
+                                        np.uint32, np.uint64]:
 
-                            if criterion in columns:
+                        if plot:
+                            self.plot_filter_graph(criterion, values)
 
-                                values = locs[criterion]
+                        min_value = np.min(values)
+                        max_value = np.max(values)
 
-                                if values.dtype in [np.float32, np.float64,
-                                                    np.int32, np.int64,
-                                                    np.uint32, np.uint64]:
+                        self.gui.filter_min.setMinimum(min_value)
+                        self.gui.filter_min.setMaximum(max_value)
 
-                                    if plot:
-                                        self.plot_filter_graph(criterion, values)
+                        self.gui.filter_max.setMinimum(min_value)
+                        self.gui.filter_max.setMaximum(max_value)
 
-                                    min_value = np.min(values)
-                                    max_value = np.max(values)
-
-                                    self.gui.filter_min.setMinimum(min_value)
-                                    self.gui.filter_min.setMaximum(max_value)
-
-                                    self.gui.filter_max.setMinimum(min_value)
-                                    self.gui.filter_max.setMaximum(max_value)
-
-                                    self.gui.filter_min.setValue(min_value)
-                                    self.gui.filter_max.setValue(max_value)
+                        self.gui.filter_min.setValue(min_value)
+                        self.gui.filter_max.setValue(max_value)
 
         except:
             print(traceback.format_exc())
