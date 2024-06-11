@@ -157,7 +157,10 @@ class QWidget(QWidget, gui, *subclasses):
 
     def devfunc(self, viewer=None):
 
-        self.populate_dataset_selectors()
+        print(True)
+        self.tracking_dict = {}
+
+        # self.populate_dataset_selectors()
 
         # self.create_shared_image_chunks()
         # self.restore_shared_image_chunks()

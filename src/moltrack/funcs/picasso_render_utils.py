@@ -119,14 +119,14 @@ class _picasso_render_utils:
         except Exception as e:
             print(traceback.format_exc())
             Y, X = images[0].shape
-            if bit_depth == 16:
+            if bit_depth == 8:
+                rgb = np.zeros((Y, X, 3), dtype=np.uint8)
+            elif bit_depth == 16:
                 rgb = np.zeros((Y, X, 3), dtype=np.uint16)
             else:
-                rgb = np.zeros((Y, X, 3), dtype=np.uint8)
+                rgb = np.zeros((Y, X, 3), dtype=np.uint32)
 
         return rgb
-
-
 
 
     def picasso_render_finished(self):
@@ -149,7 +149,7 @@ class _picasso_render_utils:
             if "SMLM Render" not in layer_names:
                 self.viewer.add_image(image, name="SMLM Render",
                     colormap="inferno", scale=scale,
-                    blending="opaque")
+                    blending="opaque",rgb=True)
             else:
 
                 active_layer = self.viewer.layers["SMLM Render"].data
@@ -158,7 +158,7 @@ class _picasso_render_utils:
                     self.viewer.layers.remove("SMLM Render")
                     self.viewer.add_image(image, name="SMLM Render",
                         colormap="inferno", scale=scale,
-                        blending="opaque")
+                        blending="opaque", rgb=True)
 
                 self.viewer.layers["SMLM Render"].data = image
                 self.viewer.layers["SMLM Render"].scale = scale

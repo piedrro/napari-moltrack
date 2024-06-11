@@ -46,116 +46,128 @@ class _tracking_utils:
                             if return_dict == False:
                                 track_data.append(tracks)
                             else:
-                                track_dict = {"dataset": dataset_name, "channel": channel_name, "tracks": tracks}
+                                track_dict = {"dataset": dataset_name,
+                                              "channel": channel_name,
+                                              "tracks": tracks}
                                 track_data.append(track_dict)
 
         except:
             print(traceback.format_exc())
 
         if return_dict == False:
-            if len(track_data) == 1:
+
+            if len(track_data) == 0:
+                pass
+            elif len(track_data) == 1:
                 track_data = track_data[0]
             else:
                 track_data = np.hstack(track_data).view(np.recarray).copy()
 
         return track_data
 
-    def run_tracking(self, locs, progress_callback=None):
-        tracks = None
+    def run_tracking(self, loc_data, progress_callback=None):
 
+        search_range = float(self.gui.trackpy_search_range.value())
+        memory = int(self.gui.trackpy_memory.value())
+        min_track_length = int(self.gui.min_track_length.value())
+
+        track_data = []
+
+        for dat in loc_data:
+
+            try:
+                dataset = dat["dataset"]
+                channel = dat["channel"]
+                locs = dat["localisations"]
+
+                columns = list(locs.dtype.names)
+
+                locdf = pd.DataFrame(locs, columns=columns)
+
+                tp.quiet()
+                tracks_df = tp.link(locdf, search_range=search_range, memory=memory)
+
+                # Count the frames per track
+                track_lengths = tracks_df.groupby("particle").size()
+
+                # Filter tracks by length
+                valid_tracks = track_lengths[track_lengths >= min_track_length].index
+                tracks_df = tracks_df[tracks_df["particle"].isin(valid_tracks)]
+
+                self.tracks = tracks_df
+
+                track_index = 1
+                for particle, group in tracks_df.groupby("particle"):
+                    tracks_df.loc[group.index, "particle"] = track_index
+                    track_index += 1
+
+                tracks_df = tracks_df.sort_values(by=["particle", "frame"])
+                tracks = tracks_df.to_records(index=False)
+
+                track_dict = {"dataset": dataset,
+                              "channel": channel,
+                              "tracks": tracks}
+
+                track_data.append(track_dict)
+
+            except:
+                print(traceback.format_exc())
+
+        return track_data
+
+    def process_tracking_results(self, track_data):
         try:
-            search_range = float(self.gui.trackpy_search_range.value())
-            memory = int(self.gui.trackpy_memory.value())
-            min_track_length = int(self.gui.min_track_length.value())
-
-            columns = list(locs.dtype.names)
-
-            locdf = pd.DataFrame(locs, columns=columns)
-
-            tp.quiet()
-            tracks_df = tp.link(locdf, search_range=search_range, memory=memory)
-
-            # Count the frames per track
-            track_lengths = tracks_df.groupby("particle").size()
-
-            # Filter tracks by length
-            valid_tracks = track_lengths[track_lengths >= min_track_length].index
-            tracks_df = tracks_df[tracks_df["particle"].isin(valid_tracks)]
-
-            self.tracks = tracks_df
-
-            track_index = 1
-            for particle, group in tracks_df.groupby("particle"):
-                tracks_df.loc[group.index, "particle"] = track_index
-                track_index += 1
-
-            # tracks_df = tracks_df[['particle', 'frame', 'y', 'x']]
-            tracks_df = tracks_df.sort_values(by=["particle", "frame"])
-            tracks = tracks_df.to_records(index=False)
-
-        except:
-            print(traceback.format_exc())
-
-        return tracks
-
-    def process_tracking_results(self, tracks):
-        try:
-            if tracks is None:
+            if track_data is None:
                 return
 
-            dataset = self.gui.tracking_dataset.currentText()
-            channel = self.gui.tracking_channel.currentText()
-
-            if dataset not in self.tracking_dict.keys():
-                self.tracking_dict[dataset] = {}
-            if channel not in self.tracking_dict[dataset].keys():
-                self.tracking_dict[dataset][channel] = tracks
-
-            n_tracks = np.unique(tracks["particle"])
-            print(f"Found {len(n_tracks)} tracks")
-
             remove_unlinked = self.gui.remove_unlinked.isChecked()
-            image_dict = self.dataset_dict[dataset]["images"]
-            n_frames = image_dict[channel].shape[0]
-
             layers_names = [layer.name for layer in self.viewer.layers]
+            total_tracks = 0
 
-            render_tracks = pd.DataFrame(tracks)
-            render_tracks = render_tracks[["particle", "frame", "y", "x"]]
-            render_tracks = render_tracks.to_records(index=False)
-            render_tracks = [list(track) for track in render_tracks]
-            render_tracks = np.array(render_tracks).copy()
-            render_tracks[:, 1] = 0
+            for dat in track_data:
 
-            if "Tracks" not in layers_names:
-                self.track_layer = self.viewer.add_tracks(render_tracks,
-                    name="Tracks")
-            else:
-                self.track_layer.data = render_tracks
+                dataset = dat["dataset"]
+                channel = dat["channel"]
+                tracks = dat["tracks"]
 
-            self.track_layer.tail_length = n_frames * 2
+                if dataset not in self.tracking_dict.keys():
+                    self.tracking_dict[dataset] = {}
+                if channel not in self.tracking_dict[dataset].keys():
+                    self.tracking_dict[dataset][channel] = {}
 
-            self.gui.locs_export_data.clear()
-            self.gui.locs_export_data.addItems(["Localisations", "Tracks"])
+                self.tracking_dict[dataset][channel] = {"tracks": tracks}
 
-            if remove_unlinked:
-                loc_dict = self.localisation_dict[dataset][channel]
+                n_tracks = len(np.unique(tracks["particle"]))
+                total_tracks += n_tracks
 
-                locs = loc_dict["localisations"]
-                n_locs = len(locs)
-                n_filtered = len(tracks)
+                if remove_unlinked:
 
-                n_removed = n_locs - n_filtered
+                    loc_dict = self.localisation_dict[dataset][channel]
 
-                if n_removed > 0:
-                    print(f"Removed {n_removed} unlinked localisations")
-                    loc_dict["localisations"] = tracks
+                    locs = loc_dict["localisations"]
+                    n_locs = len(locs)
+                    n_filtered = len(tracks)
+
+                    n_removed = n_locs - n_filtered
+
+                    if n_removed > 0:
+                        print(f"Removed {n_removed} unlinked localisations")
+                        loc_dict["localisations"] = tracks
+
+            if len(track_data) > 0:
+
+                self.gui.locs_export_data.clear()
+                self.gui.locs_export_data.addItems(["Localisations", "Tracks"])
+                print(f"Tracking complete, {total_tracks} tracks found")
+
 
         except:
             print(traceback.format_exc())
 
     def tracking_finished(self):
+
         self.draw_localisations()
+        self.draw_tracks()
         self.update_ui()
 
     def initialise_tracking(self):
@@ -164,23 +176,17 @@ class _tracking_utils:
             dataset = self.gui.tracking_dataset.currentText()
             channel = self.gui.tracking_channel.currentText()
 
-            if dataset in self.localisation_dict.keys():
-                if channel in self.localisation_dict[dataset].keys():
+            loc_data = self.get_locs(dataset, channel,
+                return_dict=True, include_metadata=True)
 
-                    loc_dict = self.localisation_dict[dataset][channel]
+            if len(loc_data) > 0:
 
-                    if "localisations" in loc_dict.keys():
-                        locs = loc_dict["localisations"].copy()
+                self.update_ui(init=True)
 
-                        if len(locs) > 0:
-                            self.update_ui(init=True)
-
-                            locs = loc_dict["localisations"].copy()
-
-                            worker = Worker(self.run_tracking, locs)
-                            worker.signals.result.connect(self.process_tracking_results)
-                            worker.signals.finished.connect(self.tracking_finished)
-                            self.threadpool.start(worker)
+                worker = Worker(self.run_tracking, loc_data)
+                worker.signals.result.connect(self.process_tracking_results)
+                worker.signals.finished.connect(self.tracking_finished)
+                self.threadpool.start(worker)
 
             else:
                 print(f"No localisations found for {dataset}`")
@@ -188,3 +194,60 @@ class _tracking_utils:
         except:
             print(traceback.format_exc())
             self.update_ui()
+
+
+    def draw_tracks(self, dataset = None, channel = None):
+
+        try:
+
+            remove_tracks = True
+
+            if hasattr(self, "tracking_dict"):
+                if hasattr(self, "tracks_layer"):
+                    show_tracks = self.loc_layer.visible
+                else:
+                    show_tracks = True
+
+            if show_tracks:
+
+                layer_names = [layer.name for layer in self.viewer.layers]
+
+                dataset_name = self.gui.moltrack_dataset_selector.currentText()
+                channel_name = self.gui.moltrack_channel_selector.currentText()
+
+                tracks = self.get_tracks(dataset_name, channel_name,
+                    return_dict=False, include_metadata=True)
+
+                image_dict = self.dataset_dict[dataset_name]["images"]
+                n_frames = image_dict[channel_name].shape[0]
+
+                if len(tracks) > 0:
+
+                    remove_tracks = False
+
+                    render_tracks = pd.DataFrame(tracks)
+                    render_tracks = render_tracks[["particle", "frame", "y", "x"]]
+                    render_tracks = render_tracks.to_records(index=False)
+                    render_tracks = [list(track) for track in render_tracks]
+                    render_tracks = np.array(render_tracks).copy()
+                    render_tracks[:, 1] = 0
+
+                    if "Tracks" not in layer_names:
+                        self.track_layer = self.viewer.add_tracks(render_tracks,
+                            name="Tracks")
+                    else:
+                        self.track_layer.data = render_tracks
+
+                    self.track_layer.selected_data = []
+                    self.track_layer.tail_length = n_frames * 2
+
+            if remove_tracks:
+                if "Tracks" in layer_names:
+                    self.viewer.layers["Tracks"].data = []
+
+            for layer in layer_names:
+                self.viewer.layers[layer].refresh()
+
+
+        except:
+            print(traceback.format_exc())

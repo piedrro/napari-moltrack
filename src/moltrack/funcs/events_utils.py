@@ -372,7 +372,7 @@ class _events_utils:
                 self.segmentation_layer.refresh()
             else:
                 self.segmentation_layer = self.viewer.add_image(self.segmentation_image,
-                    name="Segmentation Image", visible=True)
+                    name="Segmentation Image", visible=True, blending="opaque")
                 self.segmentation_layer.refresh()
 
     def update_active_image(self, dataset=None, channel=None, event=None):
@@ -412,7 +412,7 @@ class _events_utils:
                             self.image_layer = self.viewer.add_image(image,
                                 name=image_name,
                                 colormap="gray",
-                                blending="additive",
+                                blending="opaque",
                                 visible=True)
 
                         else:
@@ -448,6 +448,7 @@ class _events_utils:
                 self.active_dataset = None
 
             self.draw_localisations()
+            self.draw_tracks()
             self.update_overlay_text()
 
         except:
