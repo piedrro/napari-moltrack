@@ -30,7 +30,13 @@ class _events_utils:
 
                 dataset_names = list(self.dataset_dict.keys())
 
-                if selector_name in ["picasso_dataset","locs_export_dataset"] and len(dataset_names) > 1:
+                multi_dataset_selectors = ["import_picasso_dataset",
+                                           "locs_export_dataset",
+                                           "picasso_render_dataset",
+                                           ]
+
+
+                if selector_name in multi_dataset_selectors and len(dataset_names) > 1:
                     dataset_names.insert(0, "All Datasets")
 
                 if selector_name == "cellpose_dataset":
