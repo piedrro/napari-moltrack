@@ -7,12 +7,13 @@ from shapely.ops import unary_union
 import numpy as np
 import warnings
 
+
 class _segmentation_events:
 
     def dilate_segmentation(self, viewer=None, event=None):
 
         try:
-            if 'Control' in event.modifiers:
+            if "Control" in event.modifiers:
 
                 coords = self.segLayer.world_to_data(event.position)
                 shape_index = self.segLayer.get_value(coords)[0]
@@ -56,16 +57,48 @@ class _segmentation_events:
 
     def register_shape_layer_keybinds(self, layer):
 
-        layer.bind_key(key='Space', func=lambda event: self.modify_mode(mode="add"), overwrite=True)
-        layer.bind_key(key='e', func=lambda event: self.modify_mode(mode="extend"), overwrite=True)
-        layer.bind_key(key='j', func=lambda event: self.modify_mode(mode="join"), overwrite=True)
-        layer.bind_key(key='d', func=lambda event: self.modify_mode(mode="delete"), overwrite=True)
-        layer.bind_key(key='p', func=lambda event: self.modify_mode(mode="pan_zoom"), overwrite=True)
-        layer.bind_key(key='m', func=lambda event: self.modify_mode(mode="midline"), overwrite=True)
-        layer.bind_key(key='s', func=lambda event: self.modify_mode(mode="edit_midlines"), overwrite=True)
-        layer.bind_key(key='Escape', func=lambda event: self.modify_mode(mode="pan_zoom"), overwrite=True)
+        layer.bind_key(
+            key="Space",
+            func=lambda event: self.modify_mode(mode="add"),
+            overwrite=True,
+        )
+        layer.bind_key(
+            key="e",
+            func=lambda event: self.modify_mode(mode="extend"),
+            overwrite=True,
+        )
+        layer.bind_key(
+            key="j",
+            func=lambda event: self.modify_mode(mode="join"),
+            overwrite=True,
+        )
+        layer.bind_key(
+            key="d",
+            func=lambda event: self.modify_mode(mode="delete"),
+            overwrite=True,
+        )
+        layer.bind_key(
+            key="p",
+            func=lambda event: self.modify_mode(mode="pan_zoom"),
+            overwrite=True,
+        )
+        layer.bind_key(
+            key="m",
+            func=lambda event: self.modify_mode(mode="midline"),
+            overwrite=True,
+        )
+        layer.bind_key(
+            key="s",
+            func=lambda event: self.modify_mode(mode="edit_midlines"),
+            overwrite=True,
+        )
+        layer.bind_key(
+            key="Escape",
+            func=lambda event: self.modify_mode(mode="pan_zoom"),
+            overwrite=True,
+        )
 
-    def initialise_segLayer(self, shapes = None):
+    def initialise_segLayer(self, shapes=None):
 
         layer_names = [layer.name for layer in self.viewer.layers]
 
@@ -75,12 +108,36 @@ class _segmentation_events:
         if hasattr(self, "segLayer"):
             del self.segLayer
 
-        if shapes is not None:
-            self.segLayer = self.viewer.add_shapes(name="Segmentations", shape_type="polygon",
-                opacity=0.5, face_color="red", edge_color="black", edge_width=1, data=shapes)
+        if hasattr(self, "segmentation_image_pixel_size"):
+            pixel_size = self.segmentation_image_pixel_size
+            scale = [pixel_size, pixel_size]
         else:
-            self.segLayer = self.viewer.add_shapes(name="Segmentations", shape_type="polygon",
-                opacity=0.5, face_color="red", edge_color="black", edge_width=1)
+            scale = [1, 1]
+
+        if shapes is not None:
+            self.segLayer = self.viewer.add_shapes(
+                name="Segmentations",
+                shape_type="polygon",
+                opacity=0.5,
+                face_color="red",
+                edge_color="black",
+                edge_width=1,
+                data=shapes,
+            )
+        else:
+            self.segLayer = self.viewer.add_shapes(
+                name="Segmentations",
+                shape_type="polygon",
+                opacity=0.5,
+                face_color="red",
+                edge_color="black",
+                edge_width=1,
+            )
+
+        self.segLayer.scale = scale
+        self.viewer.scale_bar.unit = "um"
+        self.segLayer.refresh()
+        self.viewer.reset_view()
 
         self.segLayer.mouse_drag_callbacks.append(self.seg_drag_event)
         self.segLayer.mouse_double_click_callbacks.append(self.delete_clicked)
@@ -91,8 +148,7 @@ class _segmentation_events:
 
         return self.segLayer
 
-
-    def get_seglayer(self, shapes = None):
+    def get_seglayer(self, shapes=None):
 
         layer_names = [layer.name for layer in self.viewer.layers]
 
@@ -102,8 +158,7 @@ class _segmentation_events:
 
         return self.segLayer
 
-
-    def modify_mode(self, viewer=None, mode ="add"):
+    def modify_mode(self, viewer=None, mode="add"):
 
         try:
 
@@ -189,7 +244,6 @@ class _segmentation_events:
             print(traceback.format_exc())
             pass
 
-
     def remove_shapes(self, indices):
 
         if type(indices) == int:
@@ -206,7 +260,6 @@ class _segmentation_events:
 
             self.segLayer.events.data.connect(self.update_shapes)
 
-
     def update_shapes(self, event):
 
         try:
@@ -218,7 +271,7 @@ class _segmentation_events:
                 if self.segmentation_mode == "join":
 
                     shapes = self.segLayer.data
-                    last_index = len(shapes)-1
+                    last_index = len(shapes) - 1
 
                     self.remove_shapes(last_index)
 
@@ -230,7 +283,10 @@ class _segmentation_events:
                             shape_index1 = self.segLayer.get_value(coords1)[0]
                             shape_index2 = self.segLayer.get_value(coords2)[0]
 
-                            if shape_index1 is not None and shape_index2 is not None:
+                            if (
+                                shape_index1 is not None
+                                and shape_index2 is not None
+                            ):
 
                                 shape1 = shapes[shape_index1]
                                 shape2 = shapes[shape_index2]
@@ -239,7 +295,9 @@ class _segmentation_events:
 
                                 if union_shape is not None:
 
-                                    self.remove_shapes([shape_index1, shape_index2])
+                                    self.remove_shapes(
+                                        [shape_index1, shape_index2]
+                                    )
                                     shapes = self.segLayer.data.copy()
                                     shapes.append(union_shape)
                                     self.segLayer.data = shapes
@@ -274,16 +332,25 @@ class _segmentation_events:
 
                             if union_shape is not None:
 
-                                self.segLayer.events.data.disconnect(self.update_shapes)
-                                self.segLayer.selected_data = [shape_index, extend_index]
+                                self.segLayer.events.data.disconnect(
+                                    self.update_shapes
+                                )
+                                self.segLayer.selected_data = [
+                                    shape_index,
+                                    extend_index,
+                                ]
                                 self.segLayer.remove_selected()
-                                self.segLayer.add(union_shape, shape_type="polygon")
-                                self.segLayer.events.data.connect(self.update_shapes)
+                                self.segLayer.add(
+                                    union_shape, shape_type="polygon"
+                                )
+                                self.segLayer.events.data.connect(
+                                    self.update_shapes
+                                )
 
                     else:
 
                         shapes = self.segLayer.data.copy()
-                        last_index = len(shapes)-1
+                        last_index = len(shapes) - 1
                         self.remove_shapes(last_index)
 
                     self.extend_indices = None
@@ -309,8 +376,7 @@ class _segmentation_events:
             print(traceback.format_exc())
             pass
 
-
-    def seg_drag_event(self, viwer = None, event = None):
+    def seg_drag_event(self, viwer=None, event=None):
 
         if hasattr(self, "segmentation_mode"):
 
@@ -334,7 +400,7 @@ class _segmentation_events:
                 shape_index1 = self.segLayer.get_value(coords1)[0]
 
                 shapes = self.segLayer.data.copy()
-                shapes.pop(len(shapes)-1)
+                shapes.pop(len(shapes) - 1)
 
                 if shape_index1 is not None:
                     dragged = False
@@ -352,7 +418,6 @@ class _segmentation_events:
                         if shape_index2 is not None:
 
                             self.join_coords = [coords1, coords2]
-
 
             if self.segmentation_mode == "extend":
 
@@ -372,12 +437,11 @@ class _segmentation_events:
                     if dragged:
 
                         shapes = self.segLayer.data.copy()
-                        last_index = len(shapes)-1
+                        last_index = len(shapes) - 1
 
                         self.extend_indices = [shape_index, last_index]
 
-
-    def join_shapes(self, shape1, shape2, simplify = True, buffer = 1):
+    def join_shapes(self, shape1, shape2, simplify=True, buffer=1):
 
         union_shape = None
 
@@ -421,7 +485,9 @@ class _segmentation_events:
                         union_polygon = union_polygon.simplify(0.1)
 
                     union_shape = np.array(union_polygon.exterior.coords)
-                    union_shape = np.insert(union_shape, 0, frame_index, axis=1)
+                    union_shape = np.insert(
+                        union_shape, 0, frame_index, axis=1
+                    )
 
                     union_shape = union_shape[1:]
                     union_shape = union_shape.astype(float)
@@ -431,14 +497,3 @@ class _segmentation_events:
             pass
 
         return union_shape
-
-
-
-
-
-
-
-
-
-
-

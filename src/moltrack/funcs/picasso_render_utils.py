@@ -9,30 +9,40 @@ import time
 from functools import partial
 import cv2
 
+
 class _picasso_render_utils:
 
-
-    def render_picasso_locs(self, loc_data, image_shape, blur_method=None, min_blur_width=1,
-            pixel_size=1, progress_callback=None, oversampling=10, ):
+    def render_picasso_locs(
+        self,
+        loc_data,
+        image_shape,
+        blur_method=None,
+        min_blur_width=1,
+        pixel_size=1,
+        progress_callback=None,
+        oversampling=10,
+    ):
         try:
 
             h, w = image_shape[-2:]
 
-            viewport = [(float(0), float(0)),
-                        (float(h), float(w))]
+            viewport = [(float(0), float(0)), (float(h), float(w))]
 
             start_time = time.time()
 
             images = []
             total_rendered_locs = 0
 
-            print(f"Rendering localisations from {len(loc_data)} dataset(s)/channel(s).")
+            print(
+                f"Rendering localisations from {len(loc_data)} dataset(s)/channel(s)."
+            )
 
             for dat in loc_data:
 
                 locs = dat["localisations"]
 
-                n_rendered_locs, image = render(locs,
+                n_rendered_locs, image = render(
+                    locs,
                     viewport=viewport,
                     blur_method=blur_method,
                     min_blur_width=min_blur_width,
@@ -50,7 +60,9 @@ class _picasso_render_utils:
 
             end_time = time.time()
 
-            print(f"Rendered {total_rendered_locs} localisations in {end_time - start_time:.2f} seconds.")
+            print(
+                f"Rendered {total_rendered_locs} localisations in {end_time - start_time:.2f} seconds."
+            )
 
         except:
             print(traceback.format_exc())
@@ -58,17 +70,19 @@ class _picasso_render_utils:
 
         return image, pixel_size, oversampling
 
-    def create_rgb_render(self, images, normalise=True,
-            histogram_equalize=False, bit_depth=32):
+    def create_rgb_render(
+        self, images, normalise=True, histogram_equalize=False, bit_depth=32
+    ):
         def get_colors(num_colors):
             """Generate a list of colors for the given number of images."""
-            colors = [(1.0, 0.0, 0.0),  # Red
-                      (0.0, 1.0, 0.0),  # Green
-                      (0.0, 0.0, 1.0),  # Blue
-                      (1.0, 1.0, 0.0),  # Yellow
-                      (1.0, 0.0, 1.0),  # Magenta
-                      (0.0, 1.0, 1.0),  # Cyan
-                      ]
+            colors = [
+                (1.0, 0.0, 0.0),  # Red
+                (0.0, 1.0, 0.0),  # Green
+                (0.0, 0.0, 1.0),  # Blue
+                (1.0, 1.0, 0.0),  # Yellow
+                (1.0, 0.0, 1.0),  # Magenta
+                (0.0, 1.0, 1.0),  # Cyan
+            ]
             return colors[:num_colors]
 
         def normalise_image(image):
@@ -128,14 +142,12 @@ class _picasso_render_utils:
 
         return rgb
 
-
     def picasso_render_finished(self):
 
         self.update_filter_criterion()
         self.update_criterion_ranges()
 
         self.update_ui(init=False)
-
 
     def draw_picasso_render(self, data):
 
@@ -147,24 +159,35 @@ class _picasso_render_utils:
             layer_names = [layer.name for layer in self.viewer.layers]
 
             if "SMLM Render" not in layer_names:
-                self.viewer.add_image(image, name="SMLM Render",
-                    colormap="inferno", scale=scale,
-                    blending="opaque",rgb=True)
+                self.viewer.add_image(
+                    image,
+                    name="SMLM Render",
+                    colormap="inferno",
+                    scale=scale,
+                    blending="opaque",
+                    rgb=True,
+                )
+                self.viewer.reset_view()
             else:
 
                 active_layer = self.viewer.layers["SMLM Render"].data
 
                 if active_layer.shape != image.shape:
                     self.viewer.layers.remove("SMLM Render")
-                    self.viewer.add_image(image, name="SMLM Render",
-                        colormap="inferno", scale=scale,
-                        blending="opaque", rgb=True)
+                    self.viewer.add_image(
+                        image,
+                        name="SMLM Render",
+                        colormap="inferno",
+                        scale=scale,
+                        blending="opaque",
+                        rgb=True,
+                    )
+                    self.viewer.reset_view()
 
                 self.viewer.layers["SMLM Render"].data = image
                 self.viewer.layers["SMLM Render"].scale = scale
 
             self.viewer.layers["SMLM Render"].gamma = 0.2
-
 
         except:
             print(traceback.format_exc())
@@ -178,20 +201,28 @@ class _picasso_render_utils:
             blur_method = self.gui.picasso_render_blur_method.currentText()
             min_blur_width = float(self.gui.picasso_render_min_blur.text())
 
-            loc_data = self.get_locs(dataset, channel,
-                return_dict=True, include_metadata=False)
+            loc_data = self.get_locs(
+                dataset, channel, return_dict=True, include_metadata=False
+            )
 
             if len(loc_data) > 0:
 
                 image_shape = loc_data[0]["image_shape"]
-
-                pixel_size = 1
+                if dataset != "All Datasets":
+                    pixel_size = float(
+                        self.dataset_dict[dataset]["pixel_size"]
+                    )
+                else:
+                    dataset_name = list(self.dataset_dict.keys())[0]
+                    pixel_size = float(
+                        self.dataset_dict[dataset_name]["pixel_size"]
+                    )
 
                 if blur_method == "One-Pixel-Blur":
                     blur_method = "smooth"
                 elif blur_method == "Global Localisation Precision":
                     blur_method = "convolve"
-                elif (blur_method == "Individual Localisation Precision, iso"):
+                elif blur_method == "Individual Localisation Precision, iso":
                     blur_method = "gaussian_iso"
                 elif blur_method == "Individual Localisation Precision":
                     blur_method = "gaussian"
@@ -200,8 +231,14 @@ class _picasso_render_utils:
 
                 self.update_ui(init=True)
 
-                worker = Worker(self.render_picasso_locs, loc_data=loc_data, image_shape=image_shape,
-                    blur_method=blur_method, min_blur_width=min_blur_width, pixel_size=pixel_size)
+                worker = Worker(
+                    self.render_picasso_locs,
+                    loc_data=loc_data,
+                    image_shape=image_shape,
+                    blur_method=blur_method,
+                    min_blur_width=min_blur_width,
+                    pixel_size=pixel_size,
+                )
                 worker.signals.result.connect(self.draw_picasso_render)
                 worker.signals.finished.connect(self.picasso_render_finished)
                 self.threadpool.start(worker)

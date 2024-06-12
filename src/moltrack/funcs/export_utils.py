@@ -19,6 +19,7 @@ import cv2
 import json
 from moltrack.funcs.compute_utils import Worker
 
+
 def format_picasso_path(path):
 
     if "%" in str(path):
@@ -28,7 +29,7 @@ def format_picasso_path(path):
 
     if os.name == "nt":
         if path.startswith("\\\\"):
-            path = '\\\\?\\UNC\\' + path[2:]
+            path = "\\\\?\\UNC\\" + path[2:]
 
     return Path(path)
 
@@ -67,24 +68,54 @@ def export_localisation_data(loc_data):
 
             localisation_data = pd.DataFrame(locs)
 
-            pos_locs = localisation_data[["frame", "x", "y", "photons", "bg", "sx", "sy", ]].copy()
+            pos_locs = localisation_data[
+                [
+                    "frame",
+                    "x",
+                    "y",
+                    "photons",
+                    "bg",
+                    "sx",
+                    "sy",
+                ]
+            ].copy()
 
             pos_locs.dropna(axis=0, inplace=True)
 
-            pos_locs.columns = ["FRAME", "XCENTER", "YCENTER", "BRIGHTNESS", "BG", "S_X", "S_Y", ]
+            pos_locs.columns = [
+                "FRAME",
+                "XCENTER",
+                "YCENTER",
+                "BRIGHTNESS",
+                "BG",
+                "S_X",
+                "S_Y",
+            ]
 
             pos_locs.loc[:, "I0"] = 0
             pos_locs.loc[:, "THETA"] = 0
-            pos_locs.loc[:, "ECC"] = (pos_locs["S_X"] / pos_locs["S_Y"])
+            pos_locs.loc[:, "ECC"] = pos_locs["S_X"] / pos_locs["S_Y"]
             pos_locs.loc[:, "FRAME"] = pos_locs["FRAME"] + 1
 
-            pos_locs = pos_locs[["FRAME", "XCENTER", "YCENTER", "BRIGHTNESS", "BG", "I0", "S_X", "S_Y", "THETA", "ECC", ]]
+            pos_locs = pos_locs[
+                [
+                    "FRAME",
+                    "XCENTER",
+                    "YCENTER",
+                    "BRIGHTNESS",
+                    "BG",
+                    "I0",
+                    "S_X",
+                    "S_Y",
+                    "THETA",
+                    "ECC",
+                ]
+            ]
 
             pos_locs.to_csv(export_path, sep="\t", index=False)
 
     except:
         print(traceback.format_exc())
-
 
 
 def export_picasso_localisation(loc_data):
@@ -94,10 +125,21 @@ def export_picasso_localisation(loc_data):
 
         locs = pd.DataFrame(locs)
 
-        picasso_columns = ['frame', 'y', 'x', 'photons',
-                           'sx', 'sy', 'bg', 'lpx', 'lpy',
-                           'ellipticity', 'net_gradient',
-                           'group', 'iterations',]
+        picasso_columns = [
+            "frame",
+            "y",
+            "x",
+            "photons",
+            "sx",
+            "sy",
+            "bg",
+            "lpx",
+            "lpy",
+            "ellipticity",
+            "net_gradient",
+            "group",
+            "iterations",
+        ]
 
         for column in locs.columns:
             if column not in picasso_columns:
@@ -132,9 +174,13 @@ def export_picasso_localisation(loc_data):
             shutil.move(temp_yaml_path, yaml_path)
         except:
 
-            print("Could not move files to import directory. Saving to desktop instead.")
+            print(
+                "Could not move files to import directory. Saving to desktop instead."
+            )
 
-            desktop_dir = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
+            desktop_dir = os.path.join(
+                os.path.join(os.environ["USERPROFILE"]), "Desktop"
+            )
 
             desktop_h5py_path = os.path.join(desktop_dir, h5py_path.name)
             desktop_yaml_path = os.path.join(desktop_dir, yaml_path.name)
@@ -148,13 +194,11 @@ def export_picasso_localisation(loc_data):
 
 class _export_utils:
 
-    def get_export_shapes_path(self, mode = "Binary Mask"):
+    def get_export_shapes_path(self, mode="Binary Mask"):
 
         export_path = None
         export_dir = None
         file_name = None
-
-
 
         for dataset in self.dataset_dict.keys():
 
@@ -167,7 +211,9 @@ class _export_utils:
                 file_name, ext = os.path.splitext(path)
 
         if export_dir is None:
-            export_dir = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
+            export_dir = os.path.join(
+                os.path.join(os.environ["USERPROFILE"]), "Desktop"
+            )
 
         if file_name is None:
             file_name = "moltrack"
@@ -187,8 +233,9 @@ class _export_utils:
         export_path = os.path.join(export_dir, file_name)
 
         if os.path.exists(export_dir):
-            export_path = QFileDialog.getSaveFileName(self, f"Export {mode}",
-                export_path, f"(*{ext})")[0]
+            export_path = QFileDialog.getSaveFileName(
+                self, f"Export {mode}", export_path, f"(*{ext})"
+            )[0]
 
         if export_path == "":
             return None
@@ -200,15 +247,20 @@ class _export_utils:
 
         return export_path
 
-
     def get_export_mask_shape(self):
 
         frame_shape = None
 
         try:
             shape_layers = ["segmentations", "cells", "localisations"]
-            image_layers = [layer for layer in self.viewer.layers if layer.name.lower() not in shape_layers]
-            frame_shapes = list(set([layer.data.shape[-2:] for layer in image_layers]))
+            image_layers = [
+                layer
+                for layer in self.viewer.layers
+                if layer.name.lower() not in shape_layers
+            ]
+            frame_shapes = list(
+                set([layer.data.shape[-2:] for layer in image_layers])
+            )
 
             if len(frame_shapes) > 0:
                 frame_shape = frame_shapes[0]
@@ -217,7 +269,6 @@ class _export_utils:
             pass
 
         return frame_shape
-
 
     def export_shapes_mask(self, path):
 
@@ -233,9 +284,14 @@ class _export_utils:
 
             mask = np.zeros(frame_shape, dtype=np.uint8)
 
-            contours = [np.array(polygon).reshape(-1, 1, 2) for polygon in export_polygons]
+            contours = [
+                np.array(polygon).reshape(-1, 1, 2)
+                for polygon in export_polygons
+            ]
             contours = [contour[:, :, ::-1] for contour in contours]
-            contours = [np.round(contour).astype(np.int32) for contour in contours]
+            contours = [
+                np.round(contour).astype(np.int32) for contour in contours
+            ]
 
             for contour_index, contour in enumerate(contours):
                 colour = contour_index + 1
@@ -250,7 +306,6 @@ class _export_utils:
         except:
             print(traceback.format_exc())
             pass
-
 
     def export_shapes_json(self, path):
 
@@ -281,10 +336,7 @@ class _export_utils:
             print(traceback.format_exc())
             pass
 
-
-
-    def export_segmentations(self, export_mode, path = None):
-
+    def export_segmentations(self, export_mode, path=None):
 
         if export_mode == "Binary Mask":
 
@@ -294,8 +346,7 @@ class _export_utils:
 
             self.export_shapes_json(path)
 
-
-    def export_cells(self, export_mode, path = None):
+    def export_cells(self, export_mode, path=None):
 
         if export_mode == "Binary Mask":
 
@@ -324,13 +375,24 @@ class _export_utils:
 
             if export_mode == "Binary Mask":
 
-                export_polygons = [shapes[i] for i, shape_type in enumerate(shape_types) if shape_type == "polygon"]
+                export_polygons = [
+                    shapes[i]
+                    for i, shape_type in enumerate(shape_types)
+                    if shape_type == "polygon"
+                ]
 
                 return export_polygons
 
             else:
-                export_polygons = [shapes[i] for i, shape_type in enumerate(shape_types) if shape_type == "polygon"]
-                export_polygons = [{"polygon_coords": polygon.tolist()} for polygon in export_polygons]
+                export_polygons = [
+                    shapes[i]
+                    for i, shape_type in enumerate(shape_types)
+                    if shape_type == "polygon"
+                ]
+                export_polygons = [
+                    {"polygon_coords": polygon.tolist()}
+                    for polygon in export_polygons
+                ]
 
                 return export_polygons
 
@@ -350,13 +412,11 @@ class _export_utils:
 
             return export_polygons
 
-
     def export_shapes_data_finished(self):
 
         self.update_ui()
 
-
-    def export_shapes_data(self, path, progress_callback = None):
+    def export_shapes_data(self, path, progress_callback=None):
 
         export_data = self.gui.shapes_export_data.currentText()
         export_mode = self.gui.shapes_export_mode.currentText()
@@ -366,7 +426,6 @@ class _export_utils:
 
         if export_data == "Cells":
             self.export_cells(export_mode, path=path)
-
 
     def init_export_shapes_data(self):
 
@@ -384,11 +443,10 @@ class _export_utils:
                 self.update_ui(init=True)
 
                 worker = Worker(self.export_shapes_data, path)
-                worker.signals.finished.connect(self.export_shapes_data_finished)
+                worker.signals.finished.connect(
+                    self.export_shapes_data_finished
+                )
                 self.threadpool.start(worker)
-
-
-
 
     def update_shape_export_options(self):
 
@@ -402,9 +460,9 @@ class _export_utils:
         if export_data == "Cells":
 
             self.gui.shapes_export_mode.clear()
-            self.gui.shapes_export_mode.addItems(["Binary Mask", "JSON", "Oufti/MicrobTracker Mesh"])
-
-
+            self.gui.shapes_export_mode.addItems(
+                ["Binary Mask", "JSON", "Oufti/MicrobTracker Mesh"]
+            )
 
     def get_export_locs(self, dataset, channel):
 
@@ -439,19 +497,33 @@ class _export_utils:
 
         return locs, fitted, box_size, min_net_gradient
 
-
-    def get_picasso_info(self, import_path, image_shape, box_size, min_net_gradient):
+    def get_picasso_info(
+        self, import_path, image_shape, box_size, min_net_gradient
+    ):
 
         picasso_info = []
 
         try:
 
-            picasso_info = [{"Byte Order": "<", "Data Type": "uint16", "File": import_path,
-                             "Frames": image_shape[0], "Height": image_shape[1],
-                             "Micro-Manager Acquisiton Comments": "", "Width": image_shape[2], },
-                            {"Box Size": box_size, "Fit method": "LQ, Gaussian",
-                             "Generated by": "Picasso Localize", "Min. Net Gradient": min_net_gradient,
-                             "Pixelsize": 130, "ROI": None, }]
+            picasso_info = [
+                {
+                    "Byte Order": "<",
+                    "Data Type": "uint16",
+                    "File": import_path,
+                    "Frames": image_shape[0],
+                    "Height": image_shape[1],
+                    "Micro-Manager Acquisiton Comments": "",
+                    "Width": image_shape[2],
+                },
+                {
+                    "Box Size": box_size,
+                    "Fit method": "LQ, Gaussian",
+                    "Generated by": "Picasso Localize",
+                    "Min. Net Gradient": min_net_gradient,
+                    "Pixelsize": 130,
+                    "ROI": None,
+                },
+            ]
 
         except:
             print(traceback.format_exc())
@@ -459,9 +531,9 @@ class _export_utils:
 
         return picasso_info
 
-
-    def export_locs(self, export_list, export_data, export_loc_mode,
-            progress_callback = None):
+    def export_locs(
+        self, export_list, export_data, export_loc_mode, progress_callback=None
+    ):
 
         try:
 
@@ -485,13 +557,25 @@ class _export_utils:
 
                     base, ext = os.path.splitext(import_path)
 
-                    hdf5_path = base + f"_{channel_name}_moltrack_localisations.hdf5"
-                    info_path = base + f"_{channel_name}_moltrack_localisations.yaml"
+                    hdf5_path = (
+                        base
+                        + f"_{channel_name}_moltrack_{export_data.lower()}.hdf5"
+                    )
+                    info_path = (
+                        base
+                        + f"_{channel_name}_moltrack_{export_data.lower()}.yaml"
+                    )
 
                     if export_loc_mode == "CSV":
-                        export_path = base + f"_{channel_name}_moltrack_localisations.csv"
+                        export_path = (
+                            base
+                            + f"_{channel_name}_moltrack_{export_data.lower()}.csv"
+                        )
                     elif export_loc_mode == "POS.OUT":
-                        export_path = base + f"_{channel_name}_moltrack_localisations.pos.out"
+                        export_path = (
+                            base
+                            + f"_{channel_name}_moltrack_{export_data.lower()}.pos.out"
+                        )
                     else:
                         export_path = ""
 
@@ -499,28 +583,37 @@ class _export_utils:
                         fitted = dat["fitted"]
                         min_net_gradient = dat["min_net_gradient"]
 
-                        picasso_info = self.get_picasso_info(import_path,
-                            image_shape, box_size, min_net_gradient)
+                        picasso_info = self.get_picasso_info(
+                            import_path,
+                            image_shape,
+                            box_size,
+                            min_net_gradient,
+                        )
 
-                    export_loc_job = { "dataset_name": dataset_name,
-                                       "channel_name": channel_name,
-                                       "export_data": export_data,
-                                       "data": data,
-                                       "fitted": fitted,
-                                       "export_mode": export_loc_mode,
-                                       "hdf5_path": hdf5_path,
-                                       "info_path": info_path,
-                                       "export_path": export_path,
-                                       "picasso_info": picasso_info,
-                                      }
+                    export_loc_job = {
+                        "dataset_name": dataset_name,
+                        "channel_name": channel_name,
+                        "export_data": export_data,
+                        "data": data,
+                        "fitted": fitted,
+                        "export_mode": export_loc_mode,
+                        "hdf5_path": hdf5_path,
+                        "info_path": info_path,
+                        "export_path": export_path,
+                        "picasso_info": picasso_info,
+                    }
 
                     export_loc_jobs.append(export_loc_job)
 
-
             if len(export_loc_jobs) > 0:
 
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    futures = [executor.submit(initialise_data_export, job) for job in export_loc_jobs]
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=1
+                ) as executor:
+                    futures = [
+                        executor.submit(initialise_data_export, job)
+                        for job in export_loc_jobs
+                    ]
 
                     for future in concurrent.futures.as_completed(futures):
                         try:
@@ -529,7 +622,11 @@ class _export_utils:
                             print(traceback.format_exc())
                             pass
 
-                        progress = int(100 * (len(export_loc_jobs) - len(futures)) / len(export_loc_jobs))
+                        progress = int(
+                            100
+                            * (len(export_loc_jobs) - len(futures))
+                            / len(export_loc_jobs)
+                        )
 
                         if progress_callback is not None:
                             progress_callback.emit(progress)
@@ -537,7 +634,6 @@ class _export_utils:
         except:
             print(traceback.format_exc())
             pass
-
 
     def export_locs_finished(self):
 
@@ -553,11 +649,26 @@ class _export_utils:
 
     def sort_export_cols(self, data):
 
-        order = ["dataset", "channel", "group", "particle", "frame",
-                 "cell_index", "segmentation_index",
-                 "x", "y", "photons", "bg", "sx", "sy",
-                 "lpx", "lpy", "ellipticity", "net_gradient",
-                 "iterations"]
+        order = [
+            "dataset",
+            "channel",
+            "group",
+            "particle",
+            "frame",
+            "cell_index",
+            "segmentation_index",
+            "x",
+            "y",
+            "photons",
+            "bg",
+            "sx",
+            "sy",
+            "lpx",
+            "lpy",
+            "ellipticity",
+            "net_gradient",
+            "iterations",
+        ]
 
         mask = []
 
@@ -569,13 +680,22 @@ class _export_utils:
 
         return data
 
-    def initialise_export_locs(self, event=None, export_dataset = "", export_channel = ""):
+    def initialise_export_locs(
+        self, event=None, export_dataset="", export_channel=""
+    ):
 
         try:
 
-            if export_dataset == "" or export_dataset not in self.dataset_dict.keys():
+            if (
+                export_dataset == ""
+                or export_dataset not in self.dataset_dict.keys()
+            ):
                 export_dataset = self.gui.locs_export_dataset.currentText()
-            if export_channel == "" or export_channel not in self.dataset_dict[export_dataset]["images"].keys():
+            if (
+                export_channel == ""
+                or export_channel
+                not in self.dataset_dict[export_dataset]["images"].keys()
+            ):
                 export_channel = self.gui.locs_export_channel.currentText()
 
             export_data = self.gui.locs_export_data.currentText()
@@ -583,11 +703,19 @@ class _export_utils:
             locs_export_concat = self.gui.locs_export_concat.isChecked()
 
             if export_data == "Localisations":
-                export_list = self.get_locs(export_dataset, export_channel,
-                    return_dict=True, include_metadata=True)
+                export_list = self.get_locs(
+                    export_dataset,
+                    export_channel,
+                    return_dict=True,
+                    include_metadata=True,
+                )
             else:
-                export_list = self.get_tracks(export_dataset, export_channel,
-                    return_dict=True, include_metadata=True)
+                export_list = self.get_tracks(
+                    export_dataset,
+                    export_channel,
+                    return_dict=True,
+                    include_metadata=True,
+                )
 
             if len(export_list) == 0:
                 return
@@ -596,7 +724,7 @@ class _export_utils:
 
                 concat_dict = {}
 
-                for key,value in export_list[0].items():
+                for key, value in export_list[0].items():
                     if key != export_data.lower():
                         concat_dict[key] = value
                 locs = []
@@ -606,12 +734,20 @@ class _export_utils:
                 concat_dict[export_data.lower()] = locs
                 export_list = [concat_dict]
 
-            self.update_ui(init = True)
+            self.update_ui(init=True)
 
-            self.worker = Worker(self.export_locs, export_list=export_list,
-                export_data = export_data, export_loc_mode = export_loc_mode)
-            self.worker.signals.progress.connect(partial(self.moltrack_progress,
-                progress_bar=self.gui.export_progressbar))
+            self.worker = Worker(
+                self.export_locs,
+                export_list=export_list,
+                export_data=export_data,
+                export_loc_mode=export_loc_mode,
+            )
+            self.worker.signals.progress.connect(
+                partial(
+                    self.moltrack_progress,
+                    progress_bar=self.gui.export_progressbar,
+                )
+            )
             self.worker.signals.finished.connect(self.export_locs_finished)
             self.worker.signals.error.connect(self.update_ui)
             self.threadpool.start(self.worker)
@@ -619,5 +755,3 @@ class _export_utils:
         except:
             self.update_ui()
             pass
-
-

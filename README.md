@@ -7,15 +7,15 @@
 [![codecov](https://codecov.io/gh/piedrro/napari-moltrack/branch/main/graph/badge.svg)](https://codecov.io/gh/piedrro/napari-moltrack)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-moltrack)](https://napari-hub.org/plugins/napari-moltrack)
 
-A Napari plugin for single molecule localisation *and* tracking based on **Picasso**, **GPUfit** and **Trackpy**. 
+A Napari plugin for single molecule localisation *and* tracking based on **Picasso**, **GPUfit** and **Trackpy**.
 This plugin was designed to detect/track single molecules inside cells, but can be used for any other SMLM/tracking application.
 
-All functions are parallelised/GPU accelerated where possible to increase performance. 
+All functions are parallelised/GPU accelerated where possible to increase performance.
 Multiple datasets can be loaded and processed in parallel.
 
 Single molecule localisations can be filtered by their properties (e.g. photons, width, etc.) and can be rendered as a super resolution image.
 
-Segmentations can be used to exclude regions froHm single molecule localisation and tracking. 
+Segmentations can be used to exclude regions froHm single molecule localisation and tracking.
 Segmentations can be added automatically using Cellpose or can be added manually. Includes tools for editing/modifying segmentations at a sub-pixel resolution.
 
 Compatible with both single and multi channel .tif and .fits files.
@@ -43,11 +43,9 @@ You can install `napari-moltrack` via [pip]:
     pip install napari-moltrack
 
 
-
 To install latest development version :
 
     pip install git+https://github.com/piedrro/napari-moltrack.git
-
 
 ## Contributing
 

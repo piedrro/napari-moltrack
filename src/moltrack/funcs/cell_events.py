@@ -37,7 +37,9 @@ class _cell_events:
             print(traceback.format_exc())
             pass
 
-    def initialise_cellLayer(self, shapes = None, shape_types = None, properties = None):
+    def initialise_cellLayer(
+        self, shapes=None, shape_types=None, properties=None
+    ):
 
         layer_names = [layer.name for layer in self.viewer.layers]
 
@@ -49,19 +51,43 @@ class _cell_events:
             self.cellLayer.refresh()
             del self.cellLayer
 
+        if hasattr(self, "segmentation_image_pixel_size"):
+            pixel_size = self.segmentation_image_pixel_size
+            scale = [pixel_size, pixel_size]
+        else:
+            scale = [1, 1]
+
         face_color = [1, 1, 1, 0]
         edge_color = [1, 1, 1, 0.5]
         edge_width = 1
 
         if shapes is not None:
-            self.cellLayer = self.viewer.add_shapes(shapes, properties=properties,
-                shape_type=shape_types, name="Cells", face_color=face_color,
-                edge_color=edge_color, edge_width=edge_width)
+            self.cellLayer = self.viewer.add_shapes(
+                shapes,
+                properties=properties,
+                shape_type=shape_types,
+                name="Cells",
+                face_color=face_color,
+                edge_color=edge_color,
+                edge_width=edge_width,
+            )
         else:
-            self.cellLayer = self.viewer.add_shapes(name="Cells", shape_type="polygon",
-                face_color=face_color, edge_color=edge_color, edge_width=edge_width)
+            self.cellLayer = self.viewer.add_shapes(
+                name="Cells",
+                shape_type="polygon",
+                face_color=face_color,
+                edge_color=edge_color,
+                edge_width=edge_width,
+            )
 
         self.move_polygons_to_front()
+
+        self.viewer.scale_bar.visible = True
+        self.cellLayer.scale = scale
+        self.viewer.scale_bar.unit = "um"
+
+        self.cellLayer.refresh()
+        self.viewer.reset_view()
 
         self.cellLayer.mouse_drag_callbacks.append(self.celllayer_clicked)
         self.cellLayer.mouse_wheel_callbacks.append(self.dilate_cell)
@@ -71,7 +97,6 @@ class _cell_events:
         self.store_cell_shapes(init=True)
 
         return self.cellLayer
-
 
     def celllayer_clicked(self, viewer=None, event=None):
 
@@ -106,9 +131,7 @@ class _cell_events:
             print(traceback.format_exc())
             pass
 
-
-
-    def cellLayer_event_manager(self, mode = "connect"):
+    def cellLayer_event_manager(self, mode="connect"):
 
         if mode == "connect":
             self.cellLayer.mouse_wheel_callbacks.append(self.dilate_cell)
@@ -118,8 +141,7 @@ class _cell_events:
                 if callback == self.dilate_cell:
                     self.cellLayer.mouse_wheel_callbacks.remove(callback)
 
-
-    def store_cell_shapes(self, max_stored = 10, init = False):
+    def store_cell_shapes(self, max_stored=10, init=False):
 
         try:
 
@@ -141,7 +163,9 @@ class _cell_events:
                         else:
                             previous_shapes = self.stored_cells[-1]
 
-                            if not np.array_equal(previous_shapes, current_shapes):
+                            if not np.array_equal(
+                                previous_shapes, current_shapes
+                            ):
                                 self.stored_cells.append(current_shapes)
 
                 if len(self.stored_cells) > max_stored:
@@ -160,13 +184,14 @@ class _cell_events:
 
         modified_shapes = []
 
-        for idx, (prev_shape, curr_shape) in enumerate(zip(previous_data, current_data)):
+        for idx, (prev_shape, curr_shape) in enumerate(
+            zip(previous_data, current_data)
+        ):
 
             if not np.array_equal(prev_shape, curr_shape):
                 modified_shapes.append(idx)
 
         return modified_shapes
-
 
     def get_cellLayer(self):
 
@@ -181,7 +206,7 @@ class _cell_events:
     def dilate_cell(self, viewer=None, event=None):
 
         try:
-            if 'Control' in event.modifiers:
+            if "Control" in event.modifiers:
 
                 coords = self.cellLayer.world_to_data(event.position)
                 cell_selection = self.cellLayer.get_value(coords)[0]
@@ -231,51 +256,63 @@ class _cell_events:
             print(traceback.format_exc())
             pass
 
-    def get_cell(self, name, json = False):
+    def get_cell(self, name, json=False):
 
         cell = None
 
         try:
-                name_list = self.cellLayer.properties["name"].copy()
-                cell_list = self.cellLayer.properties["cell"].copy()
+            name_list = self.cellLayer.properties["name"].copy()
+            cell_list = self.cellLayer.properties["cell"].copy()
 
-                shape_types = self.cellLayer.shape_type.copy()
-                shapes = self.cellLayer.data.copy()
+            shape_types = self.cellLayer.shape_type.copy()
+            shapes = self.cellLayer.data.copy()
 
-                cell_indices = [i for i, n in enumerate(name_list) if n == name]
+            cell_indices = [i for i, n in enumerate(name_list) if n == name]
 
-                if len(cell_indices) == 2:
+            if len(cell_indices) == 2:
 
-                    path_index = [i for i in cell_indices if shape_types[i] == "path"]
-                    polygon_index = [i for i in cell_indices if shape_types[i] == "polygon"]
+                path_index = [
+                    i for i in cell_indices if shape_types[i] == "path"
+                ]
+                polygon_index = [
+                    i for i in cell_indices if shape_types[i] == "polygon"
+                ]
 
-                    if len(path_index) == 1 and len(polygon_index) == 1:
+                if len(path_index) == 1 and len(polygon_index) == 1:
 
-                        midline_coords = shapes[path_index[0]]
-                        polygon_coords = shapes[polygon_index[0]]
-                        cell_properties = cell_list[path_index[0]]
+                    midline_coords = shapes[path_index[0]]
+                    polygon_coords = shapes[polygon_index[0]]
+                    cell_properties = cell_list[path_index[0]]
 
-                        if json is True:
-                            midline_coords = midline_coords.tolist()
-                            polygon_coords = polygon_coords.tolist()
+                    if json is True:
+                        midline_coords = midline_coords.tolist()
+                        polygon_coords = polygon_coords.tolist()
 
-                            cell_properties["poly_params"] = list(cell_properties["poly_params"])
-                            cell_properties["cell_poles"] = [list(pole) for pole in cell_properties["cell_poles"]]
-                            cell_properties["width"] = float(cell_properties["width"])
+                        cell_properties["poly_params"] = list(
+                            cell_properties["poly_params"]
+                        )
+                        cell_properties["cell_poles"] = [
+                            list(pole)
+                            for pole in cell_properties["cell_poles"]
+                        ]
+                        cell_properties["width"] = float(
+                            cell_properties["width"]
+                        )
 
-                        cell_coords = {"midline_coords": midline_coords,
-                                       "polygon_coords": polygon_coords,
-                                       "midline_index": int(path_index[0]),
-                                       "polygon_index": int(polygon_index[0])}
+                    cell_coords = {
+                        "midline_coords": midline_coords,
+                        "polygon_coords": polygon_coords,
+                        "midline_index": int(path_index[0]),
+                        "polygon_index": int(polygon_index[0]),
+                    }
 
-                        cell = {**cell_coords, **cell_properties}
+                    cell = {**cell_coords, **cell_properties}
 
         except:
             print(traceback.format_exc())
             pass
 
         return cell
-
 
     def get_cell_index(self, name, shape_type):
 
@@ -284,7 +321,11 @@ class _cell_events:
             name_list = self.cellLayer.properties["name"].copy()
             shape_types = self.cellLayer.shape_type.copy()
 
-            cell_index = [i for i, n in enumerate(name_list) if n == name and shape_types[i] == shape_type]
+            cell_index = [
+                i
+                for i, n in enumerate(name_list)
+                if n == name and shape_types[i] == shape_type
+            ]
 
             if len(cell_index) == 1:
                 cell_index = cell_index[0]
@@ -296,7 +337,6 @@ class _cell_events:
 
         return cell_index
 
-
     def move_polygons_to_front(self):
 
         try:
@@ -305,7 +345,9 @@ class _cell_events:
 
                 shape_types = self.cellLayer.shape_type.copy()
 
-                polygon_indices = [i for i, s in enumerate(shape_types) if s == "polygon"]
+                polygon_indices = [
+                    i for i, s in enumerate(shape_types) if s == "polygon"
+                ]
 
                 self.cellLayer.selected_data = polygon_indices
                 self.cellLayer.move_to_front()
@@ -323,7 +365,9 @@ class _cell_events:
 
                 shape_types = self.cellLayer.shape_type.copy()
 
-                path_indices = [i for i, s in enumerate(shape_types) if s == "path"]
+                path_indices = [
+                    i for i, s in enumerate(shape_types) if s == "path"
+                ]
 
                 self.cellLayer.selected_data = path_indices
                 self.cellLayer.refresh()
@@ -331,8 +375,9 @@ class _cell_events:
         except:
             pass
 
-
-    def update_cellLayer_shapes(self, shapes, shape_types = None, properties = None):
+    def update_cellLayer_shapes(
+        self, shapes, shape_types=None, properties=None
+    ):
 
         try:
 
@@ -353,12 +398,11 @@ class _cell_events:
         except:
             pass
 
-
     def update_cell_model(self, name):
 
         try:
 
-            cell = self.get_cell(name, json = False)
+            cell = self.get_cell(name, json=False)
 
             if cell is not None:
 
@@ -370,7 +414,12 @@ class _cell_events:
 
                 bf = BactFit()
                 fit = bf.manual_fit(polygon_coords, midline_coords, width)
-                polygon_fit_coords, midline_fit_coords, poly_params, cell_width = fit
+                (
+                    polygon_fit_coords,
+                    midline_fit_coords,
+                    poly_params,
+                    cell_width,
+                ) = fit
 
                 if polygon_fit_coords is not None:
 
@@ -380,11 +429,18 @@ class _cell_events:
                     shapes[polygon_index] = polygon_fit_coords
                     shapes[midline_index] = midline_fit_coords
 
-                    cell_poles = [midline_fit_coords[0], midline_fit_coords[-1]]
+                    cell_poles = [
+                        midline_fit_coords[0],
+                        midline_fit_coords[-1],
+                    ]
 
-                    properties["cell"][midline_index]["poly_params"] = poly_params
+                    properties["cell"][midline_index][
+                        "poly_params"
+                    ] = poly_params
                     properties["cell"][midline_index]["width"] = cell_width
-                    properties["cell"][midline_index]["cell_poles"] = cell_poles
+                    properties["cell"][midline_index][
+                        "cell_poles"
+                    ] = cell_poles
 
                     self.update_cellLayer_shapes(shapes, properties=properties)
                     self.store_cell_shapes()
@@ -392,10 +448,6 @@ class _cell_events:
         except:
             print(traceback.format_exc())
             pass
-
-
-
-
 
     def update_midline_position(self, name):
 
@@ -436,7 +488,6 @@ class _cell_events:
         except:
             pass
 
-
     def find_centerline(self, midline, width):
 
         try:
@@ -449,14 +500,21 @@ class _cell_events:
             def extract_end_points(line, num_points=2):
                 coords = list(line.coords)
                 if len(coords) < num_points:
-                    raise ValueError("The LineString does not have enough points.")
+                    raise ValueError(
+                        "The LineString does not have enough points."
+                    )
                 start_points = coords[:num_points]
                 end_points = coords[-num_points:]
                 return start_points, end_points
 
-            def extend_away(points, distance, ):
+            def extend_away(
+                points,
+                distance,
+            ):
                 if len(points) < 2:
-                    raise ValueError("At least two points are required to determine the direction for extension.")
+                    raise ValueError(
+                        "At least two points are required to determine the direction for extension."
+                    )
 
                 p1 = Point(points[0])
                 p2 = Point(points[1])
@@ -486,23 +544,42 @@ class _cell_events:
                 return (extended_x1, extended_y1), (extended_x2, extended_y2)
 
             def concatenate_lines(start_line, centerline, end_line):
-                coords = list(start_line.coords) + list(centerline.coords) + list(end_line.coords)
+                coords = (
+                    list(start_line.coords)
+                    + list(centerline.coords)
+                    + list(end_line.coords)
+                )
                 return LineString(coords)
 
             def cut_line_at_intersection(line, intersection):
                 if intersection.is_empty:
                     return line
                 elif isinstance(intersection, Point):
-                    return LineString([pt for pt in line.coords if Point(pt).distance(intersection) >= 0])
+                    return LineString(
+                        [
+                            pt
+                            for pt in line.coords
+                            if Point(pt).distance(intersection) >= 0
+                        ]
+                    )
                 elif isinstance(intersection, LineString):
                     intersection_coords = list(intersection.coords)
-                    cropped_coords = [pt for pt in line.coords if Point(pt).distance(Point(intersection_coords[0])) >= 0 and Point(pt).distance(Point(intersection_coords[-1])) >= 0]
+                    cropped_coords = [
+                        pt
+                        for pt in line.coords
+                        if Point(pt).distance(Point(intersection_coords[0]))
+                        >= 0
+                        and Point(pt).distance(Point(intersection_coords[-1]))
+                        >= 0
+                    ]
                     return LineString(cropped_coords)
                 return line
 
             model = midline.buffer(width)
 
-            centerline = resample_line(midline, 1000)  # High resolution with 1000 points
+            centerline = resample_line(
+                midline, 1000
+            )  # High resolution with 1000 points
 
             start_points, end_points = extract_end_points(centerline)
 
@@ -511,16 +588,26 @@ class _cell_events:
             extended_start = extend_away(start_points, extension_distance)
             extended_end = extend_away(end_points, extension_distance)
 
-            extended_start_line = LineString([start_points[0], extended_start[0]])
+            extended_start_line = LineString(
+                [start_points[0], extended_start[0]]
+            )
             extended_end_line = LineString([end_points[-1], extended_end[1]])
 
             outline = LineString(model.exterior.coords)
-            intersections_start = outline.intersection(extended_start_line).coords[0]
-            intersections_end = outline.intersection(extended_end_line).coords[0]
+            intersections_start = outline.intersection(
+                extended_start_line
+            ).coords[0]
+            intersections_end = outline.intersection(extended_end_line).coords[
+                0
+            ]
 
             centerline_coords = np.array(centerline.coords)
-            centerline_coords = np.insert(centerline_coords, 0, intersections_start, axis = 0)
-            centerline_coords = np.append(centerline_coords, [intersections_end], axis = 0)
+            centerline_coords = np.insert(
+                centerline_coords, 0, intersections_start, axis=0
+            )
+            centerline_coords = np.append(
+                centerline_coords, [intersections_end], axis=0
+            )
             centerline = LineString(centerline_coords)
 
         except:
@@ -529,11 +616,10 @@ class _cell_events:
 
         return centerline
 
-
-
     def find_end_cap_centroid(self, midline, width):
 
         try:
+
             def find_nearest_index(coords, point):
                 dist = np.linalg.norm(coords - point, axis=1)
                 return np.argmin(dist)
@@ -543,33 +629,34 @@ class _cell_events:
                 start_index = min(end)
 
                 if end[1] < end[0]:
-                    n_indices = ((len(coords) - end[0]) + end[1])
+                    n_indices = (len(coords) - end[0]) + end[1]
                     mid_index = end[0] + n_indices
-                    print("wrap", n_indices,end)
+                    print("wrap", n_indices, end)
                 else:
-                    n_indices = (end[1] - end[0])
+                    n_indices = end[1] - end[0]
                     mid_index = end[0] + n_indices
-                    print("norm", n_indices,end)
+                    print("norm", n_indices, end)
 
-                rotated_coords = np.concatenate((coords[start_index:], coords[:start_index]))
+                rotated_coords = np.concatenate(
+                    (coords[start_index:], coords[:start_index])
+                )
 
-                print(n_indices//2)
+                print(n_indices // 2)
 
-                end_point = rotated_coords[n_indices//2]
+                end_point = rotated_coords[n_indices // 2]
 
                 return end_point
 
-
-
-
-
-
-            #offset line
+            # offset line
             polygon = midline.buffer(width)
             polygon_coords = np.array(polygon.exterior.coords)
 
-            left_line = midline.parallel_offset(width, side = "left", join_style = 2)
-            right_line = midline.parallel_offset(width, side = "right", join_style = 2)
+            left_line = midline.parallel_offset(
+                width, side="left", join_style=2
+            )
+            right_line = midline.parallel_offset(
+                width, side="right", join_style=2
+            )
 
             left_coords = np.array(left_line.coords)
             right_coords = np.array(right_line.coords)
@@ -580,8 +667,14 @@ class _cell_events:
             end1 = np.array([left_ends[0], right_ends[0]])
             end2 = np.array([left_ends[1], right_ends[1]])
 
-            end1_indices = [find_nearest_index(polygon_coords, end1[0]), find_nearest_index(polygon_coords, end1[1])]
-            end2_indices = [find_nearest_index(polygon_coords, end2[0]), find_nearest_index(polygon_coords, end2[1])]
+            end1_indices = [
+                find_nearest_index(polygon_coords, end1[0]),
+                find_nearest_index(polygon_coords, end1[1]),
+            ]
+            end2_indices = [
+                find_nearest_index(polygon_coords, end2[0]),
+                find_nearest_index(polygon_coords, end2[1]),
+            ]
 
             end1_point = find_end_points(polygon_coords, end1_indices)
             end2_point = find_end_points(polygon_coords, end2_indices)
@@ -596,7 +689,7 @@ class _cell_events:
         except:
             print(traceback.format_exc())
 
-    def add_manual_cell(self, last_index, width = 5):
+    def add_manual_cell(self, last_index, width=5):
 
         try:
 
@@ -606,7 +699,9 @@ class _cell_events:
 
             midline_index = last_index
 
-            name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            name = "".join(
+                random.choices(string.ascii_uppercase + string.digits, k=10)
+            )
 
             midline_coords = shapes[last_index]
             cell_poles = [midline_coords[0], midline_coords[-1]]
@@ -620,14 +715,18 @@ class _cell_events:
 
             bf = BactFit()
             fit = bf.manual_fit(polygon_coords, midline_coords, width)
-            polygon_fit_coords, midline_fit_coords, poly_params, cell_width = fit
+            polygon_fit_coords, midline_fit_coords, poly_params, cell_width = (
+                fit
+            )
 
             shapes[last_index] = midline_fit_coords
 
-            cell = {"name": name,
-                    "width": width,
-                    "poly_params": poly_params,
-                    "cell_poles": cell_poles}
+            cell = {
+                "name": name,
+                "width": width,
+                "poly_params": poly_params,
+                "cell_poles": cell_poles,
+            }
 
             if "name" not in properties.keys():
                 properties["name"] = [name]
@@ -642,10 +741,12 @@ class _cell_events:
             self.cellLayer.events.data.disconnect(self.update_cells)
             self.cellLayer.refresh()
 
-            cell = {"name": name,
-                    "width": width,
-                    "poly_params": poly_params,
-                    "cell_poles": cell_poles}
+            cell = {
+                "name": name,
+                "width": width,
+                "poly_params": poly_params,
+                "cell_poles": cell_poles,
+            }
 
             self.cellLayer.current_properties = {"name": name, "cell": cell}
             self.cellLayer.add_polygons(polygon_fit_coords)
@@ -656,7 +757,6 @@ class _cell_events:
         except:
             print(traceback.format_exc())
             pass
-
 
     def update_cells(self, event):
 
@@ -700,7 +800,7 @@ class _cell_events:
             print(traceback.format_exc())
             pass
 
-    def remove_cells(self, indices = []):
+    def remove_cells(self, indices=[]):
 
         try:
 
@@ -718,5 +818,3 @@ class _cell_events:
 
         except:
             pass
-
-
