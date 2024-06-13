@@ -145,6 +145,9 @@ class _export_utils:
             if "path" in self.dataset_dict[dataset]:
                 path = self.dataset_dict[dataset]["path"]
 
+                if type(path) == list:
+                    path = path[0]
+
                 export_dir = os.path.dirname(path)
 
                 file_name, ext = os.path.splitext(path)
