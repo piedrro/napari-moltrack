@@ -555,6 +555,9 @@ class _export_utils:
                     image_dict = self.dataset_dict[dataset_name]["images"]
                     image_shape = image_dict[channel_name].shape
 
+                    if type(import_path) == list:
+                        import_path = import_path[0]
+
                     base, ext = os.path.splitext(import_path)
 
                     hdf5_path = (

@@ -25,6 +25,7 @@ from moltrack.funcs.tracking_utils import _tracking_utils
 from moltrack.funcs.bactfit_utils import _bactfit_utils
 from moltrack.funcs.cell_events import _cell_events
 from moltrack.funcs.oufti_utils import oufti
+from moltrack.funcs.diffusion_utils import _diffusion_utils
 
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
@@ -34,7 +35,7 @@ subclasses = [_import_utils, _compute_utils,
               _picasso_render_utils, _tracking_utils,
               _export_utils, _segmentation_events,
               _bactfit_utils, _cell_events,
-              oufti]
+              oufti, _diffusion_utils]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -81,10 +82,15 @@ class QWidget(QWidget, gui, *subclasses):
         self.filter_graph_canvas = CustomPyQTGraphWidget(self)
         self.gui.filter_graph_container.layout().addWidget(self.filter_graph_canvas)
 
+        self.gui.adc_graph_container.setLayout(QVBoxLayout())
+        self.adc_graph_canvas = CustomPyQTGraphWidget(self)
+        self.gui.adc_graph_container.layout().addWidget(self.adc_graph_canvas)
+
         self.dataset_dict = {}
         self.localisation_dict = {}
         self.tracking_dict = {}
         self.contrast_dict = {}
+        self.diffusion_dict = {}
 
         self.active_dataset = None
         self.active_channel = None
@@ -141,6 +147,17 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.remove_seglocs.clicked.connect(self.remove_seglocs)
 
+        self.gui.compute_adc.clicked.connect(self.init_compute_diffusion_coefficients)
+
+        self.gui.adc_channel.currentIndexChanged.connect(self.plot_diffusion_histogram)
+        self.gui.adc_dataset.currentIndexChanged.connect(self.plot_diffusion_histogram)
+        self.gui.adc_range_min.valueChanged.connect(self.plot_diffusion_histogram)
+        self.gui.adc_range_max.valueChanged.connect(self.plot_diffusion_histogram)
+        self.gui.adc_bins.valueChanged.connect(self.plot_diffusion_histogram)
+
+        self.gui.export_adc.clicked.connect(self.export_diffusion_coefficients)
+
+
         self.viewer.layers.events.inserted.connect(self.update_layer_combos)
         self.viewer.layers.events.removed.connect(self.update_layer_combos)
         self.viewer.dims.events.current_step.connect(self.slider_event)
@@ -160,8 +177,6 @@ class QWidget(QWidget, gui, *subclasses):
     def devfunc(self, viewer=None):
 
         self.update_ui()
-        self.gui.locs_export_data.currentIndexChanged.connect(self.update_locs_export_options)
-
         # print(True)
         # self.tracking_dict = {}
 

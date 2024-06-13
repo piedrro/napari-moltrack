@@ -12,34 +12,19 @@ from scipy.ndimage import shift
 class _events_utils:
 
     def populate_dataset_selectors(self):
-
         try:
-
-            dataset_selectors = [
-                "import_picasso_dataset",
-                "cellpose_dataset",
-                "moltrack_dataset_selector",
-                "picasso_dataset",
-                "picasso_filter_dataset",
-                "picasso_render_dataset",
-                "tracking_dataset",
-                "locs_export_dataset",
-                "remove_seglocs_dataset",
-            ]
+            dataset_selectors = ["import_picasso_dataset", "cellpose_dataset",
+                                 "moltrack_dataset_selector", "picasso_dataset",
+                                 "picasso_filter_dataset", "picasso_render_dataset",
+                                 "tracking_dataset", "locs_export_dataset",
+                                 "remove_seglocs_dataset", "adc_dataset",]
 
             for selector_name in dataset_selectors:
-
                 dataset_names = list(self.dataset_dict.keys())
 
-                single_dataset_selectors = [
-                    "moltrack_dataset_selector",
-                    "cellpose_dataset",
-                ]
+                single_dataset_selectors = ["moltrack_dataset_selector", "cellpose_dataset", ]
 
-                if (
-                    selector_name not in single_dataset_selectors
-                    and len(dataset_names) > 1
-                ):
+                if (selector_name not in single_dataset_selectors and len(dataset_names) > 1):
                     dataset_names.append("All Datasets")
 
                 if selector_name == "cellpose_dataset":
@@ -55,71 +40,44 @@ class _events_utils:
             pass
 
     def initialise_channel_selectors(self):
-
         try:
-
-            channel_selectors = [
-                "import_picasso_channel",
-                "cellpose_channel",
-                "moltrack_channel_selector",
-                "picasso_channel",
-                "picasso_filter_channel",
-                "picasso_render_channel",
-                "tracking_channel",
-                "locs_export_channel",
-                "remove_seglocs_channel",
-            ]
+            channel_selectors = ["import_picasso_channel", "cellpose_channel",
+                                 "moltrack_channel_selector", "picasso_channel",
+                                 "picasso_filter_channel", "picasso_render_channel",
+                                 "tracking_channel", "locs_export_channel",
+                                 "remove_seglocs_channel", "adc_channel",]
 
             for channel_selector in channel_selectors:
+                dataset_selector = channel_selector.replace("channel", "dataset")
 
-                dataset_selector = channel_selector.replace(
-                    "channel", "dataset"
-                )
-
-                if hasattr(self.gui, dataset_selector) and hasattr(
-                    self.gui, channel_selector
-                ):
-
+                if hasattr(self.gui, dataset_selector) and hasattr(self.gui, channel_selector):
                     dataset_selector = getattr(self.gui, dataset_selector)
                     channel_selector = getattr(self.gui, channel_selector)
 
-                    dataset_selector.currentTextChanged.connect(
-                        partial(
-                            self.update_channel_selector,
-                            dataset_selector=dataset_selector,
-                            channel_selector=channel_selector,
-                        )
-                    )
+                    dataset_selector.currentTextChanged.connect(partial(self.update_channel_selector,
+                        dataset_selector=dataset_selector, channel_selector=channel_selector, ))
 
         except:
             print(traceback.format_exc())
             pass
 
     def update_channel_selector(self, channel_selector, dataset_selector):
-
         try:
-            single_channel_selectors = [
-                "moltrack_channel_selector",
-                "cellpose_channel",
-            ]
+            single_channel_selectors = ["moltrack_channel_selector", "cellpose_channel", ]
 
             dataset_name = dataset_selector.currentText()
             channel_names = []
 
             if dataset_name != "All Datasets":
-
                 if dataset_name in self.dataset_dict.keys():
-
                     image_dict = self.dataset_dict[dataset_name]["images"]
 
                     channel_names = list(image_dict.keys())
 
             else:
-
                 channel_names = []
 
                 for dataset_name in self.dataset_dict.keys():
-
                     image_dict = self.dataset_dict[dataset_name]["images"]
                     channel_names.append(set(image_dict.keys()))
 
@@ -128,10 +86,7 @@ class _events_utils:
 
             channel_selector_name = channel_selector.objectName()
 
-            if (
-                channel_selector_name not in single_channel_selectors
-                and len(channel_names) > 1
-            ):
+            if (channel_selector_name not in single_channel_selectors and len(channel_names) > 1):
                 channel_names.append("All Channels")
 
             current_channel = channel_selector.currentText()
@@ -151,9 +106,7 @@ class _events_utils:
             pass
 
     def update_import_options(self, event=None):
-
         try:
-
             self.gui.import_mode.blockSignals(True)
             self.gui.import_multichannel_mode.blockSignals(True)
 
@@ -161,17 +114,14 @@ class _events_utils:
             multichannel_mode = self.gui.import_multichannel_mode.currentText()
 
             if import_mode == "Data (Single Channel)":
-
                 self.gui.import_multichannel_mode.setEnabled(False)
                 self.gui.import_multichannel_mode.setCurrentIndex(0)
                 self.gui.import_concatenate.setEnabled(True)
 
             if import_mode == "Data (Multi Channel)":
-
                 self.gui.import_multichannel_mode.setEnabled(True)
 
                 if multichannel_mode != "None":
-
                     self.gui.import_concatenate.setEnabled(False)
                     self.gui.import_concatenate.setChecked(False)
 
@@ -179,7 +129,6 @@ class _events_utils:
                     self.gui.import_concatenate.setEnabled(True)
 
             if import_mode == "Segmentation Image":
-
                 self.gui.import_multichannel_mode.setEnabled(False)
                 self.gui.import_concatenate.setEnabled(False)
 
@@ -191,7 +140,6 @@ class _events_utils:
             pass
 
     def update_locs_export_options(self, event=None):
-
         locs_export_data = self.gui.locs_export_data.currentText()
 
         if locs_export_data == "Localisations":
@@ -203,33 +151,20 @@ class _events_utils:
         self.gui.locs_export_mode.addItems(export_modes)
 
     def update_picasso_segmentation_filter(self):
-
-        shapes_layers = [
-            layer.name
-            for layer in self.viewer.layers
-            if layer.name in ["Segmentations", "Cells"]
-        ]
+        shapes_layers = [layer.name for layer in self.viewer.layers if layer.name in ["Segmentations", "Cells"]]
 
         segmentation_layer = self.gui.picasso_segmentation_layer.currentText()
 
         if segmentation_layer in shapes_layers:
-
             self.gui.picasso_segmentation_filter.setEnabled(True)
 
         else:
-
             self.gui.picasso_segmentation_filter.setEnabled(False)
             self.gui.picasso_segmentation_filter.setChecked(False)
 
     def update_layer_combos(self):
-
         try:
-
-            shapes_layers = [
-                layer.name
-                for layer in self.viewer.layers
-                if layer.name in ["Segmentations", "Cells"]
-            ]
+            shapes_layers = [layer.name for layer in self.viewer.layers if layer.name in ["Segmentations", "Cells"]]
 
             self.gui.shapes_export_data.clear()
             self.gui.shapes_export_data.addItems(shapes_layers)
@@ -245,7 +180,6 @@ class _events_utils:
             pass
 
     def moltrack_progress(self, progress, progress_bar):
-
         progress_bar.setValue(progress)
 
         if progress == 100:
@@ -260,45 +194,29 @@ class _events_utils:
         show_info(message)
 
     def update_ui(self, error=None, init=False):
-
         try:
-
             if self.verbose:
                 print(f"Updating UI, init = {init}")
 
-            controls = [
-                "import_images",
-                "import_picasso",
-                "cellpose_load_model",
-                "segment_active",
-                "dilate_segmentations",
-                "picasso_detect",
-                "picasso_fit",
-                "picasso_detectfit",
-                "filter_localisations",
-                "picasso_render",
-                "link_localisations",
-                "export_localisations",
-                "fit_segmentations",
-                "export_shapes",
-                "remove_seglocs",
-                "export_shapes",
-            ]
+            controls = ["import_images", "import_picasso",
+                        "cellpose_load_model", "segment_active",
+                        "dilate_segmentations", "picasso_detect",
+                        "picasso_fit", "picasso_detectfit",
+                        "filter_localisations", "picasso_render",
+                        "link_localisations", "export_localisations",
+                        "fit_segmentations", "export_shapes",
+                        "remove_seglocs", "export_shapes",
+                        "compute_adc", "export_adc", ]
 
-            progressbars = [
-                "import_progressbar",
-                "cellpose_progressbar",
-                "picasso_progressbar",
-                "export_progressbar",
-                "bactfit_progressbar",
-            ]
+            progressbars = ["import_progressbar", "cellpose_progressbar",
+                            "picasso_progressbar", "export_progressbar",
+                            "bactfit_progressbar", "adc_progressbar"]
 
             for progressbar in progressbars:
                 if hasattr(self.gui, progressbar):
                     getattr(self.gui, progressbar).setValue(0)
 
             if init is True:
-
                 for control in controls:
                     getattr(self.gui, control).setEnabled(False)
 
@@ -306,7 +224,6 @@ class _events_utils:
                 self.multiprocessing_active = True
 
             else:
-
                 for control in controls:
                     getattr(self.gui, control).setEnabled(True)
 
@@ -323,26 +240,17 @@ class _events_utils:
             pass
 
     def image_layer_auto_contrast(self, image, dataset, channel):
-
         contrast_limits = None
 
         try:
             autocontrast = True
 
             if dataset in self.contrast_dict.keys():
-
                 if channel in self.contrast_dict[dataset].keys():
-
-                    if (
-                        "contrast_limits"
-                        in self.contrast_dict[dataset][channel].keys()
-                    ):
-
+                    if ("contrast_limits" in self.contrast_dict[dataset][channel].keys()):
                         autocontrast = False
 
-                        contrast_limits = self.contrast_dict[dataset][channel][
-                            "contrast_limits"
-                        ]
+                        contrast_limits = self.contrast_dict[dataset][channel]["contrast_limits"]
                         gamma = self.contrast_dict[dataset][channel]["gamma"]
 
                         if hasattr(self, "image_layer"):
@@ -350,20 +258,14 @@ class _events_utils:
                             self.image_layer.contrast_limits = contrast_limits
 
             if autocontrast is True:
-
                 full_range = [np.min(image), np.max(image)]
 
                 if max(full_range) > min(full_range):
-                    contrast_limits = np.percentile(
-                        image[:10].copy(), [0.1, 99.99]
-                    )
+                    contrast_limits = np.percentile(image[:10].copy(), [0.1, 99.99])
 
                     gamma = 1.0
                     if contrast_limits[1] > contrast_limits[0]:
-                        gamma = np.log(0.5) / np.log(
-                            (contrast_limits[1] - contrast_limits[0])
-                            / (full_range[1] - full_range[0])
-                        )
+                        gamma = np.log(0.5) / np.log((contrast_limits[1] - contrast_limits[0]) / (full_range[1] - full_range[0]))
 
                     if hasattr(self, "image_layer"):
                         self.image_layer.gamma = gamma
@@ -375,50 +277,36 @@ class _events_utils:
         return contrast_limits
 
     def update_contrast_dict(self):
-
         try:
             dataset = self.active_dataset
             channel = self.active_channel
 
             if dataset in self.dataset_dict.keys():
-
                 if "images" in self.dataset_dict[dataset].keys():
-
                     image_dict = self.dataset_dict[dataset]["images"]
 
                     if channel in image_dict.keys():
-
                         if dataset not in self.contrast_dict.keys():
                             self.contrast_dict[dataset] = {}
                         if channel not in self.contrast_dict[dataset].keys():
                             self.contrast_dict[dataset][channel] = {}
 
-                        layer_names = [
-                            layer.name
-                            for layer in self.viewer.layers
-                            if dataset in layer.name
-                        ]
+                        layer_names = [layer.name for layer in self.viewer.layers if dataset in layer.name]
 
                         image_name = f"{dataset}[{channel}]"
 
                         if image_name in layer_names:
-
                             image_layer = self.viewer.layers[image_name]
                             contrast_limits = image_layer.contrast_limits
                             gamma = image_layer.gamma
 
-                            self.contrast_dict[dataset][channel] = {
-                                "contrast_limits": contrast_limits,
-                                "gamma": gamma,
-                            }
+                            self.contrast_dict[dataset][channel] = {"contrast_limits": contrast_limits, "gamma": gamma, }
 
         except:
             print(traceback.format_exc())
 
     def draw_segmentation_image(self):
-
         if hasattr(self, "segmentation_image"):
-
             pixel_size = self.segmentation_image_pixel_size
             scale = [pixel_size, pixel_size]
 
@@ -426,12 +314,7 @@ class _events_utils:
                 self.segmentation_layer.data = self.segmentation_image.copy()
                 self.segmentation_layer.refresh()
             else:
-                self.segmentation_layer = self.viewer.add_image(
-                    self.segmentation_image,
-                    name="Segmentation Image",
-                    visible=True,
-                    blending="opaque",
-                )
+                self.segmentation_layer = self.viewer.add_image(self.segmentation_image, name="Segmentation Image", visible=True, blending="opaque", )
                 self.viewer.reset_view()
 
             self.viewer.scale_bar.visible = True
@@ -442,24 +325,18 @@ class _events_utils:
             self.viewer.reset_view()
 
     def update_active_image(self, dataset=None, channel=None, event=None):
-
         try:
-
             if dataset == None or dataset not in self.dataset_dict.keys():
                 dataset_name = self.gui.moltrack_dataset_selector.currentText()
             else:
                 dataset_name = dataset
 
             if dataset_name in self.dataset_dict.keys():
-
                 if "images" in self.dataset_dict[dataset_name].keys():
-
                     image_dict = self.dataset_dict[dataset_name]["images"]
 
                     if channel == None or channel not in image_dict.keys():
-                        channel_name = (
-                            self.gui.moltrack_channel_selector.currentText()
-                        )
+                        channel_name = (self.gui.moltrack_channel_selector.currentText())
                     else:
                         channel_name = channel
 
@@ -469,26 +346,15 @@ class _events_utils:
                     self.active_channel = channel_name
 
                     image_dict = self.dataset_dict[dataset_name]["images"]
-                    pixel_size = float(
-                        self.dataset_dict[dataset_name]["pixel_size"]
-                    )
+                    pixel_size = float(self.dataset_dict[dataset_name]["pixel_size"])
                     scale = [pixel_size, pixel_size]
 
                     if channel_name in image_dict.keys():
-
                         image = image_dict[channel_name]
                         image_name = f"{dataset_name}[{channel_name}]"
 
                         if hasattr(self, "image_layer") == False:
-
-                            self.image_layer = self.viewer.add_image(
-                                image,
-                                name=image_name,
-                                colormap="gray",
-                                blending="opaque",
-                                visible=True,
-                                scale=scale,
-                            )
+                            self.image_layer = self.viewer.add_image(image, name=image_name, colormap="gray", blending="opaque", visible=True, scale=scale, )
 
                             self.viewer.reset_view()
 
@@ -501,20 +367,14 @@ class _events_utils:
                         self.image_layer.scale = scale
                         self.viewer.scale_bar.unit = "um"
 
-                        self.image_layer_auto_contrast(
-                            image, dataset_name, channel_name
-                        )
+                        self.image_layer_auto_contrast(image, dataset_name, channel_name)
                         self.image_layer.refresh()
 
                         dataset_names = self.dataset_dict.keys()
-                        active_dataset_index = list(dataset_names).index(
-                            dataset_name
-                        )
+                        active_dataset_index = list(dataset_names).index(dataset_name)
 
                         channel_names = list(image_dict.keys())
-                        active_channel_index = list(channel_names).index(
-                            channel_name
-                        )
+                        active_channel_index = list(channel_names).index(channel_name)
 
                         dataset_selector = self.gui.moltrack_dataset_selector
                         channel_selector = self.gui.moltrack_channel_selector
@@ -532,7 +392,6 @@ class _events_utils:
                         channel_selector.blockSignals(False)
 
             else:
-
                 self.active_dataset = None
 
             self.draw_localisations()
@@ -544,16 +403,12 @@ class _events_utils:
             pass
 
     def update_overlay_text(self):
-
         try:
-
             if self.dataset_dict != {}:
-
                 dataset_name = self.gui.moltrack_dataset_selector.currentText()
                 channel_name = self.gui.moltrack_channel_selector.currentText()
 
                 if dataset_name in self.dataset_dict.keys():
-
                     data_dict = self.dataset_dict[dataset_name].copy()
 
                     path = data_dict["path"]
@@ -571,9 +426,7 @@ class _events_utils:
                     if overlay_string != "":
                         self.viewer.text_overlay.visible = True
                         self.viewer.text_overlay.position = "top_left"
-                        self.viewer.text_overlay.text = overlay_string.lstrip(
-                            "\n"
-                        )
+                        self.viewer.text_overlay.text = overlay_string.lstrip("\n")
                         self.viewer.text_overlay.color = "red"
                         self.viewer.text_overlay.font_size = 9
                     else:
@@ -583,23 +436,19 @@ class _events_utils:
             print(traceback.format_exc())
 
     def slider_event(self, viewer=None):
-
         self.update_overlay_text()
         self.draw_localisations()
 
     def draw_localisations(self, update_vis=False):
-
         remove_localisations = True
 
         if hasattr(self, "localisation_dict"):
-
             if hasattr(self, "fiducial_layer"):
                 show_localisations = self.loc_layer.visible
             else:
                 show_localisations = True
 
             if show_localisations:
-
                 layer_names = [layer.name for layer in self.viewer.layers]
 
                 active_frame = self.viewer.dims.current_step[0]
@@ -607,44 +456,23 @@ class _events_utils:
                 channel_name = self.gui.moltrack_channel_selector.currentText()
 
                 if dataset_name in self.localisation_dict.keys():
-                    if (
-                        channel_name
-                        in self.localisation_dict[dataset_name].keys()
-                    ):
-                        localisation_dict = self.localisation_dict[
-                            dataset_name
-                        ][channel_name].copy()
+                    if (channel_name in self.localisation_dict[dataset_name].keys()):
+                        localisation_dict = self.localisation_dict[dataset_name][channel_name].copy()
 
                         if "localisations" in localisation_dict.keys():
                             locs = localisation_dict["localisations"]
 
                             if active_frame in locs.frame:
-                                frame_locs = locs[
-                                    locs.frame == active_frame
-                                ].copy()
-                                render_locs = np.vstack(
-                                    (frame_locs.y, frame_locs.x)
-                                ).T.tolist()
+                                frame_locs = locs[locs.frame == active_frame].copy()
+                                render_locs = np.vstack((frame_locs.y, frame_locs.x)).T.tolist()
 
-                                pixel_size = float(
-                                    self.dataset_dict[dataset_name][
-                                        "pixel_size"
-                                    ]
-                                )
+                                pixel_size = float(self.dataset_dict[dataset_name]["pixel_size"])
                                 scale = [pixel_size, pixel_size]
 
-                                vis_mode = (
-                                    self.gui.picasso_vis_mode.currentText()
-                                )
-                                vis_opacity = float(
-                                    self.gui.picasso_vis_opacity.currentText()
-                                )
-                                vis_edge_width = float(
-                                    self.gui.picasso_vis_edge_width.currentText()
-                                )
-                                vis_size = float(
-                                    self.gui.picasso_vis_size.currentText()
-                                )
+                                vis_mode = (self.gui.picasso_vis_mode.currentText())
+                                vis_opacity = float(self.gui.picasso_vis_opacity.currentText())
+                                vis_edge_width = float(self.gui.picasso_vis_edge_width.currentText())
+                                vis_size = float(self.gui.picasso_vis_size.currentText())
 
                                 vis_size = vis_size / pixel_size
 
@@ -661,18 +489,7 @@ class _events_utils:
                                     if self.verbose:
                                         print("Drawing localisations")
 
-                                    self.loc_layer = self.viewer.add_points(
-                                        render_locs,
-                                        ndim=2,
-                                        edge_color="red",
-                                        face_color=[0, 0, 0, 0],
-                                        opacity=vis_opacity,
-                                        name="localisations",
-                                        symbol=symbol,
-                                        size=vis_size,
-                                        edge_width=vis_edge_width,
-                                        scale=scale,
-                                    )
+                                    self.loc_layer = self.viewer.add_points(render_locs, ndim=2, edge_color="red", face_color=[0, 0, 0, 0], opacity=vis_opacity, name="localisations", symbol=symbol, size=vis_size, edge_width=vis_edge_width, scale=scale, )
 
                                     update_vis = True
 
@@ -690,13 +507,9 @@ class _events_utils:
 
                                 if update_vis:
                                     if self.verbose:
-                                        print(
-                                            "Updating fiducial visualisation settings"
-                                        )
+                                        print("Updating fiducial visualisation settings")
 
-                                    self.loc_layer.selected_data = list(
-                                        range(len(self.loc_layer.data))
-                                    )
+                                    self.loc_layer.selected_data = list(range(len(self.loc_layer.data)))
                                     self.loc_layer.opacity = vis_opacity
                                     self.loc_layer.symbol = symbol
                                     self.loc_layer.size = vis_size
@@ -714,20 +527,13 @@ class _events_utils:
                 self.viewer.layers[layer].refresh()
 
     def clear_live_images(self):
-
         try:
-
             if self.verbose:
                 print("Clearing live images")
 
-            image_layers = [
-                layer
-                for layer in self.viewer.layers
-                if isinstance(layer, napari.layers.Image)
-            ]
+            image_layers = [layer for layer in self.viewer.layers if isinstance(layer, napari.layers.Image)]
 
             for layer in image_layers:
-
                 frame_shape = layer.data.shape[1:]
                 empty_frame = np.zeros(frame_shape, dtype=layer.data.dtype)
                 layer.data = empty_frame
@@ -737,9 +543,7 @@ class _events_utils:
             pass
 
     def update_detect_options(self, event=None):
-
         if self.gui.smlm_detect_mode.currentText() == "Picasso":
-
             self.gui.picasso_box_size_label.show()
             self.gui.picasso_box_size.show()
             self.gui.picasso_min_net_gradient_label.show()
@@ -751,7 +555,6 @@ class _events_utils:
             self.gui.moltrack_window_size.hide()
 
         else:
-
             self.gui.picasso_box_size_label.hide()
             self.gui.picasso_box_size.hide()
             self.gui.picasso_min_net_gradient_label.hide()
@@ -763,9 +566,7 @@ class _events_utils:
             self.gui.moltrack_window_size.show()
 
     def moltract_translation(self, event=None, direction="left"):
-
         try:
-
             translation_target = self.gui.translation_target.currentText()
             size = self.gui.translation_size.value()
 
@@ -779,9 +580,7 @@ class _events_utils:
                 shift_vector = [0.0, size]
 
             if translation_target in ["Segmentation Image", "Both"]:
-
                 if hasattr(self, "segmentation_image"):
-
                     image = self.segmentation_image.copy()
 
                     if len(image.shape) == 2:
@@ -789,23 +588,17 @@ class _events_utils:
                         self.segmentation_image = image
 
                     else:
-
                         for fame_index, frame in enumerate(image):
-                            image[fame_index] = shift(
-                                frame, shift=shift_vector
-                            )
+                            image[fame_index] = shift(frame, shift=shift_vector)
                         self.segmentation_image = image
 
                     self.draw_segmentation_image()
 
             if translation_target in ["Segmentations", "Both"]:
-
                 if hasattr(self, "segLayer"):
-
                     seg_data = self.segLayer.data.copy()
 
                     for seg_index, seg in enumerate(seg_data):
-
                         if seg.shape[1] == 2:
                             seg = seg + shift_vector
                             seg_data[seg_index] = seg

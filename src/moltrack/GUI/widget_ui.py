@@ -18,15 +18,10 @@ class Ui_Frame(object):
         self.verticalLayout = QtWidgets.QVBoxLayout(Frame)
         self.verticalLayout.setObjectName("verticalLayout")
         self.tabWidget = QtWidgets.QTabWidget(Frame)
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.MinimumExpanding,
-            QtWidgets.QSizePolicy.MinimumExpanding,
-        )
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.tabWidget.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.tabWidget.sizePolicy().hasHeightForWidth())
         self.tabWidget.setSizePolicy(sizePolicy)
         self.tabWidget.setMinimumSize(QtCore.QSize(300, 500))
         self.tabWidget.setObjectName("tabWidget")
@@ -35,14 +30,10 @@ class Ui_Frame(object):
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.tab)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.tabWidget_4 = QtWidgets.QTabWidget(self.tab)
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.tabWidget_4.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.tabWidget_4.sizePolicy().hasHeightForWidth())
         self.tabWidget_4.setSizePolicy(sizePolicy)
         self.tabWidget_4.setObjectName("tabWidget_4")
         self.tab_15 = QtWidgets.QWidget()
@@ -53,23 +44,17 @@ class Ui_Frame(object):
         self.formLayout.setObjectName("formLayout")
         self.label_22 = QtWidgets.QLabel(self.tab_15)
         self.label_22.setObjectName("label_22")
-        self.formLayout.setWidget(
-            4, QtWidgets.QFormLayout.LabelRole, self.label_22
-        )
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.LabelRole, self.label_22)
         self.import_crop_mode = QtWidgets.QComboBox(self.tab_15)
         self.import_crop_mode.setObjectName("import_crop_mode")
         self.import_crop_mode.addItem("")
         self.import_crop_mode.addItem("")
         self.import_crop_mode.addItem("")
         self.import_crop_mode.addItem("")
-        self.formLayout.setWidget(
-            4, QtWidgets.QFormLayout.FieldRole, self.import_crop_mode
-        )
+        self.formLayout.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.import_crop_mode)
         self.label_32 = QtWidgets.QLabel(self.tab_15)
         self.label_32.setObjectName("label_32")
-        self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.LabelRole, self.label_32
-        )
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.label_32)
         self.import_limit = QtWidgets.QComboBox(self.tab_15)
         self.import_limit.setObjectName("import_limit")
         self.import_limit.addItem("")
@@ -80,73 +65,47 @@ class Ui_Frame(object):
         self.import_limit.addItem("")
         self.import_limit.addItem("")
         self.import_limit.addItem("")
-        self.formLayout.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.import_limit
-        )
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.import_limit)
         self.label_6 = QtWidgets.QLabel(self.tab_15)
         self.label_6.setObjectName("label_6")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_6
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_6)
         self.import_mode = QtWidgets.QComboBox(self.tab_15)
         self.import_mode.setObjectName("import_mode")
         self.import_mode.addItem("")
         self.import_mode.addItem("")
         self.import_mode.addItem("")
-        self.formLayout.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.import_mode
-        )
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.import_mode)
         self.import_multichannel_mode_label = QtWidgets.QLabel(self.tab_15)
-        self.import_multichannel_mode_label.setObjectName(
-            "import_multichannel_mode_label"
-        )
-        self.formLayout.setWidget(
-            1,
-            QtWidgets.QFormLayout.LabelRole,
-            self.import_multichannel_mode_label,
-        )
+        self.import_multichannel_mode_label.setObjectName("import_multichannel_mode_label")
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.import_multichannel_mode_label)
         self.import_multichannel_mode = QtWidgets.QComboBox(self.tab_15)
         self.import_multichannel_mode.setObjectName("import_multichannel_mode")
         self.import_multichannel_mode.addItem("")
         self.import_multichannel_mode.addItem("")
         self.import_multichannel_mode.addItem("")
-        self.formLayout.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.import_multichannel_mode
-        )
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.import_multichannel_mode)
         self.label_39 = QtWidgets.QLabel(self.tab_15)
         self.label_39.setObjectName("label_39")
-        self.formLayout.setWidget(
-            2, QtWidgets.QFormLayout.LabelRole, self.label_39
-        )
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label_39)
         self.import_channel_name = QtWidgets.QLineEdit(self.tab_15)
         self.import_channel_name.setObjectName("import_channel_name")
-        self.formLayout.setWidget(
-            2, QtWidgets.QFormLayout.FieldRole, self.import_channel_name
-        )
+        self.formLayout.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.import_channel_name)
         self.label_42 = QtWidgets.QLabel(self.tab_15)
         self.label_42.setObjectName("label_42")
-        self.formLayout.setWidget(
-            5, QtWidgets.QFormLayout.LabelRole, self.label_42
-        )
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.LabelRole, self.label_42)
         self.import_pixel_size = QtWidgets.QDoubleSpinBox(self.tab_15)
         self.import_pixel_size.setMaximum(1000.0)
         self.import_pixel_size.setProperty("value", 100.0)
         self.import_pixel_size.setObjectName("import_pixel_size")
-        self.formLayout.setWidget(
-            5, QtWidgets.QFormLayout.FieldRole, self.import_pixel_size
-        )
+        self.formLayout.setWidget(5, QtWidgets.QFormLayout.FieldRole, self.import_pixel_size)
         self.label_43 = QtWidgets.QLabel(self.tab_15)
         self.label_43.setObjectName("label_43")
-        self.formLayout.setWidget(
-            6, QtWidgets.QFormLayout.LabelRole, self.label_43
-        )
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.LabelRole, self.label_43)
         self.import_exposure_time = QtWidgets.QDoubleSpinBox(self.tab_15)
         self.import_exposure_time.setMaximum(10000.0)
         self.import_exposure_time.setProperty("value", 100.0)
         self.import_exposure_time.setObjectName("import_exposure_time")
-        self.formLayout.setWidget(
-            6, QtWidgets.QFormLayout.FieldRole, self.import_exposure_time
-        )
+        self.formLayout.setWidget(6, QtWidgets.QFormLayout.FieldRole, self.import_exposure_time)
         self.verticalLayout_18.addLayout(self.formLayout)
         self.import_concatenate = QtWidgets.QCheckBox(self.tab_15)
         self.import_concatenate.setObjectName("import_concatenate")
@@ -154,12 +113,7 @@ class Ui_Frame(object):
         self.frame_averaging = QtWidgets.QCheckBox(self.tab_15)
         self.frame_averaging.setObjectName("frame_averaging")
         self.verticalLayout_18.addWidget(self.frame_averaging)
-        spacerItem = QtWidgets.QSpacerItem(
-            20,
-            40,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding,
-        )
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_18.addItem(spacerItem)
         self.import_images = QtWidgets.QPushButton(self.tab_15)
         self.import_images.setObjectName("import_images")
@@ -173,51 +127,34 @@ class Ui_Frame(object):
         self.formLayout_21.setObjectName("formLayout_21")
         self.label_76 = QtWidgets.QLabel(self.tab_16)
         self.label_76.setObjectName("label_76")
-        self.formLayout_21.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_76
-        )
+        self.formLayout_21.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_76)
         self.import_picasso_type = QtWidgets.QComboBox(self.tab_16)
         self.import_picasso_type.setEnabled(False)
         self.import_picasso_type.setEditable(False)
         self.import_picasso_type.setObjectName("import_picasso_type")
         self.import_picasso_type.addItem("")
         self.import_picasso_type.addItem("")
-        self.formLayout_21.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.import_picasso_type
-        )
+        self.formLayout_21.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.import_picasso_type)
         self.import_picasso_dataset = QtWidgets.QComboBox(self.tab_16)
         self.import_picasso_dataset.setEnabled(False)
         self.import_picasso_dataset.setObjectName("import_picasso_dataset")
-        self.formLayout_21.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.import_picasso_dataset
-        )
+        self.formLayout_21.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.import_picasso_dataset)
         self.label_2 = QtWidgets.QLabel(self.tab_16)
         self.label_2.setObjectName("label_2")
-        self.formLayout_21.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.label_2
-        )
+        self.formLayout_21.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_2)
         self.label_40 = QtWidgets.QLabel(self.tab_16)
         self.label_40.setObjectName("label_40")
-        self.formLayout_21.setWidget(
-            2, QtWidgets.QFormLayout.LabelRole, self.label_40
-        )
+        self.formLayout_21.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label_40)
         self.import_picasso_channel = QtWidgets.QComboBox(self.tab_16)
         self.import_picasso_channel.setEnabled(False)
         self.import_picasso_channel.setObjectName("import_picasso_channel")
-        self.formLayout_21.setWidget(
-            2, QtWidgets.QFormLayout.FieldRole, self.import_picasso_channel
-        )
+        self.formLayout_21.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.import_picasso_channel)
         self.verticalLayout_19.addLayout(self.formLayout_21)
         self.import_picasso = QtWidgets.QPushButton(self.tab_16)
         self.import_picasso.setEnabled(False)
         self.import_picasso.setObjectName("import_picasso")
         self.verticalLayout_19.addWidget(self.import_picasso)
-        spacerItem1 = QtWidgets.QSpacerItem(
-            20,
-            40,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding,
-        )
+        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_19.addItem(spacerItem1)
         self.tabWidget_4.addTab(self.tab_16, "")
         self.verticalLayout_2.addWidget(self.tabWidget_4)
@@ -226,12 +163,7 @@ class Ui_Frame(object):
         self.import_progressbar.setProperty("value", 0)
         self.import_progressbar.setObjectName("import_progressbar")
         self.verticalLayout_2.addWidget(self.import_progressbar)
-        spacerItem2 = QtWidgets.QSpacerItem(
-            20,
-            40,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding,
-        )
+        spacerItem2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_2.addItem(spacerItem2)
         self.tabWidget.addTab(self.tab, "")
         self.tab_25 = QtWidgets.QWidget()
@@ -255,31 +187,18 @@ class Ui_Frame(object):
         self.formLayout_28.setObjectName("formLayout_28")
         self.label_101 = QtWidgets.QLabel(self.tab_24)
         self.label_101.setObjectName("label_101")
-        self.formLayout_28.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_101
-        )
+        self.formLayout_28.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_101)
         self.cellpose_dataset = QtWidgets.QComboBox(self.tab_24)
         self.cellpose_dataset.setObjectName("cellpose_dataset")
-        self.formLayout_28.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.cellpose_dataset
-        )
+        self.formLayout_28.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.cellpose_dataset)
         self.label_136 = QtWidgets.QLabel(self.tab_24)
         self.label_136.setObjectName("label_136")
-        self.formLayout_28.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.label_136
-        )
+        self.formLayout_28.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_136)
         self.cellpose_channel = QtWidgets.QComboBox(self.tab_24)
         self.cellpose_channel.setObjectName("cellpose_channel")
-        self.formLayout_28.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.cellpose_channel
-        )
+        self.formLayout_28.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.cellpose_channel)
         self.verticalLayout_28.addLayout(self.formLayout_28)
-        spacerItem3 = QtWidgets.QSpacerItem(
-            592,
-            17,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Minimum,
-        )
+        spacerItem3 = QtWidgets.QSpacerItem(592, 17, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.verticalLayout_28.addItem(spacerItem3)
         self.label_102 = QtWidgets.QLabel(self.tab_24)
         font = QtGui.QFont()
@@ -292,9 +211,7 @@ class Ui_Frame(object):
         self.formLayout_27.setObjectName("formLayout_27")
         self.label_104 = QtWidgets.QLabel(self.tab_24)
         self.label_104.setObjectName("label_104")
-        self.formLayout_27.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_104
-        )
+        self.formLayout_27.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_104)
         self.cellpose_model = QtWidgets.QComboBox(self.tab_24)
         self.cellpose_model.setObjectName("cellpose_model")
         self.cellpose_model.addItem("")
@@ -311,14 +228,10 @@ class Ui_Frame(object):
         self.cellpose_model.addItem("")
         self.cellpose_model.addItem("")
         self.cellpose_model.addItem("")
-        self.formLayout_27.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.cellpose_model
-        )
+        self.formLayout_27.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.cellpose_model)
         self.label_123 = QtWidgets.QLabel(self.tab_24)
         self.label_123.setObjectName("label_123")
-        self.formLayout_27.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.label_123
-        )
+        self.formLayout_27.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_123)
         self.cellpose_batchsize = QtWidgets.QComboBox(self.tab_24)
         self.cellpose_batchsize.setObjectName("cellpose_batchsize")
         self.cellpose_batchsize.addItem("")
@@ -336,20 +249,14 @@ class Ui_Frame(object):
         self.cellpose_batchsize.addItem("")
         self.cellpose_batchsize.addItem("")
         self.cellpose_batchsize.addItem("")
-        self.formLayout_27.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.cellpose_batchsize
-        )
+        self.formLayout_27.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.cellpose_batchsize)
         self.verticalLayout_28.addLayout(self.formLayout_27)
         self.gridLayout_11 = QtWidgets.QGridLayout()
         self.gridLayout_11.setObjectName("gridLayout_11")
         self.cellpose_flowthresh_label = QtWidgets.QLabel(self.tab_24)
         self.cellpose_flowthresh_label.setMinimumSize(QtCore.QSize(28, 22))
-        self.cellpose_flowthresh_label.setObjectName(
-            "cellpose_flowthresh_label"
-        )
-        self.gridLayout_11.addWidget(
-            self.cellpose_flowthresh_label, 0, 2, 1, 1, QtCore.Qt.AlignLeft
-        )
+        self.cellpose_flowthresh_label.setObjectName("cellpose_flowthresh_label")
+        self.gridLayout_11.addWidget(self.cellpose_flowthresh_label, 0, 2, 1, 1, QtCore.Qt.AlignLeft)
         self.cellpose_flowthresh = QtWidgets.QSlider(self.tab_24)
         self.cellpose_flowthresh.setMaximum(100)
         self.cellpose_flowthresh.setSingleStep(10)
@@ -363,19 +270,13 @@ class Ui_Frame(object):
         self.gridLayout_11.addWidget(self.label_106, 0, 0, 1, 1)
         self.cellpose_maskthresh_label = QtWidgets.QLabel(self.tab_24)
         self.cellpose_maskthresh_label.setMinimumSize(QtCore.QSize(28, 22))
-        self.cellpose_maskthresh_label.setObjectName(
-            "cellpose_maskthresh_label"
-        )
-        self.gridLayout_11.addWidget(
-            self.cellpose_maskthresh_label, 1, 2, 1, 1, QtCore.Qt.AlignLeft
-        )
+        self.cellpose_maskthresh_label.setObjectName("cellpose_maskthresh_label")
+        self.gridLayout_11.addWidget(self.cellpose_maskthresh_label, 1, 2, 1, 1, QtCore.Qt.AlignLeft)
         self.cellpose_minsize_label = QtWidgets.QLabel(self.tab_24)
         self.cellpose_minsize_label.setMinimumSize(QtCore.QSize(24, 22))
         self.cellpose_minsize_label.setMaximumSize(QtCore.QSize(24, 16777215))
         self.cellpose_minsize_label.setObjectName("cellpose_minsize_label")
-        self.gridLayout_11.addWidget(
-            self.cellpose_minsize_label, 2, 2, 1, 1, QtCore.Qt.AlignLeft
-        )
+        self.gridLayout_11.addWidget(self.cellpose_minsize_label, 2, 2, 1, 1, QtCore.Qt.AlignLeft)
         self.label_107 = QtWidgets.QLabel(self.tab_24)
         self.label_107.setObjectName("label_107")
         self.gridLayout_11.addWidget(self.label_107, 1, 0, 1, 1)
@@ -415,12 +316,7 @@ class Ui_Frame(object):
         self.cellpose_invert_images = QtWidgets.QCheckBox(self.tab_24)
         self.cellpose_invert_images.setObjectName("cellpose_invert_images")
         self.verticalLayout_28.addWidget(self.cellpose_invert_images)
-        spacerItem4 = QtWidgets.QSpacerItem(
-            592,
-            17,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Minimum,
-        )
+        spacerItem4 = QtWidgets.QSpacerItem(592, 17, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.verticalLayout_28.addItem(spacerItem4)
         self.label_110 = QtWidgets.QLabel(self.tab_24)
         font = QtGui.QFont()
@@ -439,14 +335,10 @@ class Ui_Frame(object):
         self.gridLayout_12.addWidget(self.segment_active, 0, 0, 1, 1)
         self.verticalLayout_28.addLayout(self.gridLayout_12)
         self.cellpose_progressbar = QtWidgets.QProgressBar(self.tab_24)
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
-        )
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.cellpose_progressbar.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.cellpose_progressbar.sizePolicy().hasHeightForWidth())
         self.cellpose_progressbar.setSizePolicy(sizePolicy)
         self.cellpose_progressbar.setMinimumSize(QtCore.QSize(0, 0))
         self.cellpose_progressbar.setMaximumSize(QtCore.QSize(16777215, 10))
@@ -483,12 +375,7 @@ class Ui_Frame(object):
         self.label_28 = QtWidgets.QLabel(self.tab_26)
         self.label_28.setObjectName("label_28")
         self.verticalLayout_30.addWidget(self.label_28)
-        spacerItem5 = QtWidgets.QSpacerItem(
-            20,
-            40,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding,
-        )
+        spacerItem5 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_30.addItem(spacerItem5)
         self.label_103 = QtWidgets.QLabel(self.tab_26)
         font = QtGui.QFont()
@@ -501,9 +388,7 @@ class Ui_Frame(object):
         self.formLayout_26.setObjectName("formLayout_26")
         self.label_111 = QtWidgets.QLabel(self.tab_26)
         self.label_111.setObjectName("label_111")
-        self.formLayout_26.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_111
-        )
+        self.formLayout_26.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_111)
         self.dilatation_size = QtWidgets.QDoubleSpinBox(self.tab_26)
         self.dilatation_size.setDecimals(1)
         self.dilatation_size.setMinimum(-10.0)
@@ -511,19 +396,12 @@ class Ui_Frame(object):
         self.dilatation_size.setSingleStep(0.1)
         self.dilatation_size.setProperty("value", 1.0)
         self.dilatation_size.setObjectName("dilatation_size")
-        self.formLayout_26.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.dilatation_size
-        )
+        self.formLayout_26.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.dilatation_size)
         self.verticalLayout_30.addLayout(self.formLayout_26)
         self.dilate_segmentations = QtWidgets.QPushButton(self.tab_26)
         self.dilate_segmentations.setObjectName("dilate_segmentations")
         self.verticalLayout_30.addWidget(self.dilate_segmentations)
-        spacerItem6 = QtWidgets.QSpacerItem(
-            20,
-            40,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding,
-        )
+        spacerItem6 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_30.addItem(spacerItem6)
         self.label_105 = QtWidgets.QLabel(self.tab_26)
         font = QtGui.QFont()
@@ -536,41 +414,28 @@ class Ui_Frame(object):
         self.formLayout_32.setObjectName("formLayout_32")
         self.label_131 = QtWidgets.QLabel(self.tab_26)
         self.label_131.setObjectName("label_131")
-        self.formLayout_32.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.label_131
-        )
+        self.formLayout_32.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_131)
         self.translation_size = QtWidgets.QDoubleSpinBox(self.tab_26)
         self.translation_size.setDecimals(1)
         self.translation_size.setMinimum(0.5)
         self.translation_size.setObjectName("translation_size")
-        self.formLayout_32.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.translation_size
-        )
+        self.formLayout_32.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.translation_size)
         self.label_9 = QtWidgets.QLabel(self.tab_26)
         self.label_9.setObjectName("label_9")
-        self.formLayout_32.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_9
-        )
+        self.formLayout_32.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_9)
         self.translation_target = QtWidgets.QComboBox(self.tab_26)
         self.translation_target.setObjectName("translation_target")
         self.translation_target.addItem("")
         self.translation_target.addItem("")
         self.translation_target.addItem("")
-        self.formLayout_32.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.translation_target
-        )
+        self.formLayout_32.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.translation_target)
         self.verticalLayout_30.addLayout(self.formLayout_32)
         self.label_10 = QtWidgets.QLabel(self.tab_26)
         self.label_10.setObjectName("label_10")
         self.verticalLayout_30.addWidget(self.label_10)
         self.tabWidget_7.addTab(self.tab_26, "")
         self.verticalLayout_27.addWidget(self.tabWidget_7)
-        spacerItem7 = QtWidgets.QSpacerItem(
-            20,
-            40,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding,
-        )
+        spacerItem7 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_27.addItem(spacerItem7)
         self.tabWidget.addTab(self.tab_25, "")
         self.tab_3 = QtWidgets.QWidget()
@@ -581,12 +446,7 @@ class Ui_Frame(object):
         self.label_23.setWordWrap(True)
         self.label_23.setObjectName("label_23")
         self.verticalLayout_4.addWidget(self.label_23)
-        spacerItem8 = QtWidgets.QSpacerItem(
-            20,
-            20,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Minimum,
-        )
+        spacerItem8 = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.verticalLayout_4.addItem(spacerItem8)
         self.label_133 = QtWidgets.QLabel(self.tab_3)
         font = QtGui.QFont()
@@ -618,26 +478,17 @@ class Ui_Frame(object):
         self.fit_segmentations.setObjectName("fit_segmentations")
         self.verticalLayout_4.addWidget(self.fit_segmentations)
         self.bactfit_progressbar = QtWidgets.QProgressBar(self.tab_3)
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
-        )
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.bactfit_progressbar.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.bactfit_progressbar.sizePolicy().hasHeightForWidth())
         self.bactfit_progressbar.setSizePolicy(sizePolicy)
         self.bactfit_progressbar.setMinimumSize(QtCore.QSize(0, 0))
         self.bactfit_progressbar.setMaximumSize(QtCore.QSize(16777215, 10))
         self.bactfit_progressbar.setProperty("value", 0)
         self.bactfit_progressbar.setObjectName("bactfit_progressbar")
         self.verticalLayout_4.addWidget(self.bactfit_progressbar)
-        spacerItem9 = QtWidgets.QSpacerItem(
-            20,
-            40,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding,
-        )
+        spacerItem9 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_4.addItem(spacerItem9)
         self.label_134 = QtWidgets.QLabel(self.tab_3)
         font = QtGui.QFont()
@@ -680,99 +531,61 @@ class Ui_Frame(object):
         self.formLayout_3.setObjectName("formLayout_3")
         self.label_7 = QtWidgets.QLabel(self.tab_21)
         self.label_7.setObjectName("label_7")
-        self.formLayout_3.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_7
-        )
+        self.formLayout_3.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_7)
         self.smlm_detect_mode = QtWidgets.QComboBox(self.tab_21)
         self.smlm_detect_mode.setObjectName("smlm_detect_mode")
         self.smlm_detect_mode.addItem("")
         self.smlm_detect_mode.addItem("")
-        self.formLayout_3.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.smlm_detect_mode
-        )
+        self.formLayout_3.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.smlm_detect_mode)
         self.label_11 = QtWidgets.QLabel(self.tab_21)
         self.label_11.setObjectName("label_11")
-        self.formLayout_3.setWidget(
-            2, QtWidgets.QFormLayout.LabelRole, self.label_11
-        )
+        self.formLayout_3.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label_11)
         self.picasso_dataset = QtWidgets.QComboBox(self.tab_21)
         self.picasso_dataset.setObjectName("picasso_dataset")
-        self.formLayout_3.setWidget(
-            2, QtWidgets.QFormLayout.FieldRole, self.picasso_dataset
-        )
+        self.formLayout_3.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.picasso_dataset)
         self.label_8 = QtWidgets.QLabel(self.tab_21)
         self.label_8.setObjectName("label_8")
-        self.formLayout_3.setWidget(
-            4, QtWidgets.QFormLayout.LabelRole, self.label_8
-        )
+        self.formLayout_3.setWidget(4, QtWidgets.QFormLayout.LabelRole, self.label_8)
         self.picasso_frame_mode = QtWidgets.QComboBox(self.tab_21)
         self.picasso_frame_mode.setObjectName("picasso_frame_mode")
         self.picasso_frame_mode.addItem("")
         self.picasso_frame_mode.addItem("")
-        self.formLayout_3.setWidget(
-            4, QtWidgets.QFormLayout.FieldRole, self.picasso_frame_mode
-        )
+        self.formLayout_3.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.picasso_frame_mode)
         self.label = QtWidgets.QLabel(self.tab_21)
         self.label.setObjectName("label")
-        self.formLayout_3.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.label
-        )
+        self.formLayout_3.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label)
         self.smlm_fit_mode = QtWidgets.QComboBox(self.tab_21)
         self.smlm_fit_mode.setObjectName("smlm_fit_mode")
         self.smlm_fit_mode.addItem("")
-        self.formLayout_3.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.smlm_fit_mode
-        )
+        self.formLayout_3.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.smlm_fit_mode)
         self.picasso_roi_border_width = QtWidgets.QLineEdit(self.tab_21)
         self.picasso_roi_border_width.setObjectName("picasso_roi_border_width")
-        self.formLayout_3.setWidget(
-            11, QtWidgets.QFormLayout.FieldRole, self.picasso_roi_border_width
-        )
+        self.formLayout_3.setWidget(11, QtWidgets.QFormLayout.FieldRole, self.picasso_roi_border_width)
         self.label_35 = QtWidgets.QLabel(self.tab_21)
         self.label_35.setObjectName("label_35")
-        self.formLayout_3.setWidget(
-            11, QtWidgets.QFormLayout.LabelRole, self.label_35
-        )
+        self.formLayout_3.setWidget(11, QtWidgets.QFormLayout.LabelRole, self.label_35)
         self.moltrack_window_size = QtWidgets.QSpinBox(self.tab_21)
         self.moltrack_window_size.setMaximum(100)
         self.moltrack_window_size.setProperty("value", 7)
         self.moltrack_window_size.setObjectName("moltrack_window_size")
-        self.formLayout_3.setWidget(
-            9, QtWidgets.QFormLayout.FieldRole, self.moltrack_window_size
-        )
+        self.formLayout_3.setWidget(9, QtWidgets.QFormLayout.FieldRole, self.moltrack_window_size)
         self.moltrack_window_size_label = QtWidgets.QLabel(self.tab_21)
-        self.moltrack_window_size_label.setObjectName(
-            "moltrack_window_size_label"
-        )
-        self.formLayout_3.setWidget(
-            9, QtWidgets.QFormLayout.LabelRole, self.moltrack_window_size_label
-        )
+        self.moltrack_window_size_label.setObjectName("moltrack_window_size_label")
+        self.formLayout_3.setWidget(9, QtWidgets.QFormLayout.LabelRole, self.moltrack_window_size_label)
         self.moltrack_threshold = QtWidgets.QSpinBox(self.tab_21)
         self.moltrack_threshold.setMaximum(255)
         self.moltrack_threshold.setProperty("value", 50)
         self.moltrack_threshold.setObjectName("moltrack_threshold")
-        self.formLayout_3.setWidget(
-            8, QtWidgets.QFormLayout.FieldRole, self.moltrack_threshold
-        )
+        self.formLayout_3.setWidget(8, QtWidgets.QFormLayout.FieldRole, self.moltrack_threshold)
         self.moltrack_threshold_label = QtWidgets.QLabel(self.tab_21)
         self.moltrack_threshold_label.setObjectName("moltrack_threshold_label")
-        self.formLayout_3.setWidget(
-            8, QtWidgets.QFormLayout.LabelRole, self.moltrack_threshold_label
-        )
+        self.formLayout_3.setWidget(8, QtWidgets.QFormLayout.LabelRole, self.moltrack_threshold_label)
         self.picasso_min_net_gradient = QtWidgets.QLineEdit(self.tab_21)
         self.picasso_min_net_gradient.setObjectName("picasso_min_net_gradient")
-        self.formLayout_3.setWidget(
-            7, QtWidgets.QFormLayout.FieldRole, self.picasso_min_net_gradient
-        )
+        self.formLayout_3.setWidget(7, QtWidgets.QFormLayout.FieldRole, self.picasso_min_net_gradient)
         self.picasso_min_net_gradient_label = QtWidgets.QLabel(self.tab_21)
-        self.picasso_min_net_gradient_label.setObjectName(
-            "picasso_min_net_gradient_label"
-        )
-        self.formLayout_3.setWidget(
-            7,
-            QtWidgets.QFormLayout.LabelRole,
-            self.picasso_min_net_gradient_label,
-        )
+        self.picasso_min_net_gradient_label.setObjectName("picasso_min_net_gradient_label")
+        self.formLayout_3.setWidget(7, QtWidgets.QFormLayout.LabelRole, self.picasso_min_net_gradient_label)
         self.picasso_box_size = QtWidgets.QComboBox(self.tab_21)
         self.picasso_box_size.setObjectName("picasso_box_size")
         self.picasso_box_size.addItem("")
@@ -782,64 +595,40 @@ class Ui_Frame(object):
         self.picasso_box_size.addItem("")
         self.picasso_box_size.addItem("")
         self.picasso_box_size.addItem("")
-        self.formLayout_3.setWidget(
-            6, QtWidgets.QFormLayout.FieldRole, self.picasso_box_size
-        )
+        self.formLayout_3.setWidget(6, QtWidgets.QFormLayout.FieldRole, self.picasso_box_size)
         self.picasso_box_size_label = QtWidgets.QLabel(self.tab_21)
         self.picasso_box_size_label.setObjectName("picasso_box_size_label")
-        self.formLayout_3.setWidget(
-            6, QtWidgets.QFormLayout.LabelRole, self.picasso_box_size_label
-        )
+        self.formLayout_3.setWidget(6, QtWidgets.QFormLayout.LabelRole, self.picasso_box_size_label)
         self.label_4 = QtWidgets.QLabel(self.tab_21)
         self.label_4.setText("")
         self.label_4.setObjectName("label_4")
-        self.formLayout_3.setWidget(
-            5, QtWidgets.QFormLayout.LabelRole, self.label_4
-        )
+        self.formLayout_3.setWidget(5, QtWidgets.QFormLayout.LabelRole, self.label_4)
         self.label_5 = QtWidgets.QLabel(self.tab_21)
         self.label_5.setText("")
         self.label_5.setObjectName("label_5")
-        self.formLayout_3.setWidget(
-            10, QtWidgets.QFormLayout.LabelRole, self.label_5
-        )
+        self.formLayout_3.setWidget(10, QtWidgets.QFormLayout.LabelRole, self.label_5)
         self.label_30 = QtWidgets.QLabel(self.tab_21)
         self.label_30.setObjectName("label_30")
-        self.formLayout_3.setWidget(
-            12, QtWidgets.QFormLayout.LabelRole, self.label_30
-        )
+        self.formLayout_3.setWidget(12, QtWidgets.QFormLayout.LabelRole, self.label_30)
         self.picasso_segmentation_layer = QtWidgets.QComboBox(self.tab_21)
-        self.picasso_segmentation_layer.setObjectName(
-            "picasso_segmentation_layer"
-        )
-        self.formLayout_3.setWidget(
-            12,
-            QtWidgets.QFormLayout.FieldRole,
-            self.picasso_segmentation_layer,
-        )
+        self.picasso_segmentation_layer.setObjectName("picasso_segmentation_layer")
+        self.formLayout_3.setWidget(12, QtWidgets.QFormLayout.FieldRole, self.picasso_segmentation_layer)
         self.label_38 = QtWidgets.QLabel(self.tab_21)
         self.label_38.setObjectName("label_38")
-        self.formLayout_3.setWidget(
-            3, QtWidgets.QFormLayout.LabelRole, self.label_38
-        )
+        self.formLayout_3.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.label_38)
         self.picasso_channel = QtWidgets.QComboBox(self.tab_21)
         self.picasso_channel.setObjectName("picasso_channel")
-        self.formLayout_3.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.picasso_channel
-        )
+        self.formLayout_3.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.picasso_channel)
         self.verticalLayout_23.addLayout(self.formLayout_3)
         self.picasso_remove_overlapping = QtWidgets.QCheckBox(self.tab_21)
         self.picasso_remove_overlapping.setChecked(True)
-        self.picasso_remove_overlapping.setObjectName(
-            "picasso_remove_overlapping"
-        )
+        self.picasso_remove_overlapping.setObjectName("picasso_remove_overlapping")
         self.verticalLayout_23.addWidget(self.picasso_remove_overlapping)
         self.picasso_window_cropping = QtWidgets.QCheckBox(self.tab_21)
         self.picasso_window_cropping.setObjectName("picasso_window_cropping")
         self.verticalLayout_23.addWidget(self.picasso_window_cropping)
         self.picasso_segmentation_filter = QtWidgets.QCheckBox(self.tab_21)
-        self.picasso_segmentation_filter.setObjectName(
-            "picasso_segmentation_filter"
-        )
+        self.picasso_segmentation_filter.setObjectName("picasso_segmentation_filter")
         self.verticalLayout_23.addWidget(self.picasso_segmentation_filter)
         self.picasso_minimise_ram = QtWidgets.QCheckBox(self.tab_21)
         self.picasso_minimise_ram.setObjectName("picasso_minimise_ram")
@@ -861,12 +650,7 @@ class Ui_Frame(object):
         self.picasso_progressbar.setProperty("value", 0)
         self.picasso_progressbar.setObjectName("picasso_progressbar")
         self.verticalLayout_23.addWidget(self.picasso_progressbar)
-        spacerItem10 = QtWidgets.QSpacerItem(
-            20,
-            0,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.MinimumExpanding,
-        )
+        spacerItem10 = QtWidgets.QSpacerItem(20, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding)
         self.verticalLayout_23.addItem(spacerItem10)
         self.tabWidget_6.addTab(self.tab_21, "")
         self.tab_7 = QtWidgets.QWidget()
@@ -884,48 +668,27 @@ class Ui_Frame(object):
         self.formLayout_5.setObjectName("formLayout_5")
         self.label_34 = QtWidgets.QLabel(self.tab_7)
         self.label_34.setObjectName("label_34")
-        self.formLayout_5.setWidget(
-            2, QtWidgets.QFormLayout.LabelRole, self.label_34
-        )
+        self.formLayout_5.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label_34)
         self.remove_seglocs_segmentation = QtWidgets.QComboBox(self.tab_7)
-        self.remove_seglocs_segmentation.setObjectName(
-            "remove_seglocs_segmentation"
-        )
-        self.formLayout_5.setWidget(
-            2,
-            QtWidgets.QFormLayout.FieldRole,
-            self.remove_seglocs_segmentation,
-        )
+        self.remove_seglocs_segmentation.setObjectName("remove_seglocs_segmentation")
+        self.formLayout_5.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.remove_seglocs_segmentation)
         self.label_36 = QtWidgets.QLabel(self.tab_7)
         self.label_36.setObjectName("label_36")
-        self.formLayout_5.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_36
-        )
+        self.formLayout_5.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_36)
         self.remove_seglocs_dataset = QtWidgets.QComboBox(self.tab_7)
         self.remove_seglocs_dataset.setObjectName("remove_seglocs_dataset")
-        self.formLayout_5.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.remove_seglocs_dataset
-        )
+        self.formLayout_5.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.remove_seglocs_dataset)
         self.label_41 = QtWidgets.QLabel(self.tab_7)
         self.label_41.setObjectName("label_41")
-        self.formLayout_5.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.label_41
-        )
+        self.formLayout_5.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_41)
         self.remove_seglocs_channel = QtWidgets.QComboBox(self.tab_7)
         self.remove_seglocs_channel.setObjectName("remove_seglocs_channel")
-        self.formLayout_5.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.remove_seglocs_channel
-        )
+        self.formLayout_5.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.remove_seglocs_channel)
         self.verticalLayout_7.addLayout(self.formLayout_5)
         self.remove_seglocs = QtWidgets.QPushButton(self.tab_7)
         self.remove_seglocs.setObjectName("remove_seglocs")
         self.verticalLayout_7.addWidget(self.remove_seglocs)
-        spacerItem11 = QtWidgets.QSpacerItem(
-            20,
-            40,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding,
-        )
+        spacerItem11 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_7.addItem(spacerItem11)
         self.tabWidget_6.addTab(self.tab_7, "")
         self.tab_23 = QtWidgets.QWidget()
@@ -943,64 +706,36 @@ class Ui_Frame(object):
         self.formLayout_24.setObjectName("formLayout_24")
         self.label_93 = QtWidgets.QLabel(self.tab_23)
         self.label_93.setObjectName("label_93")
-        self.formLayout_24.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_93
-        )
+        self.formLayout_24.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_93)
         self.picasso_filter_type = QtWidgets.QComboBox(self.tab_23)
         self.picasso_filter_type.setObjectName("picasso_filter_type")
         self.picasso_filter_type.addItem("")
         self.picasso_filter_type.addItem("")
-        self.formLayout_24.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.picasso_filter_type
-        )
+        self.formLayout_24.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.picasso_filter_type)
         self.picasso_filter_dataset_label = QtWidgets.QLabel(self.tab_23)
-        self.picasso_filter_dataset_label.setObjectName(
-            "picasso_filter_dataset_label"
-        )
-        self.formLayout_24.setWidget(
-            1,
-            QtWidgets.QFormLayout.LabelRole,
-            self.picasso_filter_dataset_label,
-        )
+        self.picasso_filter_dataset_label.setObjectName("picasso_filter_dataset_label")
+        self.formLayout_24.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.picasso_filter_dataset_label)
         self.picasso_filter_dataset = QtWidgets.QComboBox(self.tab_23)
         self.picasso_filter_dataset.setObjectName("picasso_filter_dataset")
-        self.formLayout_24.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.picasso_filter_dataset
-        )
+        self.formLayout_24.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.picasso_filter_dataset)
         self.label_90 = QtWidgets.QLabel(self.tab_23)
         self.label_90.setObjectName("label_90")
-        self.formLayout_24.setWidget(
-            3, QtWidgets.QFormLayout.LabelRole, self.label_90
-        )
+        self.formLayout_24.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.label_90)
         self.filter_criterion = QtWidgets.QComboBox(self.tab_23)
         self.filter_criterion.setObjectName("filter_criterion")
-        self.formLayout_24.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.filter_criterion
-        )
+        self.formLayout_24.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.filter_criterion)
         self.picasso_filter_dataset_label_2 = QtWidgets.QLabel(self.tab_23)
-        self.picasso_filter_dataset_label_2.setObjectName(
-            "picasso_filter_dataset_label_2"
-        )
-        self.formLayout_24.setWidget(
-            2,
-            QtWidgets.QFormLayout.LabelRole,
-            self.picasso_filter_dataset_label_2,
-        )
+        self.picasso_filter_dataset_label_2.setObjectName("picasso_filter_dataset_label_2")
+        self.formLayout_24.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.picasso_filter_dataset_label_2)
         self.picasso_filter_channel = QtWidgets.QComboBox(self.tab_23)
         self.picasso_filter_channel.setObjectName("picasso_filter_channel")
-        self.formLayout_24.setWidget(
-            2, QtWidgets.QFormLayout.FieldRole, self.picasso_filter_channel
-        )
+        self.formLayout_24.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.picasso_filter_channel)
         self.verticalLayout_26.addLayout(self.formLayout_24)
         self.filter_graph_container = QtWidgets.QWidget(self.tab_23)
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
-        )
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.filter_graph_container.sizePolicy().hasHeightForWidth()
-        )
+        sizePolicy.setHeightForWidth(self.filter_graph_container.sizePolicy().hasHeightForWidth())
         self.filter_graph_container.setSizePolicy(sizePolicy)
         self.filter_graph_container.setObjectName("filter_graph_container")
         self.verticalLayout_26.addWidget(self.filter_graph_container)
@@ -1017,31 +752,23 @@ class Ui_Frame(object):
         self.formLayout_22.setObjectName("formLayout_22")
         self.label_86 = QtWidgets.QLabel(self.tab_23)
         self.label_86.setObjectName("label_86")
-        self.formLayout_22.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_86
-        )
+        self.formLayout_22.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_86)
         self.filter_min = QtWidgets.QDoubleSpinBox(self.tab_23)
         self.filter_min.setMinimum(-999999999.0)
         self.filter_min.setMaximum(9999999999.0)
         self.filter_min.setObjectName("filter_min")
-        self.formLayout_22.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.filter_min
-        )
+        self.formLayout_22.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.filter_min)
         self.gridLayout_7.addLayout(self.formLayout_22, 0, 0, 1, 1)
         self.formLayout_23 = QtWidgets.QFormLayout()
         self.formLayout_23.setObjectName("formLayout_23")
         self.label_87 = QtWidgets.QLabel(self.tab_23)
         self.label_87.setObjectName("label_87")
-        self.formLayout_23.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_87
-        )
+        self.formLayout_23.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_87)
         self.filter_max = QtWidgets.QDoubleSpinBox(self.tab_23)
         self.filter_max.setMinimum(-99999999999.0)
         self.filter_max.setMaximum(9999999999.0)
         self.filter_max.setObjectName("filter_max")
-        self.formLayout_23.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.filter_max
-        )
+        self.formLayout_23.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.filter_max)
         self.gridLayout_7.addLayout(self.formLayout_23, 0, 1, 1, 1)
         self.verticalLayout_26.addLayout(self.gridLayout_7)
         self.filter_localisations = QtWidgets.QPushButton(self.tab_23)
@@ -1063,62 +790,39 @@ class Ui_Frame(object):
         self.formLayout_20.setObjectName("formLayout_20")
         self.label_81 = QtWidgets.QLabel(self.tab_20)
         self.label_81.setObjectName("label_81")
-        self.formLayout_20.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_81
-        )
+        self.formLayout_20.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_81)
         self.picasso_render_dataset = QtWidgets.QComboBox(self.tab_20)
         self.picasso_render_dataset.setObjectName("picasso_render_dataset")
-        self.formLayout_20.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.picasso_render_dataset
-        )
+        self.formLayout_20.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.picasso_render_dataset)
         self.label_83 = QtWidgets.QLabel(self.tab_20)
         self.label_83.setObjectName("label_83")
-        self.formLayout_20.setWidget(
-            2, QtWidgets.QFormLayout.LabelRole, self.label_83
-        )
+        self.formLayout_20.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label_83)
         self.picasso_render_blur_method = QtWidgets.QComboBox(self.tab_20)
-        self.picasso_render_blur_method.setObjectName(
-            "picasso_render_blur_method"
-        )
+        self.picasso_render_blur_method.setObjectName("picasso_render_blur_method")
         self.picasso_render_blur_method.addItem("")
         self.picasso_render_blur_method.addItem("")
         self.picasso_render_blur_method.addItem("")
         self.picasso_render_blur_method.addItem("")
         self.picasso_render_blur_method.addItem("")
-        self.formLayout_20.setWidget(
-            2, QtWidgets.QFormLayout.FieldRole, self.picasso_render_blur_method
-        )
+        self.formLayout_20.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.picasso_render_blur_method)
         self.label_84 = QtWidgets.QLabel(self.tab_20)
         self.label_84.setObjectName("label_84")
-        self.formLayout_20.setWidget(
-            3, QtWidgets.QFormLayout.LabelRole, self.label_84
-        )
+        self.formLayout_20.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.label_84)
         self.picasso_render_min_blur = QtWidgets.QDoubleSpinBox(self.tab_20)
         self.picasso_render_min_blur.setSingleStep(0.1)
         self.picasso_render_min_blur.setObjectName("picasso_render_min_blur")
-        self.formLayout_20.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.picasso_render_min_blur
-        )
+        self.formLayout_20.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.picasso_render_min_blur)
         self.label_82 = QtWidgets.QLabel(self.tab_20)
         self.label_82.setObjectName("label_82")
-        self.formLayout_20.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.label_82
-        )
+        self.formLayout_20.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_82)
         self.picasso_render_channel = QtWidgets.QComboBox(self.tab_20)
         self.picasso_render_channel.setObjectName("picasso_render_channel")
-        self.formLayout_20.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.picasso_render_channel
-        )
+        self.formLayout_20.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.picasso_render_channel)
         self.verticalLayout_25.addLayout(self.formLayout_20)
         self.picasso_render = QtWidgets.QPushButton(self.tab_20)
         self.picasso_render.setObjectName("picasso_render")
         self.verticalLayout_25.addWidget(self.picasso_render)
-        spacerItem12 = QtWidgets.QSpacerItem(
-            413,
-            173,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding,
-        )
+        spacerItem12 = QtWidgets.QSpacerItem(413, 173, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_25.addItem(spacerItem12)
         self.tabWidget_6.addTab(self.tab_20, "")
         self.tab_27 = QtWidgets.QWidget()
@@ -1136,58 +840,38 @@ class Ui_Frame(object):
         self.formLayout_25.setObjectName("formLayout_25")
         self.label_95 = QtWidgets.QLabel(self.tab_27)
         self.label_95.setObjectName("label_95")
-        self.formLayout_25.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_95
-        )
+        self.formLayout_25.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_95)
         self.tracking_dataset = QtWidgets.QComboBox(self.tab_27)
         self.tracking_dataset.setObjectName("tracking_dataset")
-        self.formLayout_25.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.tracking_dataset
-        )
+        self.formLayout_25.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.tracking_dataset)
         self.label_98 = QtWidgets.QLabel(self.tab_27)
         self.label_98.setObjectName("label_98")
-        self.formLayout_25.setWidget(
-            2, QtWidgets.QFormLayout.LabelRole, self.label_98
-        )
+        self.formLayout_25.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label_98)
         self.trackpy_search_range = QtWidgets.QDoubleSpinBox(self.tab_27)
         self.trackpy_search_range.setProperty("value", 5.0)
         self.trackpy_search_range.setObjectName("trackpy_search_range")
-        self.formLayout_25.setWidget(
-            2, QtWidgets.QFormLayout.FieldRole, self.trackpy_search_range
-        )
+        self.formLayout_25.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.trackpy_search_range)
         self.label_99 = QtWidgets.QLabel(self.tab_27)
         self.label_99.setObjectName("label_99")
-        self.formLayout_25.setWidget(
-            3, QtWidgets.QFormLayout.LabelRole, self.label_99
-        )
+        self.formLayout_25.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.label_99)
         self.trackpy_memory = QtWidgets.QSpinBox(self.tab_27)
         self.trackpy_memory.setProperty("value", 1)
         self.trackpy_memory.setObjectName("trackpy_memory")
-        self.formLayout_25.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.trackpy_memory
-        )
+        self.formLayout_25.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.trackpy_memory)
         self.label_100 = QtWidgets.QLabel(self.tab_27)
         self.label_100.setObjectName("label_100")
-        self.formLayout_25.setWidget(
-            4, QtWidgets.QFormLayout.LabelRole, self.label_100
-        )
+        self.formLayout_25.setWidget(4, QtWidgets.QFormLayout.LabelRole, self.label_100)
         self.min_track_length = QtWidgets.QSpinBox(self.tab_27)
         self.min_track_length.setMinimum(1)
         self.min_track_length.setProperty("value", 5)
         self.min_track_length.setObjectName("min_track_length")
-        self.formLayout_25.setWidget(
-            4, QtWidgets.QFormLayout.FieldRole, self.min_track_length
-        )
+        self.formLayout_25.setWidget(4, QtWidgets.QFormLayout.FieldRole, self.min_track_length)
         self.label_96 = QtWidgets.QLabel(self.tab_27)
         self.label_96.setObjectName("label_96")
-        self.formLayout_25.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.label_96
-        )
+        self.formLayout_25.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_96)
         self.tracking_channel = QtWidgets.QComboBox(self.tab_27)
         self.tracking_channel.setObjectName("tracking_channel")
-        self.formLayout_25.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.tracking_channel
-        )
+        self.formLayout_25.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.tracking_channel)
         self.verticalLayout_29.addLayout(self.formLayout_25)
         self.remove_unlinked = QtWidgets.QCheckBox(self.tab_27)
         self.remove_unlinked.setObjectName("remove_unlinked")
@@ -1195,14 +879,75 @@ class Ui_Frame(object):
         self.link_localisations = QtWidgets.QPushButton(self.tab_27)
         self.link_localisations.setObjectName("link_localisations")
         self.verticalLayout_29.addWidget(self.link_localisations)
-        spacerItem13 = QtWidgets.QSpacerItem(
-            20,
-            122,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding,
-        )
+        spacerItem13 = QtWidgets.QSpacerItem(20, 122, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_29.addItem(spacerItem13)
         self.tabWidget_6.addTab(self.tab_27, "")
+        self.tab_8 = QtWidgets.QWidget()
+        self.tab_8.setObjectName("tab_8")
+        self.verticalLayout_8 = QtWidgets.QVBoxLayout(self.tab_8)
+        self.verticalLayout_8.setObjectName("verticalLayout_8")
+        self.compute_adc = QtWidgets.QPushButton(self.tab_8)
+        self.compute_adc.setObjectName("compute_adc")
+        self.verticalLayout_8.addWidget(self.compute_adc)
+        self.adc_progressbar = QtWidgets.QProgressBar(self.tab_8)
+        self.adc_progressbar.setMaximumSize(QtCore.QSize(16777215, 10))
+        self.adc_progressbar.setProperty("value", 0)
+        self.adc_progressbar.setObjectName("adc_progressbar")
+        self.verticalLayout_8.addWidget(self.adc_progressbar)
+        self.adc_graph_container = QtWidgets.QWidget(self.tab_8)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.adc_graph_container.sizePolicy().hasHeightForWidth())
+        self.adc_graph_container.setSizePolicy(sizePolicy)
+        self.adc_graph_container.setObjectName("adc_graph_container")
+        self.verticalLayout_8.addWidget(self.adc_graph_container)
+        self.label_45 = QtWidgets.QLabel(self.tab_8)
+        font = QtGui.QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.label_45.setFont(font)
+        self.label_45.setObjectName("label_45")
+        self.verticalLayout_8.addWidget(self.label_45)
+        self.formLayout_29 = QtWidgets.QFormLayout()
+        self.formLayout_29.setObjectName("formLayout_29")
+        self.picasso_filter_dataset_label_4 = QtWidgets.QLabel(self.tab_8)
+        self.picasso_filter_dataset_label_4.setObjectName("picasso_filter_dataset_label_4")
+        self.formLayout_29.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.picasso_filter_dataset_label_4)
+        self.adc_channel = QtWidgets.QComboBox(self.tab_8)
+        self.adc_channel.setObjectName("adc_channel")
+        self.formLayout_29.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.adc_channel)
+        self.label_44 = QtWidgets.QLabel(self.tab_8)
+        self.label_44.setObjectName("label_44")
+        self.formLayout_29.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label_44)
+        self.gridLayout_2 = QtWidgets.QGridLayout()
+        self.gridLayout_2.setObjectName("gridLayout_2")
+        self.adc_range_min = QtWidgets.QDoubleSpinBox(self.tab_8)
+        self.adc_range_min.setObjectName("adc_range_min")
+        self.gridLayout_2.addWidget(self.adc_range_min, 0, 0, 1, 1)
+        self.adc_range_max = QtWidgets.QDoubleSpinBox(self.tab_8)
+        self.adc_range_max.setProperty("value", 10.0)
+        self.adc_range_max.setObjectName("adc_range_max")
+        self.gridLayout_2.addWidget(self.adc_range_max, 0, 1, 1, 1)
+        self.formLayout_29.setLayout(2, QtWidgets.QFormLayout.FieldRole, self.gridLayout_2)
+        self.adc_dataset = QtWidgets.QComboBox(self.tab_8)
+        self.adc_dataset.setObjectName("adc_dataset")
+        self.formLayout_29.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.adc_dataset)
+        self.picasso_filter_dataset_label_3 = QtWidgets.QLabel(self.tab_8)
+        self.picasso_filter_dataset_label_3.setObjectName("picasso_filter_dataset_label_3")
+        self.formLayout_29.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.picasso_filter_dataset_label_3)
+        self.label_46 = QtWidgets.QLabel(self.tab_8)
+        self.label_46.setObjectName("label_46")
+        self.formLayout_29.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.label_46)
+        self.adc_bins = QtWidgets.QSpinBox(self.tab_8)
+        self.adc_bins.setProperty("value", 30)
+        self.adc_bins.setObjectName("adc_bins")
+        self.formLayout_29.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.adc_bins)
+        self.verticalLayout_8.addLayout(self.formLayout_29)
+        self.export_adc = QtWidgets.QPushButton(self.tab_8)
+        self.export_adc.setObjectName("export_adc")
+        self.verticalLayout_8.addWidget(self.export_adc)
+        self.tabWidget_6.addTab(self.tab_8, "")
         self.tab_22 = QtWidgets.QWidget()
         self.tab_22.setObjectName("tab_22")
         self.verticalLayout_24 = QtWidgets.QVBoxLayout(self.tab_22)
@@ -1273,21 +1018,11 @@ class Ui_Frame(object):
         self.picasso_vis_edge_width.addItem("")
         self.gridLayout_14.addWidget(self.picasso_vis_edge_width, 1, 3, 1, 1)
         self.verticalLayout_24.addLayout(self.gridLayout_14)
-        spacerItem14 = QtWidgets.QSpacerItem(
-            354,
-            254,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding,
-        )
+        spacerItem14 = QtWidgets.QSpacerItem(354, 254, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_24.addItem(spacerItem14)
         self.tabWidget_6.addTab(self.tab_22, "")
         self.verticalLayout_3.addWidget(self.tabWidget_6)
-        spacerItem15 = QtWidgets.QSpacerItem(
-            20,
-            40,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding,
-        )
+        spacerItem15 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_3.addItem(spacerItem15)
         self.tabWidget.addTab(self.tab_2, "")
         self.tab_6 = QtWidgets.QWidget()
@@ -1307,48 +1042,32 @@ class Ui_Frame(object):
         self.formLayout_19.setObjectName("formLayout_19")
         self.label_112 = QtWidgets.QLabel(self.tab_4)
         self.label_112.setObjectName("label_112")
-        self.formLayout_19.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.label_112
-        )
+        self.formLayout_19.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_112)
         self.locs_export_mode = QtWidgets.QComboBox(self.tab_4)
         self.locs_export_mode.setObjectName("locs_export_mode")
         self.locs_export_mode.addItem("")
         self.locs_export_mode.addItem("")
         self.locs_export_mode.addItem("")
-        self.formLayout_19.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.locs_export_mode
-        )
+        self.formLayout_19.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.locs_export_mode)
         self.label_72 = QtWidgets.QLabel(self.tab_4)
         self.label_72.setObjectName("label_72")
-        self.formLayout_19.setWidget(
-            2, QtWidgets.QFormLayout.LabelRole, self.label_72
-        )
+        self.formLayout_19.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.label_72)
         self.locs_export_dataset = QtWidgets.QComboBox(self.tab_4)
         self.locs_export_dataset.setObjectName("locs_export_dataset")
-        self.formLayout_19.setWidget(
-            2, QtWidgets.QFormLayout.FieldRole, self.locs_export_dataset
-        )
+        self.formLayout_19.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.locs_export_dataset)
         self.label_13 = QtWidgets.QLabel(self.tab_4)
         self.label_13.setObjectName("label_13")
-        self.formLayout_19.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_13
-        )
+        self.formLayout_19.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_13)
         self.locs_export_data = QtWidgets.QComboBox(self.tab_4)
         self.locs_export_data.setObjectName("locs_export_data")
         self.locs_export_data.addItem("")
-        self.formLayout_19.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.locs_export_data
-        )
+        self.formLayout_19.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.locs_export_data)
         self.label_73 = QtWidgets.QLabel(self.tab_4)
         self.label_73.setObjectName("label_73")
-        self.formLayout_19.setWidget(
-            3, QtWidgets.QFormLayout.LabelRole, self.label_73
-        )
+        self.formLayout_19.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.label_73)
         self.locs_export_channel = QtWidgets.QComboBox(self.tab_4)
         self.locs_export_channel.setObjectName("locs_export_channel")
-        self.formLayout_19.setWidget(
-            3, QtWidgets.QFormLayout.FieldRole, self.locs_export_channel
-        )
+        self.formLayout_19.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.locs_export_channel)
         self.verticalLayout_5.addLayout(self.formLayout_19)
         self.locs_export_concat = QtWidgets.QCheckBox(self.tab_4)
         self.locs_export_concat.setObjectName("locs_export_concat")
@@ -1370,43 +1089,25 @@ class Ui_Frame(object):
         self.formLayout_33.setObjectName("formLayout_33")
         self.label_31 = QtWidgets.QLabel(self.tab_5)
         self.label_31.setObjectName("label_31")
-        self.formLayout_33.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_31
-        )
+        self.formLayout_33.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_31)
         self.shapes_export_data = QtWidgets.QComboBox(self.tab_5)
         self.shapes_export_data.setObjectName("shapes_export_data")
-        self.formLayout_33.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.shapes_export_data
-        )
+        self.formLayout_33.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.shapes_export_data)
         self.label_135 = QtWidgets.QLabel(self.tab_5)
         self.label_135.setObjectName("label_135")
-        self.formLayout_33.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.label_135
-        )
+        self.formLayout_33.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_135)
         self.shapes_export_mode = QtWidgets.QComboBox(self.tab_5)
         self.shapes_export_mode.setObjectName("shapes_export_mode")
-        self.formLayout_33.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.shapes_export_mode
-        )
+        self.formLayout_33.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.shapes_export_mode)
         self.verticalLayout_6.addLayout(self.formLayout_33)
         self.export_shapes = QtWidgets.QPushButton(self.tab_5)
         self.export_shapes.setObjectName("export_shapes")
         self.verticalLayout_6.addWidget(self.export_shapes)
-        spacerItem16 = QtWidgets.QSpacerItem(
-            20,
-            40,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.MinimumExpanding,
-        )
+        spacerItem16 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding)
         self.verticalLayout_6.addItem(spacerItem16)
         self.tabWidget_2.addTab(self.tab_5, "")
         self.verticalLayout_11.addWidget(self.tabWidget_2)
-        spacerItem17 = QtWidgets.QSpacerItem(
-            354,
-            414,
-            QtWidgets.QSizePolicy.Minimum,
-            QtWidgets.QSizePolicy.Expanding,
-        )
+        spacerItem17 = QtWidgets.QSpacerItem(354, 414, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_11.addItem(spacerItem17)
         self.tabWidget.addTab(self.tab_6, "")
         self.verticalLayout.addWidget(self.tabWidget)
@@ -1421,28 +1122,16 @@ class Ui_Frame(object):
         self.formLayout_2.setObjectName("formLayout_2")
         self.label_14 = QtWidgets.QLabel(Frame)
         self.label_14.setObjectName("label_14")
-        self.formLayout_2.setWidget(
-            0, QtWidgets.QFormLayout.LabelRole, self.label_14
-        )
+        self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.label_14)
         self.moltrack_dataset_selector = QtWidgets.QComboBox(Frame)
-        self.moltrack_dataset_selector.setObjectName(
-            "moltrack_dataset_selector"
-        )
-        self.formLayout_2.setWidget(
-            0, QtWidgets.QFormLayout.FieldRole, self.moltrack_dataset_selector
-        )
+        self.moltrack_dataset_selector.setObjectName("moltrack_dataset_selector")
+        self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.moltrack_dataset_selector)
         self.label_37 = QtWidgets.QLabel(Frame)
         self.label_37.setObjectName("label_37")
-        self.formLayout_2.setWidget(
-            1, QtWidgets.QFormLayout.LabelRole, self.label_37
-        )
+        self.formLayout_2.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_37)
         self.moltrack_channel_selector = QtWidgets.QComboBox(Frame)
-        self.moltrack_channel_selector.setObjectName(
-            "moltrack_channel_selector"
-        )
-        self.formLayout_2.setWidget(
-            1, QtWidgets.QFormLayout.FieldRole, self.moltrack_channel_selector
-        )
+        self.moltrack_channel_selector.setObjectName("moltrack_channel_selector")
+        self.formLayout_2.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.moltrack_channel_selector)
         self.verticalLayout.addLayout(self.formLayout_2)
 
         self.retranslateUi(Frame)
@@ -1462,15 +1151,9 @@ class Ui_Frame(object):
         Frame.setWindowTitle(_translate("Frame", "Frame"))
         self.label_22.setText(_translate("Frame", "Image Crop Mode"))
         self.import_crop_mode.setItemText(0, _translate("Frame", "None"))
-        self.import_crop_mode.setItemText(
-            1, _translate("Frame", "Crop Left Half")
-        )
-        self.import_crop_mode.setItemText(
-            2, _translate("Frame", "Crop Right Half")
-        )
-        self.import_crop_mode.setItemText(
-            3, _translate("Frame", "Crop Brightest Half")
-        )
+        self.import_crop_mode.setItemText(1, _translate("Frame", "Crop Left Half"))
+        self.import_crop_mode.setItemText(2, _translate("Frame", "Crop Right Half"))
+        self.import_crop_mode.setItemText(3, _translate("Frame", "Crop Brightest Half"))
         self.label_32.setText(_translate("Frame", "Import Limit"))
         self.import_limit.setItemText(0, _translate("Frame", "None"))
         self.import_limit.setItemText(1, _translate("Frame", "10"))
@@ -1481,65 +1164,33 @@ class Ui_Frame(object):
         self.import_limit.setItemText(6, _translate("Frame", "400"))
         self.import_limit.setItemText(7, _translate("Frame", "500"))
         self.label_6.setText(_translate("Frame", "Import Mode"))
-        self.import_mode.setItemText(
-            0, _translate("Frame", "Data (Single Channel)")
-        )
-        self.import_mode.setItemText(
-            1, _translate("Frame", "Data (Multi Channel)")
-        )
-        self.import_mode.setItemText(
-            2, _translate("Frame", "Segmentation Image")
-        )
-        self.import_multichannel_mode_label.setText(
-            _translate("Frame", "Multi Channel Mode")
-        )
-        self.import_multichannel_mode.setItemText(
-            0, _translate("Frame", "None")
-        )
-        self.import_multichannel_mode.setItemText(
-            1, _translate("Frame", "FRET")
-        )
-        self.import_multichannel_mode.setItemText(
-            2, _translate("Frame", "ALEX")
-        )
+        self.import_mode.setItemText(0, _translate("Frame", "Data (Single Channel)"))
+        self.import_mode.setItemText(1, _translate("Frame", "Data (Multi Channel)"))
+        self.import_mode.setItemText(2, _translate("Frame", "Segmentation Image"))
+        self.import_multichannel_mode_label.setText(_translate("Frame", "Multi Channel Mode"))
+        self.import_multichannel_mode.setItemText(0, _translate("Frame", "None"))
+        self.import_multichannel_mode.setItemText(1, _translate("Frame", "FRET"))
+        self.import_multichannel_mode.setItemText(2, _translate("Frame", "ALEX"))
         self.label_39.setText(_translate("Frame", "Channel Name"))
         self.import_channel_name.setText(_translate("Frame", "Channel1"))
         self.label_42.setText(_translate("Frame", "Pixel Size (nm)"))
         self.label_43.setText(_translate("Frame", "Exposure Time (ms)"))
-        self.import_concatenate.setText(
-            _translate("Frame", "Concatenate Imported Files")
-        )
+        self.import_concatenate.setText(_translate("Frame", "Concatenate Imported Files"))
         self.frame_averaging.setText(_translate("Frame", "Frame Averaging"))
         self.import_images.setText(_translate("Frame", "Import"))
-        self.tabWidget_4.setTabText(
-            self.tabWidget_4.indexOf(self.tab_15),
-            _translate("Frame", "Import Data"),
-        )
+        self.tabWidget_4.setTabText(self.tabWidget_4.indexOf(self.tab_15), _translate("Frame", "Import Data"))
         self.label_76.setText(_translate("Frame", "Localisation Type"))
-        self.import_picasso_type.setItemText(
-            0, _translate("Frame", "Localisations")
-        )
-        self.import_picasso_type.setItemText(
-            1, _translate("Frame", "Bounding Boxes")
-        )
+        self.import_picasso_type.setItemText(0, _translate("Frame", "Localisations"))
+        self.import_picasso_type.setItemText(1, _translate("Frame", "Bounding Boxes"))
         self.label_2.setText(_translate("Frame", "Dataset"))
         self.label_40.setText(_translate("Frame", "Dataset"))
-        self.import_picasso.setText(
-            _translate("Frame", "Import Picasso Localisations")
-        )
-        self.tabWidget_4.setTabText(
-            self.tabWidget_4.indexOf(self.tab_16),
-            _translate("Frame", "Import Localisations"),
-        )
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab), _translate("Frame", "Import")
-        )
+        self.import_picasso.setText(_translate("Frame", "Import Picasso Localisations"))
+        self.tabWidget_4.setTabText(self.tabWidget_4.indexOf(self.tab_16), _translate("Frame", "Import Localisations"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("Frame", "Import"))
         self.label_97.setText(_translate("Frame", "Data Selection"))
         self.label_101.setText(_translate("Frame", "Dataset"))
         self.label_136.setText(_translate("Frame", "Channel"))
-        self.label_102.setText(
-            _translate("Frame", "Cellpose/Omnipose Settings")
-        )
+        self.label_102.setText(_translate("Frame", "Cellpose/Omnipose Settings"))
         self.label_104.setText(_translate("Frame", "Model"))
         self.cellpose_model.setItemText(0, _translate("Frame", "cyto"))
         self.cellpose_model.setItemText(1, _translate("Frame", "nuclei"))
@@ -1547,19 +1198,11 @@ class Ui_Frame(object):
         self.cellpose_model.setItemText(3, _translate("Frame", "livecell"))
         self.cellpose_model.setItemText(4, _translate("Frame", "cyto2"))
         self.cellpose_model.setItemText(5, _translate("Frame", "general"))
-        self.cellpose_model.setItemText(
-            6, _translate("Frame", "bact_phase_omni")
-        )
-        self.cellpose_model.setItemText(
-            7, _translate("Frame", "bact_fluor_omni")
-        )
+        self.cellpose_model.setItemText(6, _translate("Frame", "bact_phase_omni"))
+        self.cellpose_model.setItemText(7, _translate("Frame", "bact_fluor_omni"))
         self.cellpose_model.setItemText(8, _translate("Frame", "worm_omni"))
-        self.cellpose_model.setItemText(
-            9, _translate("Frame", "worm_bact_omni")
-        )
-        self.cellpose_model.setItemText(
-            10, _translate("Frame", "worm_high_res_omni")
-        )
+        self.cellpose_model.setItemText(9, _translate("Frame", "worm_bact_omni"))
+        self.cellpose_model.setItemText(10, _translate("Frame", "worm_high_res_omni"))
         self.cellpose_model.setItemText(11, _translate("Frame", "cyto2_omni"))
         self.cellpose_model.setItemText(12, _translate("Frame", "plant_omni"))
         self.cellpose_model.setItemText(13, _translate("Frame", "custom"))
@@ -1587,97 +1230,41 @@ class Ui_Frame(object):
         self.label_108.setText(_translate("Frame", "Min Size"))
         self.label_109.setText(_translate("Frame", "Diameter"))
         self.cellpose_diameter_label.setText(_translate("Frame", "15"))
-        self.cellpose_invert_images.setText(
-            _translate("Frame", "Invert Images")
-        )
-        self.label_110.setText(
-            _translate("Frame", "Cellpose/Omnipose Functions")
-        )
-        self.cellpose_load_model.setText(
-            _translate("Frame", "Load Custom Model")
-        )
-        self.segment_active.setText(
-            _translate("Frame", "Segment Active Image/Frame")
-        )
-        self.tabWidget_7.setTabText(
-            self.tabWidget_7.indexOf(self.tab_24),
-            _translate("Frame", "ML Segmentation (Cellpose)"),
-        )
-        self.label_132.setText(
-            _translate("Frame", "Segmentation Keyboard/Mouse Shortcuts")
-        )
+        self.cellpose_invert_images.setText(_translate("Frame", "Invert Images"))
+        self.label_110.setText(_translate("Frame", "Cellpose/Omnipose Functions"))
+        self.cellpose_load_model.setText(_translate("Frame", "Load Custom Model"))
+        self.segment_active.setText(_translate("Frame", "Segment Active Image/Frame"))
+        self.tabWidget_7.setTabText(self.tabWidget_7.indexOf(self.tab_24), _translate("Frame", "ML Segmentation (Cellpose)"))
+        self.label_132.setText(_translate("Frame", "Segmentation Keyboard/Mouse Shortcuts"))
         self.label_15.setText(_translate("Frame", "Add segmentation [Space]"))
         self.label_17.setText(_translate("Frame", "Extend segmentation [E]"))
         self.label_18.setText(_translate("Frame", "Join segmentations [J]"))
-        self.label_16.setText(
-            _translate("Frame", "Delete segmentation [D] or [Double Click]")
-        )
-        self.label_19.setText(
-            _translate("Frame", "Dilate/Erode segmentation [Control + Scroll]")
-        )
-        self.label_28.setText(
-            _translate("Frame", "Activate Pan/Zoom [Escape]")
-        )
+        self.label_16.setText(_translate("Frame", "Delete segmentation [D] or [Double Click]"))
+        self.label_19.setText(_translate("Frame", "Dilate/Erode segmentation [Control + Scroll]"))
+        self.label_28.setText(_translate("Frame", "Activate Pan/Zoom [Escape]"))
         self.label_103.setText(_translate("Frame", "Dilate Segmentations"))
         self.label_111.setText(_translate("Frame", "Pixels"))
-        self.dilate_segmentations.setText(
-            _translate("Frame", "Dilate Segmentations")
-        )
+        self.dilate_segmentations.setText(_translate("Frame", "Dilate Segmentations"))
         self.label_105.setText(_translate("Frame", "Translate Segmentations"))
-        self.label_131.setText(
-            _translate("Frame", "Translation Size (Pixels)")
-        )
+        self.label_131.setText(_translate("Frame", "Translation Size (Pixels)"))
         self.label_9.setText(_translate("Frame", "Translation Target"))
-        self.translation_target.setItemText(
-            0, _translate("Frame", "Segmentation Image")
-        )
-        self.translation_target.setItemText(
-            1, _translate("Frame", "Segmentations")
-        )
+        self.translation_target.setItemText(0, _translate("Frame", "Segmentation Image"))
+        self.translation_target.setItemText(1, _translate("Frame", "Segmentations"))
         self.translation_target.setItemText(2, _translate("Frame", "Both"))
-        self.label_10.setText(
-            _translate(
-                "Frame",
-                "Press [Control] + [Arrow Key] to move translation target by translation size",
-            )
-        )
-        self.tabWidget_7.setTabText(
-            self.tabWidget_7.indexOf(self.tab_26),
-            _translate("Frame", "Edit Segmentations"),
-        )
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_25), _translate("Frame", "Segment")
-        )
-        self.label_23.setText(
-            _translate(
-                "Frame",
-                "BactFit fits an ideal (rod shaped) cell model to the segmentations. Each cell model has a polynomial midline and a radius parameter, where the cell outline is a fixed radius from the midline. Cell models can be created by fitting cell models to segmentations, or drawing a midline and interploating the outline.",
-            )
-        )
-        self.label_133.setText(
-            _translate("Frame", "Fit Segmentations (BactFit)")
-        )
+        self.label_10.setText(_translate("Frame", "Press [Control] + [Arrow Key] to move translation target by translation size"))
+        self.tabWidget_7.setTabText(self.tabWidget_7.indexOf(self.tab_26), _translate("Frame", "Edit Segmentations"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_25), _translate("Frame", "Segment"))
+        self.label_23.setText(_translate("Frame", "BactFit fits an ideal (rod shaped) cell model to the segmentations. Each cell model has a polynomial midline and a radius parameter, where the cell outline is a fixed radius from the midline. Cell models can be created by fitting cell models to segmentations, or drawing a midline and interploating the outline."))
+        self.label_133.setText(_translate("Frame", "Fit Segmentations (BactFit)"))
         self.label_20.setText(_translate("Frame", "Min Cell Radius (Pixels)"))
         self.label_21.setText(_translate("Frame", "Max Cell Radius (Pixels)"))
-        self.fit_segmentations.setText(
-            _translate("Frame", "Fit Cell Segmentations")
-        )
-        self.label_134.setText(
-            _translate("Frame", "Cell Keyboard/Mouse Shortcuts")
-        )
+        self.fit_segmentations.setText(_translate("Frame", "Fit Cell Segmentations"))
+        self.label_134.setText(_translate("Frame", "Cell Keyboard/Mouse Shortcuts"))
         self.label_24.setText(_translate("Frame", "Add cell midline [M]"))
-        self.label_25.setText(
-            _translate("Frame", "Select cell midlines for editing [S]")
-        )
-        self.label_26.setText(
-            _translate("Frame", "Dilate/Erode segmentation [Control + Scroll]")
-        )
-        self.label_29.setText(
-            _translate("Frame", "Activate Pan/Zoom [Escape]")
-        )
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_3), _translate("Frame", "BactFit")
-        )
+        self.label_25.setText(_translate("Frame", "Select cell midlines for editing [S]"))
+        self.label_26.setText(_translate("Frame", "Dilate/Erode segmentation [Control + Scroll]"))
+        self.label_29.setText(_translate("Frame", "Activate Pan/Zoom [Escape]"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), _translate("Frame", "BactFit"))
         self.label_3.setText(_translate("Frame", "Detect Localisations"))
         self.label_7.setText(_translate("Frame", "Detect Mode"))
         self.smlm_detect_mode.setItemText(0, _translate("Frame", "MolTrack"))
@@ -1690,14 +1277,10 @@ class Ui_Frame(object):
         self.smlm_fit_mode.setItemText(0, _translate("Frame", "Picasso"))
         self.picasso_roi_border_width.setText(_translate("Frame", "5"))
         self.label_35.setText(_translate("Frame", "ROI Border Width (Pixels)"))
-        self.moltrack_window_size_label.setText(
-            _translate("Frame", "Window Size")
-        )
+        self.moltrack_window_size_label.setText(_translate("Frame", "Window Size"))
         self.moltrack_threshold_label.setText(_translate("Frame", "Threshold"))
         self.picasso_min_net_gradient.setText(_translate("Frame", "1000"))
-        self.picasso_min_net_gradient_label.setText(
-            _translate("Frame", "Min Net Gradient")
-        )
+        self.picasso_min_net_gradient_label.setText(_translate("Frame", "Min Net Gradient"))
         self.picasso_box_size.setItemText(0, _translate("Frame", "3"))
         self.picasso_box_size.setItemText(1, _translate("Frame", "5"))
         self.picasso_box_size.setItemText(2, _translate("Frame", "7"))
@@ -1708,119 +1291,62 @@ class Ui_Frame(object):
         self.picasso_box_size_label.setText(_translate("Frame", "Box Size"))
         self.label_30.setText(_translate("Frame", "Segmentation layer"))
         self.label_38.setText(_translate("Frame", "Channel"))
-        self.picasso_remove_overlapping.setText(
-            _translate(
-                "Frame",
-                "Remove Overlapping Localisations/Bounding Boxes (determined by Picaso Box Size)",
-            )
-        )
-        self.picasso_window_cropping.setText(
-            _translate(
-                "Frame", "Remove Localisations Outside Field Of View (FOV)"
-            )
-        )
-        self.picasso_segmentation_filter.setText(
-            _translate("Frame", "Remove Localisations Outside Segmentations")
-        )
-        self.picasso_minimise_ram.setText(
-            _translate("Frame", "Minimise RAM usage")
-        )
+        self.picasso_remove_overlapping.setText(_translate("Frame", "Remove Overlapping Localisations/Bounding Boxes (determined by Picaso Box Size)"))
+        self.picasso_window_cropping.setText(_translate("Frame", "Remove Localisations Outside Field Of View (FOV)"))
+        self.picasso_segmentation_filter.setText(_translate("Frame", "Remove Localisations Outside Segmentations"))
+        self.picasso_minimise_ram.setText(_translate("Frame", "Minimise RAM usage"))
         self.picasso_detect.setText(_translate("Frame", "Detect"))
         self.picasso_detectfit.setText(_translate("Frame", "Detect and Fit"))
         self.picasso_fit.setText(_translate("Frame", "Fit"))
-        self.tabWidget_6.setTabText(
-            self.tabWidget_6.indexOf(self.tab_21),
-            _translate("Frame", "Detect"),
-        )
-        self.label_33.setText(
-            _translate("Frame", "Remove Localisations Outside Segmentations")
-        )
+        self.tabWidget_6.setTabText(self.tabWidget_6.indexOf(self.tab_21), _translate("Frame", "Detect"))
+        self.label_33.setText(_translate("Frame", "Remove Localisations Outside Segmentations"))
         self.label_34.setText(_translate("Frame", "Segmentations"))
         self.label_36.setText(_translate("Frame", "Dataset"))
         self.label_41.setText(_translate("Frame", "Channel"))
         self.remove_seglocs.setText(_translate("Frame", "Remove"))
-        self.tabWidget_6.setTabText(
-            self.tabWidget_6.indexOf(self.tab_7), _translate("Frame", "Edit")
-        )
-        self.label_92.setText(
-            _translate("Frame", "Filter Localisations (Picasso)")
-        )
+        self.tabWidget_6.setTabText(self.tabWidget_6.indexOf(self.tab_7), _translate("Frame", "Edit"))
+        self.label_92.setText(_translate("Frame", "Filter Localisations (Picasso)"))
         self.label_93.setText(_translate("Frame", "Type"))
-        self.picasso_filter_type.setItemText(
-            0, _translate("Frame", "Localisations")
-        )
-        self.picasso_filter_type.setItemText(
-            1, _translate("Frame", "Bounding Boxes")
-        )
-        self.picasso_filter_dataset_label.setText(
-            _translate("Frame", "Dataset")
-        )
+        self.picasso_filter_type.setItemText(0, _translate("Frame", "Localisations"))
+        self.picasso_filter_type.setItemText(1, _translate("Frame", "Bounding Boxes"))
+        self.picasso_filter_dataset_label.setText(_translate("Frame", "Dataset"))
         self.label_90.setText(_translate("Frame", "Filter By"))
-        self.picasso_filter_dataset_label_2.setText(
-            _translate("Frame", "Channel")
-        )
+        self.picasso_filter_dataset_label_2.setText(_translate("Frame", "Channel"))
         self.label_91.setText(_translate("Frame", "Filter Ranges"))
         self.label_86.setText(_translate("Frame", "Min"))
         self.label_87.setText(_translate("Frame", "Max"))
-        self.filter_localisations.setText(
-            _translate("Frame", "Filter Localisations")
-        )
-        self.tabWidget_6.setTabText(
-            self.tabWidget_6.indexOf(self.tab_23),
-            _translate("Frame", "Filter"),
-        )
-        self.label_85.setText(
-            _translate("Frame", "Render Localisations (Picasso)")
-        )
+        self.filter_localisations.setText(_translate("Frame", "Filter Localisations"))
+        self.tabWidget_6.setTabText(self.tabWidget_6.indexOf(self.tab_23), _translate("Frame", "Filter"))
+        self.label_85.setText(_translate("Frame", "Render Localisations (Picasso)"))
         self.label_81.setText(_translate("Frame", "Dataset"))
         self.label_83.setText(_translate("Frame", "Blur Method"))
-        self.picasso_render_blur_method.setItemText(
-            0, _translate("Frame", "None")
-        )
-        self.picasso_render_blur_method.setItemText(
-            1, _translate("Frame", "One-Pixel-Blur")
-        )
-        self.picasso_render_blur_method.setItemText(
-            2, _translate("Frame", "Global Localisation Precision")
-        )
-        self.picasso_render_blur_method.setItemText(
-            3, _translate("Frame", "Individual Localisation Precision")
-        )
-        self.picasso_render_blur_method.setItemText(
-            4, _translate("Frame", "Individual Localisation Precision, iso")
-        )
+        self.picasso_render_blur_method.setItemText(0, _translate("Frame", "None"))
+        self.picasso_render_blur_method.setItemText(1, _translate("Frame", "One-Pixel-Blur"))
+        self.picasso_render_blur_method.setItemText(2, _translate("Frame", "Global Localisation Precision"))
+        self.picasso_render_blur_method.setItemText(3, _translate("Frame", "Individual Localisation Precision"))
+        self.picasso_render_blur_method.setItemText(4, _translate("Frame", "Individual Localisation Precision, iso"))
         self.label_84.setText(_translate("Frame", "Min. Blur (cam. pixel)"))
         self.label_82.setText(_translate("Frame", "Channel"))
-        self.picasso_render.setText(
-            _translate("Frame", "Render Localisations")
-        )
-        self.tabWidget_6.setTabText(
-            self.tabWidget_6.indexOf(self.tab_20),
-            _translate("Frame", "Render"),
-        )
-        self.label_80.setText(
-            _translate("Frame", "Link Localisations (TrackPy)")
-        )
+        self.picasso_render.setText(_translate("Frame", "Render Localisations"))
+        self.tabWidget_6.setTabText(self.tabWidget_6.indexOf(self.tab_20), _translate("Frame", "Render"))
+        self.label_80.setText(_translate("Frame", "Link Localisations (TrackPy)"))
         self.label_95.setText(_translate("Frame", "Dataset"))
         self.label_98.setText(_translate("Frame", "Search Range (Pixels)"))
         self.label_99.setText(_translate("Frame", "Memory (Frames)"))
-        self.label_100.setText(
-            _translate("Frame", "Min Track Length (Frames)")
-        )
+        self.label_100.setText(_translate("Frame", "Min Track Length (Frames)"))
         self.label_96.setText(_translate("Frame", "Channel"))
-        self.remove_unlinked.setText(
-            _translate("Frame", "Remove Unlinked Localisations")
-        )
-        self.link_localisations.setText(
-            _translate("Frame", "Link Localisatons")
-        )
-        self.tabWidget_6.setTabText(
-            self.tabWidget_6.indexOf(self.tab_27),
-            _translate("Frame", "Tracking"),
-        )
-        self.label_27.setText(
-            _translate("Frame", "Localisation Visualisation Settings")
-        )
+        self.remove_unlinked.setText(_translate("Frame", "Remove Unlinked Localisations"))
+        self.link_localisations.setText(_translate("Frame", "Link Localisatons"))
+        self.tabWidget_6.setTabText(self.tabWidget_6.indexOf(self.tab_27), _translate("Frame", "Tracking"))
+        self.compute_adc.setText(_translate("Frame", "Compute Apprent Diffusion Coefficient"))
+        self.label_45.setText(_translate("Frame", "MSD  Plot Settings"))
+        self.picasso_filter_dataset_label_4.setText(_translate("Frame", "Channel"))
+        self.label_44.setText(_translate("Frame", "MSD Range (um2/s)"))
+        self.picasso_filter_dataset_label_3.setText(_translate("Frame", "Dataset"))
+        self.label_46.setText(_translate("Frame", "N Bins"))
+        self.export_adc.setText(_translate("Frame", "Export MSD Data"))
+        self.tabWidget_6.setTabText(self.tabWidget_6.indexOf(self.tab_8), _translate("Frame", "Diffusion"))
+        self.label_27.setText(_translate("Frame", "Localisation Visualisation Settings"))
         self.picasso_vis_size.setItemText(0, _translate("Frame", "1"))
         self.picasso_vis_size.setItemText(1, _translate("Frame", "2"))
         self.picasso_vis_size.setItemText(2, _translate("Frame", "3"))
@@ -1858,51 +1384,25 @@ class Ui_Frame(object):
         self.picasso_vis_edge_width.setItemText(7, _translate("Frame", "0.8"))
         self.picasso_vis_edge_width.setItemText(8, _translate("Frame", "0.9"))
         self.picasso_vis_edge_width.setItemText(9, _translate("Frame", "1.0"))
-        self.tabWidget_6.setTabText(
-            self.tabWidget_6.indexOf(self.tab_22),
-            _translate("Frame", "Visualisation Settings"),
-        )
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_2), _translate("Frame", "SMLM")
-        )
-        self.label_74.setText(
-            _translate(
-                "Frame",
-                "Localisations will be exported at the import directory",
-            )
-        )
+        self.tabWidget_6.setTabText(self.tabWidget_6.indexOf(self.tab_22), _translate("Frame", "Settings"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("Frame", "SMLM"))
+        self.label_74.setText(_translate("Frame", "Localisations will be exported at the import directory"))
         self.label_112.setText(_translate("Frame", "Export Mode"))
-        self.locs_export_mode.setItemText(
-            0, _translate("Frame", "Picasso HDF5")
-        )
+        self.locs_export_mode.setItemText(0, _translate("Frame", "Picasso HDF5"))
         self.locs_export_mode.setItemText(1, _translate("Frame", "CSV"))
         self.locs_export_mode.setItemText(2, _translate("Frame", "POS.OUT"))
         self.label_72.setText(_translate("Frame", "Dataset"))
         self.label_13.setText(_translate("Frame", "Export Data"))
-        self.locs_export_data.setItemText(
-            0, _translate("Frame", "Localisations")
-        )
+        self.locs_export_data.setItemText(0, _translate("Frame", "Localisations"))
         self.label_73.setText(_translate("Frame", "Channel"))
-        self.locs_export_concat.setText(
-            _translate("Frame", "Concatenate Tracks/Localisations")
-        )
-        self.export_localisations.setText(
-            _translate("Frame", "Export Localisations")
-        )
-        self.tabWidget_2.setTabText(
-            self.tabWidget_2.indexOf(self.tab_4),
-            _translate("Frame", "Localisations/Tracks"),
-        )
+        self.locs_export_concat.setText(_translate("Frame", "Concatenate Tracks/Localisations"))
+        self.export_localisations.setText(_translate("Frame", "Export Localisations"))
+        self.tabWidget_2.setTabText(self.tabWidget_2.indexOf(self.tab_4), _translate("Frame", "Localisations/Tracks"))
         self.label_31.setText(_translate("Frame", "Export Data"))
         self.label_135.setText(_translate("Frame", "Export Mode"))
         self.export_shapes.setText(_translate("Frame", "Export Shapes"))
-        self.tabWidget_2.setTabText(
-            self.tabWidget_2.indexOf(self.tab_5),
-            _translate("Frame", "Segmentations/Cells"),
-        )
-        self.tabWidget.setTabText(
-            self.tabWidget.indexOf(self.tab_6), _translate("Frame", "Export")
-        )
+        self.tabWidget_2.setTabText(self.tabWidget_2.indexOf(self.tab_5), _translate("Frame", "Segmentations/Cells"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_6), _translate("Frame", "Export"))
         self.label_12.setText(_translate("Frame", "Display Mode"))
         self.label_14.setText(_translate("Frame", "Dataset"))
         self.label_37.setText(_translate("Frame", "Channel"))

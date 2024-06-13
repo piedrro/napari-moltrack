@@ -362,7 +362,7 @@ class _import_utils:
                         "path": path_list,
                         "pixel_size": pixel_size_list[0],
                         "exposure_time": exposure_time_list[0],
-                        "images": {"dataset_channel": image_list},
+                        "images": {dataset_channel: image_list},
                     }
 
             else:
