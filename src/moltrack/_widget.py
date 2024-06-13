@@ -154,6 +154,8 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.adc_range_min.valueChanged.connect(self.plot_diffusion_histogram)
         self.gui.adc_range_max.valueChanged.connect(self.plot_diffusion_histogram)
         self.gui.adc_bins.valueChanged.connect(self.plot_diffusion_histogram)
+        self.gui.adc_density.stateChanged.connect(self.plot_diffusion_histogram)
+        self.gui.adc_hide_first.stateChanged.connect(self.plot_diffusion_histogram)
 
         self.gui.export_adc.clicked.connect(self.export_diffusion_coefficients)
 

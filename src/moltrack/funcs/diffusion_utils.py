@@ -7,6 +7,8 @@ from functools import partial
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 from multiprocessing import Manager
 from pyqtgraph import LegendItem
+import os
+from PyQt5.QtWidgets import QFileDialog
 
 class _diffusion_utils:
 
@@ -37,14 +39,18 @@ class _diffusion_utils:
 
             if len(time) >= min and len(msd_values) >= min:  # Ensure there are enough points to fit
                 slope, intercept = np.polyfit(time[:min], msd_values[:min], 1)
-                apparent_diffusion = slope / 4  # the slope of MSD vs time gives 4D in 2D
+                diffusion_coefficient = slope / 4  # the slope of MSD vs time gives 4D in 2D
 
-                dat = {"dataset":dataset,
-                       "channel": channel,
-                       "particle": particle,
-                       "apparent_diffusion": apparent_diffusion}
+                if diffusion_coefficient > 0:
 
-                diffusion_data.append(dat)
+                    ddat = {"dataset":dataset,
+                            "channel": channel,
+                            "particle": particle,
+                            "pixel_size (nm)": pixel_size_nm,
+                            "exposure_time (ms)": exposure_time_ms,
+                            "diffusion_coefficient (um^2/s)": diffusion_coefficient}
+
+                    diffusion_data.append(ddat)
 
         except:
             print(traceback.format_exc())
@@ -102,41 +108,21 @@ class _diffusion_utils:
         except:
             print(traceback.format_exc())
 
-    def compute_diffusion_coefficients(self, tracks, progress_callback=None):
+    def compute_diffusion_coefficients_result(self, diffusion_data):
 
-        compute_jobs = self.populate_diffusion_compute_jobs(tracks)
+        try:
 
-        print(f"Computing diffusion coefficients for {len(compute_jobs)} particles.")
+            if diffusion_data is None:
+                return
 
-        n_compute_jobs = len(compute_jobs)
-
-        if len(compute_jobs) == 0:
-            return
-
-        with Manager() as manager:
-
-            diffusion_data = manager.list()
-
-            with ThreadPoolExecutor() as executor:
-                futures = [executor.submit(_diffusion_utils.compute_adc,
-                    dat, diffusion_data) for dat in compute_jobs]
-
-                completed = 0
-                for future in as_completed(futures):
-                    completed += 1
-                    if progress_callback is not None:
-                        progress = (completed / n_compute_jobs) * 100
-                        progress_callback.emit(progress)
-
-            diffusion_data = pd.DataFrame(list(diffusion_data))
+            self.diffusion_dict = {}
 
             diffusion_min = 0
-            diffusion_max = 0
+            diffusion_max = 10
 
             for (dataset, channel), group in diffusion_data.groupby(["dataset", "channel"]):
 
-                diffusion_coefficients = group["apparent_diffusion"].values
-                particle = group["particle"].values
+                diffusion_coefficients = group["diffusion_coefficient"].values
 
                 dmin = np.min(diffusion_coefficients)
                 dmax = np.max(diffusion_coefficients)
@@ -151,8 +137,8 @@ class _diffusion_utils:
                 if channel not in self.diffusion_dict[dataset]:
                     self.diffusion_dict[dataset][channel] = {}
 
-                self.diffusion_dict[dataset][channel]["particle"] = particle
-                self.diffusion_dict[dataset][channel]["diffusion_coefficient"] = diffusion_coefficients
+                for col in group.columns:
+                    self.diffusion_dict[dataset][channel][col] = group[col].values
 
             self.gui.adc_range_min.blockSignals(True)
             self.gui.adc_range_max.blockSignals(True)
@@ -163,8 +149,53 @@ class _diffusion_utils:
             self.gui.adc_range_min.blockSignals(False)
             self.gui.adc_range_max.blockSignals(False)
 
+        except:
+            print(traceback.format_exc())
+            self.update_ui()
+
+
+    def compute_diffusion_coefficients(self, tracks, progress_callback=None):
+
+        diffusion_data = None
+
+        try:
+
+            compute_jobs = self.populate_diffusion_compute_jobs(tracks)
+
+            print(f"Computing diffusion coefficients for {len(compute_jobs)} particles.")
+
+            n_compute_jobs = len(compute_jobs)
+
+            if len(compute_jobs) == 0:
+                return
+
+            with Manager() as manager:
+
+                diffusion_data = manager.list()
+
+                with ThreadPoolExecutor() as executor:
+                    futures = [executor.submit(_diffusion_utils.compute_adc,
+                        dat, diffusion_data) for dat in compute_jobs]
+
+                    completed = 0
+                    for future in as_completed(futures):
+                        completed += 1
+                        if progress_callback is not None:
+                            progress = (completed / n_compute_jobs) * 100
+                            progress_callback.emit(progress)
+
+                diffusion_data = pd.DataFrame(list(diffusion_data))
+
+        except:
+            diffusion_data = None
+            print(traceback.format_exc())
+
+        return diffusion_data
+
+
     def init_compute_diffusion_coefficients(self):
         try:
+
             dataset = "All Datasets"
             channel = "All Channels"
 
@@ -178,6 +209,7 @@ class _diffusion_utils:
             self.worker = Worker(self.compute_diffusion_coefficients, tracks)
             self.worker.signals.progress.connect(partial(self.moltrack_progress,
                     progress_bar=self.gui.adc_progressbar))
+            self.worker.signals.result.connect(self.compute_diffusion_coefficients_result)
             self.worker.signals.finished.connect(self.compute_diffusion_coefficient_finished)
             self.worker.signals.error.connect(self.update_ui)
             self.threadpool.start(self.worker)
@@ -195,12 +227,16 @@ class _diffusion_utils:
             min_range = self.gui.adc_range_min.value()
             max_range = self.gui.adc_range_max.value()
             bins = self.gui.adc_bins.value()
+            density = self.gui.adc_density.isChecked()
+            hide_first = self.gui.adc_hide_first.isChecked()
 
             self.adc_graph_canvas.clear()
 
             diffusion_coefficients = self.get_diffusion_coefficents(dataset, channel, return_dict=True)
 
             ax = self.adc_graph_canvas.addPlot()
+            legend = LegendItem(offset=(-10, 10))
+            legend.setParentItem(ax.graphicsItem())
 
             for ddata in diffusion_coefficients:
 
@@ -209,20 +245,18 @@ class _diffusion_utils:
                 coefs = ddata["diffusion_coefficient"]
 
                 if dataset_name == "All Datasets" and channel_name == "All Channels":
-                    label = f"{dataset} - {channel}"
+                    label = f"{dataset_name} - {channel_name}"
                 elif dataset_name == "All Datasets":
-                    label = f"{dataset}"
+                    label = f"{dataset_name}"
                 elif channel_name == "All Channels":
-                    label = f"{channel}"
+                    label = f"{dataset_name}"
                 else:
-                    label = f"{dataset}"
+                    label = f"{dataset_name}"
 
                 coefs = np.array(coefs)
                 coefs = coefs[(coefs >= min_range) & (coefs <= max_range)]
 
                 if len(coefs) > 0:
-
-                    density = True
 
                     if density == True:
                         y_label = "Density"
@@ -231,16 +265,14 @@ class _diffusion_utils:
 
                     y, x = np.histogram(coefs, bins=bins, density=density)
 
-                    y = y[1:]
-                    x = x[1:]
+                    if hide_first:
+                        y = y[1:]
+                        x = x[1:]
 
                     plotItem = ax.plot(x, y, stepMode=True, fillLevel=0,
                         brush=(0, 0, 255, 90), name=label)
                     ax.setLabel('left', y_label)
                     ax.setLabel('bottom', 'Apparent Diffusion Coefficient (μm²/s)')
-
-                    legend = LegendItem(offset=(-10, 10))
-                    legend.setParentItem(ax.graphicsItem())
                     legend.addItem(plotItem, label)
 
             ax.showGrid(x=True, y=True)
@@ -251,8 +283,52 @@ class _diffusion_utils:
 
         pass
 
-    def export_diffusion_coefficients(self, diffusion_coefficients):
-        pass
+    def export_diffusion_coefficients(self):
+
+        try:
+
+            dataset = self.gui.adc_dataset.currentText()
+            channel = self.gui.adc_channel.currentText()
+            min_range = self.gui.adc_range_min.value()
+            max_range = self.gui.adc_range_max.value()
+
+            coefs = self.get_diffusion_coefficents(dataset, channel, return_dict=False)
+
+            if len(coefs) == 0:
+                return
+
+            coefs = coefs[(coefs["diffusion_coefficient"] >= min_range) &
+                          (coefs["diffusion_coefficient"] <= max_range)]
+
+            if len(coefs) == 0:
+                return
+
+            coefs = pd.DataFrame(coefs)
+
+            dataset_list = coefs["dataset"].unique()
+
+            file_path = self.dataset_dict[dataset_list[0]]["path"]
+
+            if type(file_path) == list:
+                file_path = file_path[0]
+
+            base, ext = os.path.splitext(file_path)
+            file_path = f"{base}_diffusion_coefficients.csv"
+
+            file_path = QFileDialog.getSaveFileName(self, f"Export Diffusion Coefficients", file_path, f"(*.csv)")[0]
+
+            if file_path == "":
+                return
+
+            coefs.to_csv(file_path, index=False)
+
+            print(f"Diffusion coefficients exported to {file_path}")
+
+        except:
+            print(traceback.format_exc())
+            self.update_ui()
+
+
 
     def get_diffusion_coefficents(self, dataset, channel,
             return_dict=False, include_metadata=True):

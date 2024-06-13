@@ -2170,6 +2170,24 @@
             </layout>
            </item>
            <item>
+            <layout class="QGridLayout" name="gridLayout_3">
+             <item row="0" column="0">
+              <widget class="QCheckBox" name="adc_density">
+               <property name="text">
+                <string>Density Plot</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QCheckBox" name="adc_hide_first">
+               <property name="text">
+                <string>Hide First Bin</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
             <widget class="QPushButton" name="export_adc">
              <property name="text">
               <string>Export MSD Data</string>
