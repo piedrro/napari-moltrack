@@ -6,6 +6,7 @@ from moltrack.funcs.compute_utils import Worker
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 from multiprocessing import Manager
+from pyqtgraph import LegendItem
 
 class _diffusion_utils:
 
@@ -23,13 +24,12 @@ class _diffusion_utils:
             particle = dat["particle"]
 
             pixel_size_um = pixel_size_nm * 1e-3
-            exposure_time_s = exposure_time_ms * 1e-3
-            fps = 1 / exposure_time_s
+            fps = 1 / (exposure_time_ms * 1e-3)
 
             track = track[["particle", "frame", "x", "y"]]
 
             # Calculate MSD using trackpy
-            msd_df = tp.motion.msd(track, mpp=0.1, fps=100, max_lagtime=100)
+            msd_df = tp.motion.msd(track, mpp=pixel_size_um, fps=fps, max_lagtime=100)
 
             # Linear fit to first 10 points of msd vs time
             msd_values = msd_df['msd'].values
@@ -130,10 +130,21 @@ class _diffusion_utils:
 
             diffusion_data = pd.DataFrame(list(diffusion_data))
 
+            diffusion_min = 0
+            diffusion_max = 0
+
             for (dataset, channel), group in diffusion_data.groupby(["dataset", "channel"]):
 
                 diffusion_coefficients = group["apparent_diffusion"].values
                 particle = group["particle"].values
+
+                dmin = np.min(diffusion_coefficients)
+                dmax = np.max(diffusion_coefficients)
+
+                if dmin < diffusion_min and dmin > 0:
+                    diffusion_min = dmin
+                if dmax > diffusion_max:
+                    diffusion_max = dmax
 
                 if dataset not in self.diffusion_dict:
                     self.diffusion_dict[dataset] = {}
@@ -143,7 +154,14 @@ class _diffusion_utils:
                 self.diffusion_dict[dataset][channel]["particle"] = particle
                 self.diffusion_dict[dataset][channel]["diffusion_coefficient"] = diffusion_coefficients
 
+            self.gui.adc_range_min.blockSignals(True)
+            self.gui.adc_range_max.blockSignals(True)
 
+            self.gui.adc_range_min.setValue(diffusion_min)
+            self.gui.adc_range_max.setValue(diffusion_max)
+
+            self.gui.adc_range_min.blockSignals(False)
+            self.gui.adc_range_max.blockSignals(False)
 
     def init_compute_diffusion_coefficients(self):
         try:
@@ -175,26 +193,57 @@ class _diffusion_utils:
             dataset = self.gui.adc_dataset.currentText()
             channel = self.gui.adc_channel.currentText()
             min_range = self.gui.adc_range_min.value()
-            max_range = self.gui.adc_range_min.value()
-
-            coefs = self.diffusion_dict[dataset][channel]["diffusion_coefficient"]
-
-            coefs = np.array(coefs)
-            # coefs = coefs[(coefs >= min_range) & (coefs <= max_range)]
+            max_range = self.gui.adc_range_max.value()
+            bins = self.gui.adc_bins.value()
 
             self.adc_graph_canvas.clear()
 
-            if len(coefs) > 0:
+            diffusion_coefficients = self.get_diffusion_coefficents(dataset, channel, return_dict=True)
 
-                ax = self.adc_graph_canvas.addPlot()
+            ax = self.adc_graph_canvas.addPlot()
 
-                # Create histogram
-                y, x = np.histogram(coefs, bins=20)
+            for ddata in diffusion_coefficients:
 
-                ax.plot(x, y, stepMode=True, fillLevel=0, brush=(0, 0, 255, 75))
-                ax.setLabel('left', 'Frequency')
-                ax.setLabel('bottom', 'Diffusion Coefficient (um^2/s)')
+                dataset_name = ddata["dataset"][0]
+                channel_name = ddata["channel"][0]
+                coefs = ddata["diffusion_coefficient"]
 
+                if dataset_name == "All Datasets" and channel_name == "All Channels":
+                    label = f"{dataset} - {channel}"
+                elif dataset_name == "All Datasets":
+                    label = f"{dataset}"
+                elif channel_name == "All Channels":
+                    label = f"{channel}"
+                else:
+                    label = f"{dataset}"
+
+                coefs = np.array(coefs)
+                coefs = coefs[(coefs >= min_range) & (coefs <= max_range)]
+
+                if len(coefs) > 0:
+
+                    density = True
+
+                    if density == True:
+                        y_label = "Density"
+                    else:
+                        y_label = "Counts"
+
+                    y, x = np.histogram(coefs, bins=bins, density=density)
+
+                    y = y[1:]
+                    x = x[1:]
+
+                    plotItem = ax.plot(x, y, stepMode=True, fillLevel=0,
+                        brush=(0, 0, 255, 90), name=label)
+                    ax.setLabel('left', y_label)
+                    ax.setLabel('bottom', 'Apparent Diffusion Coefficient (μm²/s)')
+
+                    legend = LegendItem(offset=(-10, 10))
+                    legend.setParentItem(ax.graphicsItem())
+                    legend.addItem(plotItem, label)
+
+            ax.showGrid(x=True, y=True)
 
         except:
             print(traceback.format_exc())
@@ -204,3 +253,53 @@ class _diffusion_utils:
 
     def export_diffusion_coefficients(self, diffusion_coefficients):
         pass
+
+    def get_diffusion_coefficents(self, dataset, channel,
+            return_dict=False, include_metadata=True):
+
+        coefficient_data = []
+
+        try:
+            if dataset == "All Datasets":
+                dataset_list = list(self.diffusion_dict.keys())
+            else:
+                dataset_list = [dataset]
+
+            for dataset_name in dataset_list:
+                if dataset_name not in self.diffusion_dict.keys():
+                    continue
+
+                if channel == "All Channels":
+                    channel_list = list(self.diffusion_dict[dataset_name].keys())
+                else:
+                    channel_list = [channel]
+
+                for channel_name in channel_list:
+                    if channel_name not in self.diffusion_dict[dataset_name].keys():
+                        continue
+
+                    data = self.diffusion_dict[dataset_name][channel_name]
+
+                    data = pd.DataFrame(data)
+
+                    if include_metadata:
+                        if "dataset" not in data.columns:
+                            data.insert(0, "dataset", dataset_name)
+                        if "channel" not in data.columns:
+                            data.insert(1, "channel", channel_name)
+
+                    data = data.to_records(index=False)
+                    coefficient_data.append(data)
+
+            if return_dict == False:
+                if len(coefficient_data) == 0:
+                    pass
+                elif len(coefficient_data) == 1:
+                    coefficient_data = coefficient_data[0]
+                else:
+                    coefficient_data = np.hstack(coefficient_data).view(np.recarray).copy()
+
+        except:
+            print(traceback.format_exc())
+
+        return coefficient_data
