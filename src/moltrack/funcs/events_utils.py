@@ -412,16 +412,21 @@ class _events_utils:
                     data_dict = self.dataset_dict[dataset_name].copy()
 
                     path = data_dict["path"]
+                    exposure_time_ms = data_dict["exposure_time"]
+
+                    current_step = self.viewer.dims.current_step[0]
 
                     if type(path) == list:
-                        current_step = self.viewer.dims.current_step[0]
                         path = path[current_step]
 
                     file_name = os.path.basename(path)
 
+                    elapsed_time_s = current_step * (exposure_time_ms / 1000)
+
                     overlay_string = ""
                     overlay_string += f"File: {file_name}\n"
                     overlay_string += f"Channel: {channel_name}\n"
+                    overlay_string += f"Elapsed Time: {elapsed_time_s:.2f} s\n"
 
                     if overlay_string != "":
                         self.viewer.text_overlay.visible = True
