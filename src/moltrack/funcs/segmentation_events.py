@@ -98,7 +98,7 @@ class _segmentation_events:
             overwrite=True,
         )
 
-    def initialise_segLayer(self, shapes=None):
+    def initialise_segLayer(self, shapes=None, pixel_size=None):
 
         layer_names = [layer.name for layer in self.viewer.layers]
 
@@ -108,11 +108,13 @@ class _segmentation_events:
         if hasattr(self, "segLayer"):
             del self.segLayer
 
-        if hasattr(self, "segmentation_image_pixel_size"):
-            pixel_size = self.segmentation_image_pixel_size
-            scale = [pixel_size, pixel_size]
-        else:
-            scale = [1, 1]
+        if pixel_size is None:
+            if hasattr(self, "image_layer"):
+                pixel_size = self.image_layer.scale[0]
+            else:
+                pixel_size = 1
+
+        scale = [pixel_size, pixel_size]
 
         if shapes is not None:
             self.segLayer = self.viewer.add_shapes(

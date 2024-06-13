@@ -122,7 +122,7 @@ class _diffusion_utils:
 
             for (dataset, channel), group in diffusion_data.groupby(["dataset", "channel"]):
 
-                diffusion_coefficients = group["diffusion_coefficient"].values
+                diffusion_coefficients = group["diffusion_coefficient (um^2/s)"].values
 
                 dmin = np.min(diffusion_coefficients)
                 dmax = np.max(diffusion_coefficients)
@@ -242,7 +242,7 @@ class _diffusion_utils:
 
                 dataset_name = ddata["dataset"][0]
                 channel_name = ddata["channel"][0]
-                coefs = ddata["diffusion_coefficient"]
+                coefs = ddata["diffusion_coefficient (um^2/s)"]
 
                 if dataset_name == "All Datasets" and channel_name == "All Channels":
                     label = f"{dataset_name} - {channel_name}"
@@ -297,8 +297,8 @@ class _diffusion_utils:
             if len(coefs) == 0:
                 return
 
-            coefs = coefs[(coefs["diffusion_coefficient"] >= min_range) &
-                          (coefs["diffusion_coefficient"] <= max_range)]
+            coefs = coefs[(coefs["diffusion_coefficient (um^2/s)"] >= min_range) &
+                          (coefs["diffusion_coefficient (um^2/s)"] <= max_range)]
 
             if len(coefs) == 0:
                 return

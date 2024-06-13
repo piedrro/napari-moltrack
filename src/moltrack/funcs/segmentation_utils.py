@@ -192,6 +192,7 @@ class _segmentation_utils:
         if self.dataset_dict != {} or hasattr(self, "segmentation_image"):
 
             dataset = self.gui.cellpose_dataset.currentText()
+            channel = self.gui.cellpose_channel.currentText()
             current_frame = self.viewer.dims.current_step[0]
 
             if dataset == "Segmentation Image":
@@ -211,7 +212,7 @@ class _segmentation_utils:
                         else:
                             images = [data]
             else:
-                data = self.dataset_dict[dataset]["data"]
+                data = self.dataset_dict[dataset]["images"][channel]
                 if mode == "active":
                     if len(data.shape) == 3:
                         if current_frame < data.shape[0]:
@@ -267,7 +268,14 @@ class _segmentation_utils:
 
             if len(shapes) > 0:
 
-                self.initialise_segLayer(shapes)
+                dataset = self.gui.cellpose_dataset.currentText()
+
+                if dataset == "Segmentation Image":
+                    pixel_size = self.segmentation_image_pixel_size
+                else:
+                    pixel_size = self.dataset_dict[dataset]["pixel_size"]
+
+                self.initialise_segLayer(shapes, pixel_size)
 
 
 
