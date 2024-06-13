@@ -134,6 +134,10 @@ class _segmentation_events:
                 edge_width=1,
             )
 
+        if self.gui.show_shapes.isChecked() == False:
+            if self.segLayer in self.viewer.layers:
+                self.viewer.layers.remove(self.segLayer)
+
         self.segLayer.scale = scale
         self.viewer.scale_bar.unit = "nm"
         self.segLayer.refresh()

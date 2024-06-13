@@ -2665,7 +2665,7 @@
       </font>
      </property>
      <property name="text">
-      <string>Display Mode</string>
+      <string>Display Settings</string>
      </property>
     </widget>
    </item>
@@ -2690,6 +2690,60 @@
      </item>
      <item row="1" column="1">
       <widget class="QComboBox" name="moltrack_channel_selector"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QGridLayout" name="gridLayout_4">
+     <item row="0" column="2">
+      <widget class="QCheckBox" name="show_locs">
+       <property name="text">
+        <string>Localisations</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QCheckBox" name="show_data">
+       <property name="text">
+        <string>Data</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QCheckBox" name="show_shapes">
+       <property name="text">
+        <string>Segmentations/Cells</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="4">
+      <widget class="QCheckBox" name="show_tracks">
+       <property name="text">
+        <string>Tracks</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="3">
+      <widget class="QCheckBox" name="show_render">
+       <property name="text">
+        <string>Render</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

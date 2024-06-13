@@ -158,8 +158,8 @@ class _picasso_render_utils:
 
             layer_names = [layer.name for layer in self.viewer.layers]
 
-            if "SMLM Render" not in layer_names:
-                self.viewer.add_image(
+            if hasattr(self, "render_layer") == False:
+                self.render_layer = self.viewer.add_image(
                     image,
                     name="SMLM Render",
                     colormap="inferno",
@@ -170,24 +170,25 @@ class _picasso_render_utils:
                 self.viewer.reset_view()
             else:
 
-                active_layer = self.viewer.layers["SMLM Render"].data
+                if self.render_layer in self.viewer.layers:
+                    self.viewer.layers.remove(self.render_layer)
 
-                if active_layer.shape != image.shape:
-                    self.viewer.layers.remove("SMLM Render")
-                    self.viewer.add_image(
-                        image,
-                        name="SMLM Render",
-                        colormap="inferno",
-                        scale=scale,
-                        blending="opaque",
-                        rgb=True,
-                    )
-                    self.viewer.reset_view()
+                self.render_layer = self.viewer.add_image(
+                    image,
+                    name="SMLM Render",
+                    colormap="inferno",
+                    scale=scale,
+                    blending="opaque",
+                    rgb=True,
+                )
+                self.viewer.reset_view()
 
-                self.viewer.layers["SMLM Render"].data = image
-                self.viewer.layers["SMLM Render"].scale = scale
+            if self.gui.show_render.isChecked() == False:
+                if self.render_layer in self.viewer.layers:
+                    self.viewer.layers.remove(self.render_layer)
 
-            self.viewer.layers["SMLM Render"].gamma = 0.2
+            self.render_layer.scale = scale
+            self.render_layer.gamma = 0.2
 
         except:
             print(traceback.format_exc())

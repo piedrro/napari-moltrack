@@ -159,6 +159,11 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.export_adc.clicked.connect(self.export_diffusion_coefficients)
 
+        self.gui.show_data.stateChanged.connect(partial(self.update_active_layers, mode="data"))
+        self.gui.show_shapes.stateChanged.connect(partial(self.update_active_layers, mode="shapes"))
+        self.gui.show_tracks.stateChanged.connect(partial(self.update_active_layers, mode="tracks"))
+        self.gui.show_locs.stateChanged.connect(partial(self.update_active_layers, mode="locs"))
+        self.gui.show_render.stateChanged.connect(partial(self.update_active_layers, mode="render"))
 
         self.viewer.layers.events.inserted.connect(self.update_layer_combos)
         self.viewer.layers.events.removed.connect(self.update_layer_combos)

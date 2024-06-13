@@ -206,6 +206,7 @@ class _tracking_utils:
 
     def draw_tracks(self, dataset=None, channel=None):
         try:
+
             remove_tracks = True
 
             if hasattr(self, "tracking_dict"):
@@ -239,10 +240,14 @@ class _tracking_utils:
                     render_tracks[:, 1] = 0
 
                     if "Tracks" not in layer_names:
-                        self.track_layer = self.viewer.add_tracks(render_tracks, name="Tracks", blending="opaque", scale=scale, )
+                        self.track_layer = self.viewer.add_tracks(render_tracks, name="Tracks",
+                            blending="opaque", scale=scale, )
                         self.viewer.reset_view()
                     else:
                         self.track_layer.data = render_tracks
+
+                    if self.gui.show_tracks.isChecked() == False:
+                        self.viewer.layers.remove(self.track_layer)
 
                     self.track_layer.selected_data = []
                     self.track_layer.tail_length = n_frames * 2

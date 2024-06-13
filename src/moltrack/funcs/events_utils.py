@@ -314,8 +314,13 @@ class _events_utils:
                 self.segmentation_layer.data = self.segmentation_image.copy()
                 self.segmentation_layer.refresh()
             else:
-                self.segmentation_layer = self.viewer.add_image(self.segmentation_image, name="Segmentation Image", visible=True, blending="opaque", )
+                self.segmentation_layer = self.viewer.add_image(self.segmentation_image,
+                    name="Segmentation Image", visible=True, blending="opaque", )
+
                 self.viewer.reset_view()
+
+            if self.gui.show_data.isChecked() == False:
+                self.viewer.layers.remove(self.segmentation_layer)
 
             self.viewer.scale_bar.visible = True
             self.segmentation_layer.scale = scale
@@ -325,7 +330,9 @@ class _events_utils:
             self.viewer.reset_view()
 
     def update_active_image(self, dataset=None, channel=None, event=None):
+
         try:
+
             if dataset == None or dataset not in self.dataset_dict.keys():
                 dataset_name = self.gui.moltrack_dataset_selector.currentText()
             else:
@@ -354,7 +361,8 @@ class _events_utils:
                         image_name = f"{dataset_name}[{channel_name}]"
 
                         if hasattr(self, "image_layer") == False:
-                            self.image_layer = self.viewer.add_image(image, name=image_name, colormap="gray", blending="opaque", visible=True, scale=scale, )
+                            self.image_layer = self.viewer.add_image(image, name=image_name,
+                                colormap="gray", blending="opaque", visible=True, scale=scale, )
 
                             self.viewer.reset_view()
 
@@ -362,6 +370,10 @@ class _events_utils:
                             self.image_layer.data = image
                             self.image_layer.name = image_name
                             self.image_layer.scale = scale
+
+                        if self.gui.show_data.isChecked() == False:
+                            if self.image_layer in self.viewer.layers:
+                                self.viewer.layers.remove(self.image_layer)
 
                         self.viewer.scale_bar.visible = True
                         self.image_layer.scale = scale
@@ -445,6 +457,7 @@ class _events_utils:
         self.draw_localisations()
 
     def draw_localisations(self, update_vis=False):
+
         remove_localisations = True
 
         if hasattr(self, "localisation_dict"):
@@ -494,7 +507,10 @@ class _events_utils:
                                     if self.verbose:
                                         print("Drawing localisations")
 
-                                    self.loc_layer = self.viewer.add_points(render_locs, ndim=2, edge_color="red", face_color=[0, 0, 0, 0], opacity=vis_opacity, name="localisations", symbol=symbol, size=vis_size, edge_width=vis_edge_width, scale=scale, )
+                                    self.loc_layer = self.viewer.add_points(render_locs, ndim=2,
+                                        edge_color="red", face_color=[0, 0, 0, 0], opacity=vis_opacity,
+                                        name="localisations", symbol=symbol, size=vis_size, edge_width=vis_edge_width,
+                                        scale=scale, )
 
                                     update_vis = True
 
@@ -505,6 +521,10 @@ class _events_utils:
                                     self.loc_layer.data = render_locs
                                     self.loc_layer.selected_data = []
                                     self.loc_layer.scale = scale
+
+                                if self.gui.show_locs.isChecked() == False:
+                                    if self.loc_layer in self.viewer.layers:
+                                        self.viewer.layers.remove(self.loc_layer)
 
                                 self.loc_layer.scale = scale
                                 self.viewer.scale_bar.visible = True
@@ -615,3 +635,64 @@ class _events_utils:
 
         except:
             print(traceback.format_exc())
+
+    def update_active_layers(self, mode="all"):
+
+        if mode == "data":
+            if hasattr(self, "image_layer"):
+                if self.gui.show_data.isChecked():
+                    self.viewer.layers.append(self.image_layer)
+                else:
+                    if self.image_layer in self.viewer.layers:
+                        self.viewer.layers.remove(self.image_layer)
+
+            if hasattr(self, "segmentation_layer"):
+                if self.gui.show_data.isChecked():
+                    self.viewer.layers.append(self.segmentation_layer)
+                else:
+                    if self.segmentation_layer in self.viewer.layers:
+                        self.viewer.layers.remove(self.segmentation_layer)
+
+        elif mode == "shapes":
+            if hasattr(self, "segLayer"):
+                if self.gui.show_shapes.isChecked():
+                    self.viewer.layers.append(self.segLayer)
+                else:
+                    if self.segLayer in self.viewer.layers:
+                        self.viewer.layers.remove(self.segLayer)
+
+            if hasattr(self, "cellLayer"):
+                if self.gui.show_shapes.isChecked():
+                    self.viewer.layers.append(self.cellLayer)
+                else:
+                    if self.cellLayer in self.viewer.layers:
+                        self.viewer.layers.remove(self.cellLayer)
+
+        elif mode == "tracks":
+            if hasattr(self, "track_layer"):
+                if self.gui.show_tracks.isChecked():
+                    self.viewer.layers.append(self.track_layer)
+                else:
+                    if self.track_layer in self.viewer.layers:
+                        self.viewer.layers.remove(self.track_layer)
+
+        elif mode == "render":
+            if hasattr(self, "render_layer"):
+                if self.gui.show_render.isChecked():
+                    self.viewer.layers.append(self.render_layer)
+                else:
+                    if self.render_layer in self.viewer.layers:
+                        self.viewer.layers.remove(self.render_layer)
+
+        elif mode == "locs":
+            if hasattr(self, "loc_layer"):
+                if self.gui.show_locs.isChecked():
+                    self.viewer.layers.append(self.loc_layer)
+                else:
+                    if self.loc_layer in self.viewer.layers:
+                        self.viewer.layers.remove(self.loc_layer)
+
+        else:
+            pass
+
+
