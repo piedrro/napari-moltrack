@@ -250,7 +250,7 @@ class _tracking_utils:
 
                     self.track_layer.scale = scale
                     self.viewer.scale_bar.visible = True
-                    self.viewer.scale_bar.unit = "um"
+                    self.viewer.scale_bar.unit = "nm"
 
             if remove_tracks:
                 if "Tracks" in layer_names:

@@ -135,7 +135,7 @@ class _segmentation_events:
             )
 
         self.segLayer.scale = scale
-        self.viewer.scale_bar.unit = "um"
+        self.viewer.scale_bar.unit = "nm"
         self.segLayer.refresh()
         self.viewer.reset_view()
 

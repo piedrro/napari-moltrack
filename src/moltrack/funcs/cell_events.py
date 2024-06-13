@@ -84,7 +84,7 @@ class _cell_events:
 
         self.viewer.scale_bar.visible = True
         self.cellLayer.scale = scale
-        self.viewer.scale_bar.unit = "um"
+        self.viewer.scale_bar.unit = "nm"
 
         self.cellLayer.refresh()
         self.viewer.reset_view()

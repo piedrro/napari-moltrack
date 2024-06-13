@@ -319,7 +319,7 @@ class _events_utils:
 
             self.viewer.scale_bar.visible = True
             self.segmentation_layer.scale = scale
-            self.viewer.scale_bar.unit = "um"
+            self.viewer.scale_bar.unit = "nm"
 
             self.segmentation_layer.refresh()
             self.viewer.reset_view()
@@ -365,7 +365,7 @@ class _events_utils:
 
                         self.viewer.scale_bar.visible = True
                         self.image_layer.scale = scale
-                        self.viewer.scale_bar.unit = "um"
+                        self.viewer.scale_bar.unit = "nm"
 
                         self.image_layer_auto_contrast(image, dataset_name, channel_name)
                         self.image_layer.refresh()
@@ -503,7 +503,7 @@ class _events_utils:
 
                                 self.loc_layer.scale = scale
                                 self.viewer.scale_bar.visible = True
-                                self.viewer.scale_bar.unit = "um"
+                                self.viewer.scale_bar.unit = "nm"
 
                                 if update_vis:
                                     if self.verbose:
