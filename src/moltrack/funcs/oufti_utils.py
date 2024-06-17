@@ -13,6 +13,7 @@ import math
 import os
 import scipy
 
+
 class oufti:
 
     def export_mesh(self, path, progress_callback=None):

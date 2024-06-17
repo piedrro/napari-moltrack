@@ -131,6 +131,7 @@ class _events_utils:
             if import_mode == "Segmentation Image":
                 self.gui.import_multichannel_mode.setEnabled(False)
                 self.gui.import_concatenate.setEnabled(False)
+                self.gui.import_concatenate.setChecked(False)
 
             self.gui.import_mode.blockSignals(False)
             self.gui.import_multichannel_mode.blockSignals(False)
