@@ -9,6 +9,7 @@ from shapely.strtree import STRtree
 import matplotlib.pyplot as plt
 from multiprocessing import Pool, cpu_count
 from moltrack.bactfit.fit import BactFit
+from moltrack.bactfit.cell import ModelCell, Cell, CellList
 import traceback
 import time
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
@@ -29,7 +30,6 @@ def create_cell_model(length=10, width=5, margin = 1):
     
     polygon = midline.buffer(width)
     polygon_coords = np.array(polygon.exterior.coords)
-    
     
     
     y0 = width+margin
@@ -337,6 +337,50 @@ def transform_locs(dat, progress_list=[], n_segments=1000, reflect = True):
 
 
 
+with open('cell_shapes.json') as f:
+    cell_shapes = json.load(f)
+
+locs = pd.read_csv("cell_tracks.csv")
+locs = locs.to_records(index=False)
+
+
+
+name_list = cell_shapes["name"]
+
+cells = []
+
+for cell_index, name in enumerate(name_list):
+    
+    cell_index = name_list.index(name)
+    
+    midline_coords = [""]
+    
+    cell_dict = {}
+    for key,value in cell_shapes.items():
+        cell_dict[key]=value[cell_index]
+        
+    cell_dict["cell_index"] = cell_index
+        
+    cell = Cell(cell_dict)
+    cells.append(cell)
+
+cells = CellList(cells)
+    
+cells.add_localisations(locs)
+
+model = ModelCell(length=10, width=5)
+
+cells.transform_locs(model)
+cells.plot_cell_heatmap()
+cells.plot_cell_render()
+
+
+
+
+
+
+
+
 # render_jobs, total_locs = get_render_jobs()
 
 # dat = render_jobs[0]
@@ -352,44 +396,40 @@ def transform_locs(dat, progress_list=[], n_segments=1000, reflect = True):
 # plt.plot(*polygon.exterior.xy)
 # plt.show()
 
-
-
-
-
-if __name__ == "__main__":
-
-    render_jobs, total_locs = get_render_jobs()
-
-    cpu_count = cpu_count()
-
-    transformed_locs = []
-
-    with Manager() as manager:
-
-        progress_list = manager.list()
-
-        with ProcessPoolExecutor() as executor:
-
-            futures = {executor.submit(transform_locs, dat, progress_list): dat for dat in render_jobs}
-
-            completed = 0
-            for future in as_completed(futures):
-                tlocs = future.result()
-                transformed_locs.append(tlocs)
-
-    transformed_locs = [loc for loc in transformed_locs if len(loc) > 0]
-    transformed_locs = np.hstack(transformed_locs).view(np.recarray).copy()
-
-    polygon = render_jobs[0]["cell_model"]["polygon"]
-    points = np.stack([transformed_locs["x"], transformed_locs["y"]], axis=1)
-
-    #create heatmap
-    heatmap, xedges, yedges = np.histogram2d(transformed_locs["x"], transformed_locs["y"], bins=30, density=False)
-    extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
-
-    plt.rcParams["axes.grid"] = False
-    plt.imshow(heatmap.T, extent=extent, origin='lower')
-    plt.plot(*polygon.exterior.xy)
+# if __name__ == "__main__":
+#
+#     render_jobs, total_locs = get_render_jobs()
+#
+#     cpu_count = cpu_count()
+#
+#     transformed_locs = []
+#
+#     with Manager() as manager:
+#
+#         progress_list = manager.list()
+#
+#         with ProcessPoolExecutor() as executor:
+#
+#             futures = {executor.submit(transform_locs, dat, progress_list): dat for dat in render_jobs}
+#
+#             completed = 0
+#             for future in as_completed(futures):
+#                 tlocs = future.result()
+#                 transformed_locs.append(tlocs)
+#
+#     transformed_locs = [loc for loc in transformed_locs if len(loc) > 0]
+#     transformed_locs = np.hstack(transformed_locs).view(np.recarray).copy()
+#
+#     polygon = render_jobs[0]["cell_model"]["polygon"]
+#     points = np.stack([transformed_locs["x"], transformed_locs["y"]], axis=1)
+#
+#     #create heatmap
+#     heatmap, xedges, yedges = np.histogram2d(transformed_locs["x"], transformed_locs["y"], bins=30, density=False)
+#     extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+#
+#     plt.rcParams["axes.grid"] = False
+#     plt.imshow(heatmap.T, extent=extent, origin='lower')
+#     plt.plot(*polygon.exterior.xy)
     #remove tick lines
     
 
