@@ -348,7 +348,7 @@ class CellList(object):
 
                 self.data[polygon_index].locs = polygon_locs
 
-                print(f"Cell {polygon_index} has {len(polygon_locs)} localisations")
+                # print(f"Cell {polygon_index} has {len(polygon_locs)} localisations")
 
     def transform_locs(self, target_cell=None, locs=None, remove_outside_locs=True, progress_callback=None):
 
@@ -398,6 +398,27 @@ class CellList(object):
                     if progress_callback is not None:
                         progress = 100 * (completed_jobs / n_jobs)
                         progress_callback.emit(progress)
+
+
+    def get_locs(self):
+
+        locs = []
+
+        for cell in self.data:
+            cell_locs = cell.locs
+            if cell_locs is None:
+                continue
+            if len(cell_locs) == 0:
+                continue
+
+            locs.append(cell_locs)
+
+        if len(locs) > 0:
+            locs = np.hstack(locs).view(np.recarray).copy()
+            return locs
+        else:
+            return None
+
 
     def plot_cell_heatmap(self, locs=None, color="red"):
 

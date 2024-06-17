@@ -192,6 +192,7 @@ class QWidget(QWidget, gui, *subclasses):
     def devfunc(self, viewer=None):
 
         self.update_ui()
+        self.plot_heatmap()
         # print(True)
         # self.tracking_dict = {}
 

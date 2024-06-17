@@ -4,6 +4,7 @@ from moltrack.funcs.compute_utils import Worker
 from moltrack.bactfit.fit import BactFit
 from moltrack.bactfit.preprocess import data_to_cells
 from moltrack.bactfit.fit import BactFit
+from moltrack.bactfit.cell import Cell
 from functools import partial
 from shapely.geometry import Polygon, LineString, Point
 import matplotlib.pyplot as plt
@@ -219,7 +220,7 @@ class _cell_events:
             print(traceback.format_exc())
             pass
 
-    def get_cell(self, name, json=False):
+    def get_cell(self, name, json=False, bactfit=False):
         cell = None
 
         try:
@@ -251,6 +252,9 @@ class _cell_events:
                     cell_coords = {"midline_coords": midline_coords, "polygon_coords": polygon_coords, "midline_index": int(path_index[0]), "polygon_index": int(polygon_index[0]), }
 
                     cell = {**cell_coords, **cell_properties}
+
+                    if bactfit:
+                        cell = Cell(cell)
 
         except:
             print(traceback.format_exc())
