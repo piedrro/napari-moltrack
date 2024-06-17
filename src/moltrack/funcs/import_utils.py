@@ -323,7 +323,19 @@ class _import_utils:
         self.populate_dataset_selectors()
         self.update_active_image()
         self.draw_segmentation_image()
+        self.reset_slider()
         self.update_ui()
+
+    def reset_slider(self):
+        try:
+            curent_step = self.viewer.dims.current_step
+            curent_step = list(curent_step)
+            curent_step[0] = 0
+            curent_step = tuple(curent_step)
+            self.viewer.dims.current_step = curent_step
+        except:
+            print(traceback.format_exc())
+            pass
 
     def init_import_data(self):
         try:

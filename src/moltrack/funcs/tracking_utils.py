@@ -247,7 +247,8 @@ class _tracking_utils:
                         self.track_layer.data = render_tracks
 
                     if self.gui.show_tracks.isChecked() == False:
-                        self.viewer.layers.remove(self.track_layer)
+                        if self.track_layer in self.viewer.layers:
+                            self.viewer.layers.remove(self.track_layer)
 
                     self.track_layer.selected_data = []
                     self.track_layer.tail_length = n_frames * 2

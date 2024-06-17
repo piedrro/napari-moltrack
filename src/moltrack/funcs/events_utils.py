@@ -311,6 +311,7 @@ class _events_utils:
             print(traceback.format_exc())
 
     def draw_segmentation_image(self):
+
         if hasattr(self, "segmentation_image"):
             pixel_size = self.segmentation_image_pixel_size
             scale = [pixel_size, pixel_size]
@@ -325,7 +326,8 @@ class _events_utils:
                 self.viewer.reset_view()
 
             if self.gui.show_data.isChecked() == False:
-                self.viewer.layers.remove(self.segmentation_layer)
+                if self.segmentation_layer in self.viewer.layers:
+                    self.viewer.layers.remove(self.segmentation_layer)
 
             self.viewer.scale_bar.visible = True
             self.segmentation_layer.scale = scale
@@ -646,56 +648,70 @@ class _events_utils:
         if mode == "data":
             if hasattr(self, "image_layer"):
                 if self.gui.show_data.isChecked():
-                    self.viewer.layers.append(self.image_layer)
+                    if self.image_layer not in self.viewer.layers:
+                        self.viewer.layers.append(self.image_layer)
                 else:
                     if self.image_layer in self.viewer.layers:
-                        self.viewer.layers.remove(self.image_layer)
+                        if self.image_layer in self.viewer.layers:
+                            self.viewer.layers.remove(self.image_layer)
 
             if hasattr(self, "segmentation_layer"):
                 if self.gui.show_data.isChecked():
-                    self.viewer.layers.append(self.segmentation_layer)
+                    if self.segmentation_layer not in self.viewer.layers:
+                        self.viewer.layers.append(self.segmentation_layer)
                 else:
                     if self.segmentation_layer in self.viewer.layers:
-                        self.viewer.layers.remove(self.segmentation_layer)
+                        if self.segmentation_layer in self.viewer.layers:
+                            self.viewer.layers.remove(self.segmentation_layer)
 
         elif mode == "shapes":
             if hasattr(self, "segLayer"):
                 if self.gui.show_shapes.isChecked():
-                    self.viewer.layers.append(self.segLayer)
+                    if self.segLayer not in self.viewer.layers:
+                        self.viewer.layers.append(self.segLayer)
                 else:
                     if self.segLayer in self.viewer.layers:
-                        self.viewer.layers.remove(self.segLayer)
+                        if self.segLayer in self.viewer.layers:
+                            self.viewer.layers.remove(self.segLayer)
 
             if hasattr(self, "cellLayer"):
                 if self.gui.show_shapes.isChecked():
-                    self.viewer.layers.append(self.cellLayer)
+                    if self.cellLayer not in self.viewer.layers:
+                        self.viewer.layers.append(self.cellLayer)
                 else:
                     if self.cellLayer in self.viewer.layers:
-                        self.viewer.layers.remove(self.cellLayer)
+                        if self.cellLayer in self.viewer.layers:
+                            self.viewer.layers.remove(self.cellLayer)
 
         elif mode == "tracks":
             if hasattr(self, "track_layer"):
                 if self.gui.show_tracks.isChecked():
-                    self.viewer.layers.append(self.track_layer)
+                    if self.track_layer not in self.viewer.layers:
+                        self.viewer.layers.append(self.track_layer)
                 else:
                     if self.track_layer in self.viewer.layers:
-                        self.viewer.layers.remove(self.track_layer)
+                        if self.track_layer in self.viewer.layers:
+                            self.viewer.layers.remove(self.track_layer)
 
         elif mode == "render":
             if hasattr(self, "render_layer"):
                 if self.gui.show_render.isChecked():
-                    self.viewer.layers.append(self.render_layer)
+                    if self.render_layer not in self.viewer.layers:
+                        self.viewer.layers.append(self.render_layer)
                 else:
                     if self.render_layer in self.viewer.layers:
-                        self.viewer.layers.remove(self.render_layer)
+                        if self.render_layer in self.viewer.layers:
+                            self.viewer.layers.remove(self.render_layer)
 
         elif mode == "locs":
             if hasattr(self, "loc_layer"):
                 if self.gui.show_locs.isChecked():
-                    self.viewer.layers.append(self.loc_layer)
+                    if self.loc_layer not in self.viewer.layers:
+                        self.viewer.layers.append(self.loc_layer)
                 else:
                     if self.loc_layer in self.viewer.layers:
-                        self.viewer.layers.remove(self.loc_layer)
+                        if self.loc_layer in self.viewer.layers:
+                            self.viewer.layers.remove(self.loc_layer)
 
         else:
             pass
