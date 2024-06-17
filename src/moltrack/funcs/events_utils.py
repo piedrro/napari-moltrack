@@ -17,7 +17,8 @@ class _events_utils:
                                  "moltrack_dataset_selector", "picasso_dataset",
                                  "picasso_filter_dataset", "picasso_render_dataset",
                                  "tracking_dataset", "locs_export_dataset",
-                                 "remove_seglocs_dataset", "adc_dataset",]
+                                 "remove_seglocs_dataset", "adc_dataset",
+                                 "heatmap_dataset",]
 
             for selector_name in dataset_selectors:
                 dataset_names = list(self.dataset_dict.keys())
@@ -45,7 +46,8 @@ class _events_utils:
                                  "moltrack_channel_selector", "picasso_channel",
                                  "picasso_filter_channel", "picasso_render_channel",
                                  "tracking_channel", "locs_export_channel",
-                                 "remove_seglocs_channel", "adc_channel",]
+                                 "remove_seglocs_channel", "adc_channel",
+                                 "heatmap_channel",]
 
             for channel_selector in channel_selectors:
                 dataset_selector = channel_selector.replace("channel", "dataset")
@@ -207,11 +209,13 @@ class _events_utils:
                         "link_localisations", "export_localisations",
                         "fit_segmentations", "export_shapes",
                         "remove_seglocs", "export_shapes",
-                        "compute_adc", "export_adc", ]
+                        "compute_adc", "export_adc", "export_heatmap",
+                        "compute_heatmap",]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
                             "picasso_progressbar", "export_progressbar",
-                            "bactfit_progressbar", "adc_progressbar"]
+                            "bactfit_progressbar", "adc_progressbar",
+                            "heatmap_progressbar",]
 
             for progressbar in progressbars:
                 if hasattr(self.gui, progressbar):

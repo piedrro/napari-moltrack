@@ -26,6 +26,7 @@ from moltrack.funcs.bactfit_utils import _bactfit_utils
 from moltrack.funcs.cell_events import _cell_events
 from moltrack.funcs.oufti_utils import oufti
 from moltrack.funcs.diffusion_utils import _diffusion_utils
+from moltrack.funcs.cell_heatmap_utils import _cell_heatmap_utils
 
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
@@ -35,7 +36,7 @@ subclasses = [_import_utils, _compute_utils,
               _picasso_render_utils, _tracking_utils,
               _export_utils, _segmentation_events,
               _bactfit_utils, _cell_events,
-              oufti, _diffusion_utils]
+              oufti, _diffusion_utils, _cell_heatmap_utils]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -85,6 +86,10 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.adc_graph_container.setLayout(QVBoxLayout())
         self.adc_graph_canvas = CustomPyQTGraphWidget(self)
         self.gui.adc_graph_container.layout().addWidget(self.adc_graph_canvas)
+
+        self.gui.heatmap_graph_container.setLayout(QVBoxLayout())
+        self.heatmap_graph_canvas = CustomPyQTGraphWidget(self)
+        self.gui.heatmap_graph_container.layout().addWidget(self.heatmap_graph_canvas)
 
         self.dataset_dict = {}
         self.localisation_dict = {}
@@ -164,6 +169,9 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.show_tracks.stateChanged.connect(partial(self.update_active_layers, mode="tracks"))
         self.gui.show_locs.stateChanged.connect(partial(self.update_active_layers, mode="locs"))
         self.gui.show_render.stateChanged.connect(partial(self.update_active_layers, mode="render"))
+
+        self.gui.compute_heatmap.clicked.connect(self.compute_cell_heatmap)
+        self.gui.export_heatmap.clicked.connect(self.export_cell_heatmap)
 
         self.viewer.layers.events.inserted.connect(self.update_layer_combos)
         self.viewer.layers.events.removed.connect(self.update_layer_combos)
