@@ -12,6 +12,7 @@ from skimage import exposure
 import numpy as np
 import torch
 import traceback
+from PyQt5.QtWidgets import QApplication, QComboBox, QDoubleSpinBox, QFormLayout, QVBoxLayout, QWidget, QMainWindow
 
 if TYPE_CHECKING:
     import napari
@@ -76,6 +77,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.update_detect_options()
         self.initialise_channel_selectors()
         self.update_import_options()
+        self.update_heatmap_options()
 
         # create threadpool and stop event
         self.threadpool = QThreadPool()
@@ -112,6 +114,7 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.segmentation_mode = "panzoom"
         self.interface_mode = "segment"
+
 
     def initialise_events(self):
 
@@ -180,6 +183,10 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.compute_heatmap.clicked.connect(self.compute_cell_heatmap)
         self.gui.export_heatmap.clicked.connect(self.export_cell_heatmap)
+        self.gui.heatmap_dataset.currentIndexChanged.connect(self.plot_heatmap)
+        self.gui.heatmap_channel.currentIndexChanged.connect(self.plot_heatmap)
+        self.gui.heatmap_mode.currentIndexChanged.connect(self.plot_heatmap)
+        self.gui.heatmap_mode.currentIndexChanged.connect(self.update_heatmap_options)
 
         self.viewer.layers.events.inserted.connect(self.update_layer_combos)
         self.viewer.layers.events.removed.connect(self.update_layer_combos)

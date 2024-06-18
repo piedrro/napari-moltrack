@@ -2482,30 +2482,6 @@
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_8">
            <item>
-            <layout class="QFormLayout" name="formLayout_30">
-             <item row="0" column="0">
-              <widget class="QLabel" name="picasso_filter_dataset_label_6">
-               <property name="text">
-                <string>Dataset</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QComboBox" name="heatmap_dataset"/>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="picasso_filter_dataset_label_5">
-               <property name="text">
-                <string>Channel</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="1">
-              <widget class="QComboBox" name="heatmap_channel"/>
-             </item>
-            </layout>
-           </item>
-           <item>
             <widget class="QPushButton" name="compute_heatmap">
              <property name="text">
               <string>Compute Heatmap</string>
@@ -2534,6 +2510,64 @@
               </sizepolicy>
              </property>
             </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_47">
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Heatmap Plot Settings</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QFormLayout" name="heatmap_settings_layout">
+             <item row="1" column="0">
+              <widget class="QLabel" name="heatmap_dataset_label">
+               <property name="text">
+                <string>Dataset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="heatmap_dataset"/>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="heatmap_channel_label">
+               <property name="text">
+                <string>Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QComboBox" name="heatmap_channel"/>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="heatmap_mode_label">
+               <property name="text">
+                <string>Mode</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="heatmap_mode">
+               <item>
+                <property name="text">
+                 <string>Heatmap</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Render</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
            </item>
            <item>
             <widget class="QPushButton" name="export_heatmap">

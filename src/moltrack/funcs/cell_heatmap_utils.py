@@ -9,6 +9,7 @@ from matplotlib.colors import LogNorm
 import pyqtgraph as pg
 from io import BytesIO
 from picasso.render import render
+from PyQt5.QtWidgets import QApplication, QComboBox, QDoubleSpinBox, QFormLayout, QVBoxLayout, QWidget, QMainWindow, QSpinBox
 
 from moltrack.funcs.compute_utils import Worker
 
@@ -25,12 +26,83 @@ class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
 class _cell_heatmap_utils:
 
+    def initialise_heatmap_controls(self):
+
+        try:
+
+            self.heatmap_binning = QSpinBox()
+            self.heatmap_blur_method = QComboBox()
+            self.heatmap_min_blur_width = QDoubleSpinBox()
+            self.heatmap_oversampling = QSpinBox()
+
+            self.heatmap_binning.setRange(1, 100)
+            self.heatmap_binning.setSingleStep(1)
+            self.heatmap_binning.setValue(30)
+
+            self.heatmap_min_blur_width.setRange(0.1, 10)
+            self.heatmap_min_blur_width.setSingleStep(0.1)
+            self.heatmap_min_blur_width.setValue(0.2)
+
+            self.heatmap_oversampling.setRange(1, 100)
+            self.heatmap_oversampling.setSingleStep(1)
+            self.heatmap_oversampling.setValue(20)
+
+            blur_methods = ["One-Pixel-Blur", "Global Localisation Precision",
+                            "Individual Localisation Precision, iso",
+                            "Individual Localisation Precision"]
+
+            self.heatmap_blur_method.clear()
+            self.heatmap_blur_method.addItems(blur_methods)
+
+            self.heatmap_binning.blockSignals(True)
+            self.heatmap_blur_method.blockSignals(True)
+            self.heatmap_min_blur_width.blockSignals(True)
+            self.heatmap_oversampling.blockSignals(True)
+
+            self.heatmap_binning.valueChanged.connect(self.plot_heatmap)
+            self.heatmap_blur_method.currentIndexChanged.connect(self.plot_heatmap)
+            self.heatmap_min_blur_width.valueChanged.connect(self.plot_heatmap)
+            self.heatmap_oversampling.valueChanged.connect(self.plot_heatmap)
+
+            self.heatmap_binning.blockSignals(False)
+            self.heatmap_blur_method.blockSignals(False)
+            self.heatmap_min_blur_width.blockSignals(False)
+            self.heatmap_oversampling.blockSignals(False)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+    def update_heatmap_options(self):
+
+        mode = self.gui.heatmap_mode.currentText()
+        layout = self.gui.heatmap_settings_layout
+
+        core_settings = ["heatmap_dataset", "heatmap_channel", "heatmap_mode",
+                         "heatmap_dataset_label", "heatmap_channel_label", "heatmap_mode_label"]
+
+        for i in reversed(range(layout.count())):
+            widget = layout.itemAt(i).widget()
+            widget_name = widget.objectName()
+            if widget_name.lower() not in core_settings:
+                if widget is not None:
+                    widget.deleteLater()
+
+        self.initialise_heatmap_controls()
+
+        if mode == "Heatmap":
+            layout.addRow("Binning", self.heatmap_binning)
+        elif mode == "Render":
+            layout.addRow("Blur Method", self.heatmap_blur_method)
+            layout.addRow("Min Blur Width", self.heatmap_min_blur_width)
+            layout.addRow("Oversampling", self.heatmap_oversampling)
+
 
     def cell_heatmap_compute_finished(self):
 
         try:
 
-            self.plot_cell_heatmap()
+            self.plot_heatmap()
             self.update_ui()
             print("Cell heatmap computed.")
 
@@ -76,16 +148,12 @@ class _cell_heatmap_utils:
 
         return cells
 
-
-
-
-
     def compute_cell_heatmap(self):
 
         try:
 
-            dataset = self.gui.heatmap_dataset.currentText()
-            channel = self.gui.heatmap_channel.currentText()
+            dataset = "All Datasets"
+            channel = "All Channels"
 
             locs = self.get_locs(dataset, channel)
 
@@ -111,9 +179,15 @@ class _cell_heatmap_utils:
             self.update_ui()
 
 
-    def plot_cell_heatmap(self):
+    def plot_heatmap(self):
 
         try:
+
+            heatmap_datset = self.gui.heatmap_dataset.currentText()
+            heatmap_channel = self.gui.heatmap_channel.currentText()
+            heatmap_mode = self.gui.heatmap_mode.currentText()
+
+            self.heatmap_canvas.clear()
 
             if hasattr(self, "celllist") == False:
                 return
@@ -122,10 +196,44 @@ class _cell_heatmap_utils:
 
             celllocs = self.celllist.get_locs()
 
+            celllocs = pd.DataFrame(celllocs)
+
+            if "dataset" in celllocs.columns:
+                if heatmap_datset != "All Datasets":
+                    celllocs = celllocs[celllocs["dataset"] == heatmap_datset]
+            if "channel" in celllocs.columns:
+                if heatmap_channel != "All Channels":
+                    celllocs = celllocs[celllocs["channel"] == heatmap_channel]
+
+            celllocs = celllocs.to_records(index=False)
+
             if len(celllocs) == 0:
                 return
 
-            heatmap, xedges, yedges = np.histogram2d(celllocs["x"], celllocs["y"], bins=30)
+            print(f"Plotting {len(celllocs)} localisations...")
+
+            if heatmap_mode == "Heatmap":
+                self.plot_cell_heatmap(celllocs)
+            elif heatmap_mode == "Render":
+                self.plot_cell_render(celllocs)
+            else:
+                pass
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+
+
+    def plot_cell_heatmap(self, celllocs):
+
+        try:
+
+            print("Generating heatmap...")
+
+            bins = self.heatmap_binning.value()
+
+            heatmap, xedges, yedges = np.histogram2d(celllocs["x"], celllocs["y"], bins=bins)
             extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
 
             plt.rcParams["axes.grid"] = False
@@ -164,20 +272,15 @@ class _cell_heatmap_utils:
             print(traceback.format_exc())
             pass
 
-    def plot_cell_render(self, blur_method="One-Pixel-Blur", min_blur_width=1,
-            oversampling=20):
+    def plot_cell_render(self, celllocs):
 
         try:
 
-            if hasattr(self, "celllist") == False:
-                return
-            if self.celllist is None:
-                return
+            print("Generating render...")
 
-            celllocs = self.celllist.get_locs()
-
-            if len(celllocs) == 0:
-                return
+            blur_method = self.heatmap_blur_method.currentText()
+            min_blur_width = self.heatmap_min_blur_width.value()
+            oversampling = self.heatmap_oversampling.value()
 
             celllocs = pd.DataFrame(celllocs)
 
@@ -210,9 +313,6 @@ class _cell_heatmap_utils:
             else:
                 blur_method = None
 
-            blur_method = "gaussian"
-            min_blur_width = 0.2
-
             n_rendered_locs, image = render(celllocs,
                 viewport=viewport,
                 blur_method=blur_method,
@@ -241,10 +341,6 @@ class _cell_heatmap_utils:
             self.heatmap_canvas.ui.histogram.hide()
             self.heatmap_canvas.ui.roiBtn.hide()
             self.heatmap_canvas.ui.menuBtn.hide()
-
-
-
-
 
         except:
             print(traceback.format_exc())
