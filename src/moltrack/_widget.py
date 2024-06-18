@@ -10,6 +10,8 @@ from qtpy.QtCore import QThreadPool
 from qtpy.QtWidgets import QVBoxLayout, QWidget
 from skimage import exposure
 import numpy as np
+import torch
+import traceback
 
 if TYPE_CHECKING:
     import napari
@@ -69,6 +71,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.initialise_events()
         self.initialise_keybindings()
 
+        self.check_cuda_availibility()
         self.check_gpufit_availibility()
         self.update_detect_options()
         self.initialise_channel_selectors()
@@ -197,7 +200,8 @@ class QWidget(QWidget, gui, *subclasses):
     def devfunc(self, viewer=None):
 
         self.update_ui()
-        self.plot_heatmap()
+        # self.plot_cell_heatmap()
+        self.plot_cell_render()
         # print(True)
         # self.tracking_dict = {}
 
@@ -227,6 +231,18 @@ class QWidget(QWidget, gui, *subclasses):
         return x
 
 
+
+    def check_cuda_availibility(self):
+
+        try:
+            if torch.cuda.is_available():
+                print("Pytorch Using GPU")
+            else:
+                print("Pytorch Using CPU")
+        except:
+            print(traceback.format_exc())
+            pass
+
     def check_gpufit_availibility(self):
         self.gpufit_available = False
 
@@ -243,15 +259,13 @@ class QWidget(QWidget, gui, *subclasses):
             else:
                 runtime_version, driver_version = gf.get_cuda_version()
 
-                runtime_version = ".".join([str(v) for v in list(runtime_version)])
-                driver_version = ".".join([str(v) for v in list(driver_version)])
+                runtime_version = ".".join([str(v) for v in list(runtime_version)[:2]])
+                driver_version = ".".join([str(v) for v in list(driver_version)][:2])
 
-                if runtime_version != driver_version:
-                    print(f"Pygpufit not available due to CUDA version mismatch. "
-                          f"Runtime: {runtime_version}, Driver: {driver_version}")
+                runtime_version = float(runtime_version)
+                driver_version = float(driver_version)
 
-                else:
-                    self.gpufit_available = True
+                self.gpufit_available = True
 
         else:
             print("Pygpufit not available due to missing package")
@@ -261,6 +275,11 @@ class QWidget(QWidget, gui, *subclasses):
             print(f"Add pygpufit package to moltrack src directory [{src_dir}] to enable GPUFit.")
 
         if self.gpufit_available:
-            print("GPUFit available")
+            if driver_version < runtime_version:
+                print("Pygpufit may not work due to mismatched CUDA driver and runtime versions: {driver_version} < {runtime_version}")
+            else:
+                print("GPUFit available")
+                print(f"GPUFit runtime: {runtime_version}, driver: {driver_version}")
+
             self.gui.smlm_fit_mode.addItem("GPUFit")
             self.gui.smlm_fit_mode.setCurrentIndex(1)

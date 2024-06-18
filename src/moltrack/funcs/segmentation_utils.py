@@ -72,7 +72,7 @@ class _segmentation_utils:
 
         gpu = False
 
-        if torch.cuda.is_available() and self.cellpose_usegpu.isChecked():
+        if torch.cuda.is_available():
             if self.widget_notifications:
                 show_info("Cellpose Using GPU")
             gpu = True
@@ -101,7 +101,7 @@ class _segmentation_utils:
 
         gpu = False
 
-        if torch.cuda.is_available() and self.cellpose_usegpu.isChecked():
+        if torch.cuda.is_available():
             if self.widget_notifications:
                 show_info("Omnipose Using GPU")
             gpu = True

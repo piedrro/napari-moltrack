@@ -367,7 +367,6 @@ for cell_index, name in enumerate(name_list):
 cells = CellList(cells)
     
 cells.add_localisations(locs)
-
 model = ModelCell(length=10, width=5)
 
 cells.transform_locs(model)
