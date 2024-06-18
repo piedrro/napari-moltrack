@@ -446,7 +446,7 @@ class _diffusion_utils:
             if msd is None:
                 return
 
-            dataset_list = msd["dataset"].unique()
+            dataset_list = list(self.dataset_dict.keys())
             file_path = self.dataset_dict[dataset_list[0]]["path"]
 
             if type(file_path) == list:

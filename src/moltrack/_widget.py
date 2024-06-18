@@ -79,6 +79,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.initialise_channel_selectors()
         self.update_import_options()
         self.update_heatmap_options()
+        self.update_diffusion_options()
 
         # create threadpool and stop event
         self.threadpool = QThreadPool()
