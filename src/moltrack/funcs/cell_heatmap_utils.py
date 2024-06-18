@@ -128,7 +128,7 @@ class _cell_heatmap_utils:
 
             plt.rcParams["axes.grid"] = False
             fig, ax = plt.subplots()
-            im = ax.imshow(heatmap.T, extent=extent, origin='lower')
+            im = ax.imshow(heatmap.T, extent=extent, origin='lower', cmap='inferno')
             ax.axis('off')
 
             from mpl_toolkits.axes_grid1 import make_axes_locatable
