@@ -3,6 +3,8 @@ from multiprocessing import Manager
 from typing import TYPE_CHECKING
 
 import pyqtgraph as pg
+from pyqtgraph import GraphicsLayoutWidget
+from pyqtgraph import ImageView
 import tifffile
 from qtpy.QtCore import QThreadPool
 from qtpy.QtWidgets import QVBoxLayout, QWidget
@@ -87,9 +89,12 @@ class QWidget(QWidget, gui, *subclasses):
         self.adc_graph_canvas = CustomPyQTGraphWidget(self)
         self.gui.adc_graph_container.layout().addWidget(self.adc_graph_canvas)
 
+        self.heatmap_canvas = ImageView()
         self.gui.heatmap_graph_container.setLayout(QVBoxLayout())
-        self.heatmap_graph_canvas = CustomPyQTGraphWidget(self)
-        self.gui.heatmap_graph_container.layout().addWidget(self.heatmap_graph_canvas)
+        self.gui.heatmap_graph_container.layout().addWidget(self.heatmap_canvas)
+        self.heatmap_canvas.ui.histogram.hide()
+        self.heatmap_canvas.ui.roiBtn.hide()
+        self.heatmap_canvas.ui.menuBtn.hide()
 
         self.dataset_dict = {}
         self.localisation_dict = {}

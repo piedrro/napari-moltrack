@@ -6,8 +6,20 @@ from moltrack.bactfit.preprocess import data_to_cells
 from moltrack.bactfit.cell import CellList, ModelCell
 import matplotlib.pyplot as plt
 import pyqtgraph as pg
+from io import BytesIO
 
 from moltrack.funcs.compute_utils import Worker
+
+
+class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
+
+    def __init__(self, parent):
+        super().__init__()
+
+        self.parent = parent
+        self.frame_position_memory = {}
+        self.frame_position = None
+
 
 class _cell_heatmap_utils:
 
@@ -111,23 +123,39 @@ class _cell_heatmap_utils:
             if len(celllocs) == 0:
                 return
 
-            self.heatmap_graph_canvas.clear()
-
-            # create heatmap
             heatmap, xedges, yedges = np.histogram2d(celllocs["x"], celllocs["y"], bins=30, density=False)
             extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
 
-            image_item = pg.ImageItem(heatmap.T)
-            image_item.setRect(pg.QtCore.QRectF(extent[0], extent[2], extent[1] - extent[0], extent[3] - extent[2]))
-            self.heatmap_graph_canvas.addItem(image_item)
-            self.heatmap_graph_canvas.setAspectLocked(True)
-            self.heatmap_graph_canvas.setTitle('Heatmap of Cell Locations')
+            plt.rcParams["axes.grid"] = False
+            fig, ax = plt.subplots()
+            im = ax.imshow(heatmap.T, extent=extent, origin='lower')
+            ax.axis('off')
 
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="2%", pad=0.05)
+            plt.colorbar(im, cax=cax)
+            cax.set_facecolor('black')
 
+            buf = BytesIO()
+            plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0, facecolor='black', dpi=300)
+            buf.seek(0)
+            heatmap = plt.imread(buf)
 
+            # Close the figure
+            plt.close(fig)
 
+            #rotate heatmap -90
+            heatmap = np.rot90(heatmap, k=3)
+            #flip heatmap
+            heatmap = np.fliplr(heatmap)
 
+            self.heatmap_canvas.clear()
+            self.heatmap_canvas.setImage(heatmap)
 
+            self.heatmap_canvas.ui.histogram.hide()
+            self.heatmap_canvas.ui.roiBtn.hide()
+            self.heatmap_canvas.ui.menuBtn.hide()
 
         except:
             print(traceback.format_exc())
