@@ -3,98 +3,138 @@ import numpy as np
 import pandas as pd
 from shapely.geometry import Polygon, Point, MultiPolygon, MultiPoint
 from shapely.strtree import STRtree
+import matplotlib.pyplot as plt
 
 class _loc_filter_utils:
+
+    def get_shapes(self, type="segmentations", flipxy=True, polygon=True):
+
+        try:
+            shape_data = []
+            layer = None
+
+            if type.lower() == "segmentations":
+                if hasattr(self, "segLayer"):
+                    layer = self.segLayer
+            elif type.lower() == "cells":
+                if hasattr(self, "cellLayer"):
+                    layer = self.cellLayer
+
+            if layer is None:
+                return
+
+            shapes = layer.data.copy()
+            shape_type = layer.shape_type.copy()
+
+            if len(shapes) == 0:
+                return
+
+            for shape_index, shape in enumerate(shapes):
+                if shape_type[shape_index] == "polygon":
+                    shape_data.append(shape)
+
+            if flipxy:
+                shape_data = [np.fliplr(poly) for poly in shape_data]
+
+            if polygon:
+                shape_data = [Polygon(poly) for poly in shape_data]
+
+        except:
+            print(traceback.format_exc())
+
+        return shape_data
+
+
+
 
 
     def remove_seglocs(self, viewer=None):
 
         try:
 
-            layer_names = [layer.name for layer in self.viewer.layers]
-
-            segmentations = self.gui.remove_seglocs_segmentation.currentText()
+            segchannel = self.gui.remove_seglocs_segmentation.currentText()
             dataset = self.gui.remove_seglocs_dataset.currentText()
             channel = self.gui.remove_seglocs_channel.currentText()
 
-            if segmentations not in layer_names:
-                print(f"Segmentation {segmentations} not found in viewer.")
+            polygons = self.get_shapes(segchannel, flipxy=True, polygon=True)
+
+            if len(polygons) == 0:
                 return
-            else:
-                polygons = self.viewer.layers[segmentations].data.copy()
-
-                if len(polygons) == 0:
-                    print(f"No polygons found in segmentation {segmentations}.")
-                    return
-
-            polygons = [Polygon(polygon) for polygon in polygons]
 
             total_locs = 0
-            total_removed = 0
+            total_filtered = 0
 
-            loc_data = self.get_locs(dataset, channel, return_dict=True)
+            locs = self.get_locs(dataset, channel, return_dict=False)
 
-            for dat in loc_data:
+            n_locs = len(locs)
+            n_filtered = 0
 
-                dataset_name = dat["dataset"]
-                channel_name = dat["channel"]
-                locs = dat["localisations"]
+            if n_locs == 0:
+                return
 
-                n_locs = len(locs)
+            filtered_locs = []
 
-                if n_locs == 0:
-                    print(f"No localisations found in dataset {dataset_name}.")
-                    return
+            coords = np.stack([locs["x"], locs["y"]], axis=1)
+            points = [Point(coord) for coord in coords]
 
-                filtered_locs = []
+            # for polygon in polygons:
+            #     polygon_coords = np.array(polygon.exterior.coords).copy()
+            #     plt.plot(polygon_coords[:,0], polygon_coords[:,1], color="red")
+            # points_coords = coords.copy()
+            # plt.scatter(points_coords[:,0], points_coords[:,1], color="blue", s=0.5)
+            # plt.gca().invert_yaxis()
+            # plt.show()
 
-                coords = np.stack([locs["x"], locs["y"]], axis=1)
-                points = [Point(coord) for coord in coords]
-                spatial_index = STRtree(points)
+            # print("Done")
 
-                for polygon_index, polygon in enumerate(polygons):
+            spatial_index = STRtree(points)
 
-                    possible_points = spatial_index.query(polygon)
+            polygon_point_indices = []
 
-                    polygon_point_indices = []
+            for polygon_index, polygon in enumerate(polygons):
 
-                    for point_index in possible_points:
+                possible_points = spatial_index.query(polygon)
 
-                        point = points[point_index]
+                for point_index in possible_points:
 
-                        if polygon.contains(point):
+                    point = points[point_index]
 
-                            polygon_point_indices.append(point_index)
+                    if polygon.contains(point):
 
-                    if len(polygon_point_indices) > 0:
+                        polygon_point_indices.append(point_index)
 
-                        polygon_locs = locs[polygon_point_indices]
+            if len(polygon_point_indices) > 0:
 
-                        seg_name = segmentations[:-1].lower() + "_index"
+                polygon_locs = locs[polygon_point_indices].copy()
 
-                        polygon_locs = pd.DataFrame(polygon_locs)
+                seg_name = segchannel[:-1].lower() + "_index"
 
-                        if "cell_index" in polygon_locs.columns:
-                            polygon_locs = polygon_locs.drop(columns=["cell_index"])
-                        if "segmentation_index" in polygon_locs.columns:
-                            polygon_locs = polygon_locs.drop(columns=["segmentation_index"])
+                polygon_locs = pd.DataFrame(polygon_locs)
 
-                        polygon_locs[seg_name] = polygon_index
-                        polygon_locs = polygon_locs.to_records(index=False)
+                if "cell_index" in polygon_locs.columns:
+                    polygon_locs = polygon_locs.drop(columns=["cell_index"])
+                if "segmentation_index" in polygon_locs.columns:
+                    polygon_locs = polygon_locs.drop(columns=["segmentation_index"])
 
-                        filtered_locs.append(polygon_locs)
+                polygon_locs[seg_name] = polygon_index
+                polygon_locs = polygon_locs.to_records(index=False)
 
-                if len(filtered_locs) > 0:
+                filtered_locs.append(polygon_locs)
 
-                    total_locs += n_locs
-                    total_removed += (n_locs - len(filtered_locs))
+            if len(filtered_locs) > 0:
 
-                    filtered_locs = np.hstack(filtered_locs).view(np.recarray).copy()
+                filtered_locs = np.hstack(filtered_locs).view(np.recarray).copy()
+                filtered_locs = pd.DataFrame(filtered_locs)
 
+                for (dataset_name, channel_name), flocs in filtered_locs.groupby(["dataset", "channel"]):
+
+                    flocs = flocs.to_records(index=False)
                     loc_dict = self.localisation_dict[dataset_name][channel_name]
-                    loc_dict["localisations"] = filtered_locs
+                    loc_dict["localisations"] = flocs
+                    n_filtered += len(flocs)
 
-            print(f"Removed {total_removed} localisations.")
+            n_removed = n_locs - n_filtered
+            print(f"Removed {n_removed} localisations.")
 
             self.draw_localisations()
             self.update_filter_criterion()

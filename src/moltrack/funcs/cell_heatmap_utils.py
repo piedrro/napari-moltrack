@@ -10,6 +10,8 @@ import pyqtgraph as pg
 from io import BytesIO
 from picasso.render import render
 from PyQt5.QtWidgets import QApplication, QComboBox, QDoubleSpinBox, QFormLayout, QVBoxLayout, QWidget, QMainWindow, QSpinBox
+from PyQt5.QtWidgets import QFileDialog
+import os
 
 from moltrack.funcs.compute_utils import Worker
 
@@ -148,14 +150,24 @@ class _cell_heatmap_utils:
 
         return cells
 
-    def compute_cell_heatmap(self):
+    def compute_cell_heatmap(self, viewer=None, model_length_um=5, model_width_um=2):
 
         try:
 
-            dataset = "All Datasets"
-            channel = "All Channels"
+            data_type = self.gui.heatmap_data.currentText()
 
-            locs = self.get_locs(dataset, channel)
+            datasets = self.dataset_dict.keys()
+
+            pixel_size_nm = list(set([self.dataset_dict[dataset]["pixel_size"] for dataset in datasets]))
+            pixel_size_um = pixel_size_nm[0] / 1000
+
+            model_length = model_length_um / pixel_size_um
+            model_width = (model_width_um / pixel_size_um)/2
+
+            if data_type.lower() == "localisations":
+                locs = self.get_locs("All Datasets", "All Channels")
+            elif data_type.lower() == "tracks":
+                locs = self.get_tracks("All Datasets", "All Channels")
 
             if len(locs) == 0:
                 return
@@ -165,7 +177,7 @@ class _cell_heatmap_utils:
             celllist = self.populate_celllist()
 
             celllist.add_localisations(locs)
-            model = ModelCell(length=10, width=5)
+            model = ModelCell(length=model_length, width=model_width)
 
             self.update_ui(init=True)
 
@@ -249,16 +261,16 @@ class _cell_heatmap_utils:
 
             buf = BytesIO()
             plt.savefig(buf, format='png', bbox_inches='tight',
-                pad_inches=0, facecolor='black', dpi=300)
+                pad_inches=0, facecolor='black', dpi=500)
             buf.seek(0)
             heatmap = plt.imread(buf)
 
             # Close the figure
             plt.close(fig)
 
-            #rotate heatmap -90
+            self.heatmap_image = heatmap
+
             heatmap = np.rot90(heatmap, k=3)
-            #flip heatmap
             heatmap = np.fliplr(heatmap)
 
             self.heatmap_canvas.clear()
@@ -326,10 +338,12 @@ class _cell_heatmap_utils:
 
             buf = BytesIO()
             plt.savefig(buf, format='png', bbox_inches='tight',
-                pad_inches=0, facecolor='black', dpi=300)
+                pad_inches=0, facecolor='black', dpi=500)
             buf.seek(0)
             image = plt.imread(buf)
             plt.close(fig)
+
+            self.heatmap_image = image
 
             #rotate and flip
             image = np.rot90(image, k=3)
@@ -350,4 +364,33 @@ class _cell_heatmap_utils:
 
     def export_cell_heatmap(self):
 
-        pass
+        try:
+
+            if hasattr(self, "heatmap_image") == False:
+                return
+
+            if self.heatmap_image is None:
+                return
+
+            image = self.heatmap_image.copy()
+
+            mode = self.gui.heatmap_mode.currentText()
+
+            dataset_list = list(self.dataset_dict.keys())
+            path = self.dataset_dict[dataset_list[0]]["path"]
+
+            directory = os.path.dirname(path)
+            file_name = os.path.basename(path)
+            base, ext = os.path.splitext(file_name)
+            path = os.path.join(directory, base + f"_cell_{mode.lower()}" + ".png")
+            path = QFileDialog.getSaveFileName(self, "Save Image", path, "PNG (*.png,*.tif)")[0]
+
+            if path == "":
+                return
+
+            plt.imsave(path, image, cmap='inferno')
+
+            print(f"Exported cell {mode.lower()} to {path}")
+
+        except:
+            print(traceback.format_exc())

@@ -192,18 +192,6 @@ class QWidget(QWidget, gui, *subclasses):
         self.viewer.layers.events.removed.connect(self.update_layer_combos)
         self.viewer.dims.events.current_step.connect(self.slider_event)
 
-    def initialise_keybindings(self):
-
-        self.viewer.bind_key("F1", self.devfunc)
-
-        self.viewer.bind_key(key="Control-Right", func=lambda event: self.moltract_translation(direction="right"), overwrite=True, )
-        self.viewer.bind_key(key="Control-Left", func=lambda event: self.moltract_translation(direction="left"), overwrite=True, )
-        self.viewer.bind_key(key="Control-Up", func=lambda event: self.moltract_translation(direction="up"), overwrite=True, )
-        self.viewer.bind_key(key="Control-Down", func=lambda event: self.moltract_translation(direction="down"), overwrite=True, )
-        self.viewer.bind_key(key="Control-Z", func=self.moltrack_undo, overwrite=True, )
-
-        self.register_shape_layer_keybinds(self.viewer)
-
     def devfunc(self, viewer=None):
 
         self.update_ui()
@@ -216,6 +204,30 @@ class QWidget(QWidget, gui, *subclasses):
 
         # self.create_shared_image_chunks()
         # self.restore_shared_image_chunks()
+
+    def initialise_keybindings(self):
+
+        self.viewer.bind_key("F1", self.devfunc)
+
+        self.viewer.bind_key(key="Control-Right", func=lambda event: self.moltract_translation(direction="right"), overwrite=True, )
+        self.viewer.bind_key(key="Control-Left", func=lambda event: self.moltract_translation(direction="left"), overwrite=True, )
+        self.viewer.bind_key(key="Control-Up", func=lambda event: self.moltract_translation(direction="up"), overwrite=True, )
+        self.viewer.bind_key(key="Control-Down", func=lambda event: self.moltract_translation(direction="down"), overwrite=True, )
+        self.viewer.bind_key(key="Control-Z", func=self.moltrack_undo, overwrite=True, )
+
+        self.register_shape_layer_keybinds(self.viewer)
+
+    def remove_keybindings(self):
+
+        self.viewer.bind_key("F1", None)
+
+        self.viewer.bind_key(key="Control-Right", func=None)
+        self.viewer.bind_key(key="Control-Left", func=None)
+        self.viewer.bind_key(key="Control-Up", func=None)
+        self.viewer.bind_key(key="Control-Down", func=None)
+        self.viewer.bind_key(key="Control-Z", func=None)
+
+        self.remove_shape_layer_keybinds(self.viewer)
 
     def normalize99(self, X):
         """ normalize image so 0.0==0.01st percentile and 1.0==99.99th percentile """
@@ -236,8 +248,6 @@ class QWidget(QWidget, gui, *subclasses):
         x = x.astype(np.float64)
 
         return x
-
-
 
     def check_cuda_availibility(self):
 

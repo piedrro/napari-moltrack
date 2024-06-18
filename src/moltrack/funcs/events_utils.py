@@ -658,8 +658,6 @@ class _events_utils:
 
                     self.cellLayer.data = cell_data
 
-
-
         except:
             print(traceback.format_exc())
 
