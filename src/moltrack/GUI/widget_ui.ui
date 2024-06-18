@@ -1707,50 +1707,34 @@
            <item>
             <layout class="QFormLayout" name="formLayout_24">
              <item row="0" column="0">
-              <widget class="QLabel" name="label_93">
-               <property name="text">
-                <string>Type</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QComboBox" name="picasso_filter_type">
-               <item>
-                <property name="text">
-                 <string>Localisations</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-             <item row="1" column="0">
               <widget class="QLabel" name="picasso_filter_dataset_label">
                <property name="text">
                 <string>Dataset</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="1">
+             <item row="0" column="1">
               <widget class="QComboBox" name="picasso_filter_dataset"/>
              </item>
-             <item row="3" column="0">
-              <widget class="QLabel" name="label_90">
-               <property name="text">
-                <string>Filter By</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="1">
-              <widget class="QComboBox" name="filter_criterion"/>
-             </item>
-             <item row="2" column="0">
+             <item row="1" column="0">
               <widget class="QLabel" name="picasso_filter_dataset_label_2">
                <property name="text">
                 <string>Channel</string>
                </property>
               </widget>
              </item>
-             <item row="2" column="1">
+             <item row="1" column="1">
               <widget class="QComboBox" name="picasso_filter_channel"/>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_90">
+               <property name="text">
+                <string>Filter By</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QComboBox" name="filter_criterion"/>
              </item>
             </layout>
            </item>

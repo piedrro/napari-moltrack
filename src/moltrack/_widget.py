@@ -142,7 +142,6 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.picasso_filter_dataset.currentIndexChanged.connect(self.update_filter_criterion)
         self.gui.filter_criterion.currentIndexChanged.connect(self.update_criterion_ranges)
         self.gui.filter_localisations.clicked.connect(self.pixseq_filter_localisations)
-        self.gui.picasso_filter_type.currentIndexChanged.connect(self.update_filter_dataset)
         self.gui.picasso_segmentation_layer.currentIndexChanged.connect(self.update_picasso_segmentation_filter)
 
         self.gui.picasso_vis_mode.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))

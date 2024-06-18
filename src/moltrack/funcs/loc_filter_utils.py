@@ -326,21 +326,6 @@ class _loc_filter_utils:
             self.gui.filter_localisations.setEnabled(True)
             print(traceback.format_exc())
 
-
-    def update_filter_dataset(self, viewer=None):
-
-        if self.gui.picasso_filter_type.currentText() == "Localisations":
-            self.gui.picasso_filter_dataset.setEnabled(True)
-            self.gui.picasso_filter_dataset.show()
-            self.gui.picasso_filter_dataset_label.show()
-        else:
-            self.gui.picasso_filter_dataset.setEnabled(False)
-            self.gui.picasso_filter_dataset.hide()
-            self.gui.picasso_filter_dataset_label.hide()
-
-        self.update_filter_criterion()
-        self.update_criterion_ranges()
-
     def update_filter_criterion(self, viewer=None):
 
 
