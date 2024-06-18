@@ -2344,13 +2344,13 @@
          </property>
          <widget class="QWidget" name="tab_10">
           <attribute name="title">
-           <string>Diffusion Coefficient</string>
+           <string>Diffusion Plots</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_10">
            <item>
             <widget class="QPushButton" name="compute_adc">
              <property name="text">
-              <string>Compute Apprent Diffusion Coefficient</string>
+              <string>Compute Diffusion Data</string>
              </property>
             </widget>
            </item>
@@ -2386,30 +2386,79 @@
               </font>
              </property>
              <property name="text">
-              <string>MSD  Plot Settings</string>
+              <string>Plot Settings</string>
              </property>
             </widget>
            </item>
            <item>
-            <layout class="QFormLayout" name="formLayout_29">
+            <layout class="QFormLayout" name="formLayout_7">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_49">
+               <property name="text">
+                <string>Plot</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="adc_plot">
+               <item>
+                <property name="text">
+                 <string>MSD</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Apparent Diffusion Coefficient</string>
+                </property>
+               </item>
+              </widget>
+             </item>
              <item row="1" column="0">
+              <widget class="QLabel" name="picasso_filter_dataset_label_3">
+               <property name="text">
+                <string>Dataset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="adc_dataset"/>
+             </item>
+             <item row="2" column="0">
               <widget class="QLabel" name="picasso_filter_dataset_label_4">
                <property name="text">
                 <string>Channel</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="1">
+             <item row="2" column="1">
               <widget class="QComboBox" name="adc_channel"/>
              </item>
-             <item row="2" column="0">
-              <widget class="QLabel" name="label_44">
+            </layout>
+           </item>
+           <item>
+            <layout class="QFormLayout" name="adc_options">
+             <item row="1" column="0">
+              <widget class="QLabel" name="adc_bins_label">
+               <property name="text">
+                <string>N Bins</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QSpinBox" name="adc_bins">
+               <property name="value">
+                <number>30</number>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="adc_range_label">
                <property name="text">
                 <string>MSD Range (um2/s)</string>
                </property>
               </widget>
              </item>
-             <item row="2" column="1">
+             <item row="0" column="1">
               <layout class="QGridLayout" name="gridLayout_2">
                <item row="0" column="0">
                 <widget class="QDoubleSpinBox" name="adc_range_min"/>
@@ -2423,34 +2472,10 @@
                </item>
               </layout>
              </item>
-             <item row="0" column="1">
-              <widget class="QComboBox" name="adc_dataset"/>
-             </item>
-             <item row="0" column="0">
-              <widget class="QLabel" name="picasso_filter_dataset_label_3">
-               <property name="text">
-                <string>Dataset</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="0">
-              <widget class="QLabel" name="label_46">
-               <property name="text">
-                <string>N Bins</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="1">
-              <widget class="QSpinBox" name="adc_bins">
-               <property name="value">
-                <number>30</number>
-               </property>
-              </widget>
-             </item>
             </layout>
            </item>
            <item>
-            <layout class="QGridLayout" name="gridLayout_3">
+            <layout class="QGridLayout" name="adc_checkboxes">
              <item row="0" column="0">
               <widget class="QCheckBox" name="adc_density">
                <property name="text">
@@ -2478,7 +2503,7 @@
          </widget>
          <widget class="QWidget" name="tab_11">
           <attribute name="title">
-           <string>Cell Heatmap</string>
+           <string>Cell Heatmaps</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_8">
            <item>

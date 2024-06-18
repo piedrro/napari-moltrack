@@ -13,6 +13,7 @@ import numpy as np
 import torch
 import traceback
 from PyQt5.QtWidgets import QApplication, QComboBox, QDoubleSpinBox, QFormLayout, QVBoxLayout, QWidget, QMainWindow
+from PyQt5 import uic
 
 if TYPE_CHECKING:
     import napari
@@ -165,15 +166,17 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.compute_adc.clicked.connect(self.init_compute_diffusion_coefficients)
 
-        self.gui.adc_channel.currentIndexChanged.connect(self.plot_diffusion_histogram)
-        self.gui.adc_dataset.currentIndexChanged.connect(self.plot_diffusion_histogram)
-        self.gui.adc_range_min.valueChanged.connect(self.plot_diffusion_histogram)
-        self.gui.adc_range_max.valueChanged.connect(self.plot_diffusion_histogram)
-        self.gui.adc_bins.valueChanged.connect(self.plot_diffusion_histogram)
-        self.gui.adc_density.stateChanged.connect(self.plot_diffusion_histogram)
-        self.gui.adc_hide_first.stateChanged.connect(self.plot_diffusion_histogram)
+        self.gui.adc_plot.currentIndexChanged.connect(self.plot_diffusion_graph)
+        self.gui.adc_channel.currentIndexChanged.connect(self.plot_diffusion_graph)
+        self.gui.adc_dataset.currentIndexChanged.connect(self.plot_diffusion_graph)
+        self.gui.adc_range_min.valueChanged.connect(self.plot_diffusion_graph)
+        self.gui.adc_range_max.valueChanged.connect(self.plot_diffusion_graph)
+        self.gui.adc_bins.valueChanged.connect(self.plot_diffusion_graph)
+        self.gui.adc_density.stateChanged.connect(self.plot_diffusion_graph)
+        self.gui.adc_hide_first.stateChanged.connect(self.plot_diffusion_graph)
+        self.gui.export_adc.clicked.connect(self.export_diffusion_graph)
 
-        self.gui.export_adc.clicked.connect(self.export_diffusion_coefficients)
+        self.gui.adc_plot.currentIndexChanged.connect(self.update_diffusion_options)
 
         self.gui.show_data.stateChanged.connect(partial(self.update_active_layers, mode="data"))
         self.gui.show_shapes.stateChanged.connect(partial(self.update_active_layers, mode="shapes"))

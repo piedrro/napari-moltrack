@@ -9,8 +9,31 @@ from multiprocessing import Manager
 from pyqtgraph import LegendItem
 import os
 from PyQt5.QtWidgets import QFileDialog
+import pyqtgraph as pg
 
 class _diffusion_utils:
+
+    def update_diffusion_options(self):
+
+        try:
+            plot = self.gui.adc_plot.currentText()
+
+            adc_contols = [self.gui.adc_range_min, self.gui.adc_range_max, self.gui.adc_range_label,
+                           self.gui.adc_bins, self.gui.adc_bins_label,
+                           self.gui.adc_density, self.gui.adc_hide_first]
+
+            if plot.lower() == "msd":
+                for control in adc_contols:
+                    control.setEnabled(False)
+                    control.hide()
+            else:
+                for control in adc_contols:
+                    control.setEnabled(True)
+                    control.show()
+
+
+        except Exception as e:
+            print(traceback.format_exc())
 
     @staticmethod
     def compute_adc(dat, diffusion_data):
@@ -33,6 +56,9 @@ class _diffusion_utils:
             # Calculate MSD using trackpy
             msd_df = tp.motion.msd(track, mpp=pixel_size_um, fps=fps, max_lagtime=100)
 
+            msd_df = msd_df.reset_index(drop=True)
+            msd_df = msd_df[["lagt", "msd"]]
+
             # Linear fit to first 10 points of msd vs time
             msd_values = msd_df['msd'].values
             time = msd_df['lagt'].values
@@ -48,6 +74,7 @@ class _diffusion_utils:
                             "particle": particle,
                             "pixel_size (nm)": pixel_size_nm,
                             "exposure_time (ms)": exposure_time_ms,
+                            "msd": msd_df,
                             "diffusion_coefficient (um^2/s)": diffusion_coefficient}
 
                     diffusion_data.append(ddat)
@@ -103,19 +130,22 @@ class _diffusion_utils:
 
         try:
             self.update_ui()
-            self.plot_diffusion_histogram()
+            self.plot_diffusion_graph()
 
         except:
             print(traceback.format_exc())
 
-    def compute_diffusion_coefficients_result(self, diffusion_data):
+    def compute_diffusion_coefficients_result(self, result):
 
         try:
 
-            if diffusion_data is None:
+            if result is None:
                 return
 
+            diffusion_data, msd_data = result
+
             self.diffusion_dict = {}
+            self.msd_dict = msd_data
 
             diffusion_min = 0
             diffusion_max = 10
@@ -157,6 +187,7 @@ class _diffusion_utils:
     def compute_diffusion_coefficients(self, tracks, progress_callback=None):
 
         diffusion_data = None
+        msd_dict = None
 
         try:
 
@@ -173,7 +204,7 @@ class _diffusion_utils:
 
                 diffusion_data = manager.list()
 
-                with ThreadPoolExecutor() as executor:
+                with ProcessPoolExecutor() as executor:
                     futures = [executor.submit(_diffusion_utils.compute_adc,
                         dat, diffusion_data) for dat in compute_jobs]
 
@@ -184,13 +215,32 @@ class _diffusion_utils:
                             progress = (completed / n_compute_jobs) * 100
                             progress_callback.emit(progress)
 
+                msd_dict = {}
+                for d in diffusion_data:
+                    msd = d.pop("msd")
+                    dataset = d["dataset"]
+                    channel = d["channel"]
+
+                    if dataset not in msd_dict:
+                        msd_dict[dataset] = {}
+                    if channel not in msd_dict[dataset]:
+                        msd_dict[dataset][channel] = []
+
+                    msd_dict[dataset][channel].append(msd)
+
+                for dataset in msd_dict:
+                    for channel in msd_dict[dataset]:
+                        msd = pd.concat(msd_dict[dataset][channel])
+                        msd = msd.groupby('lagt')['msd'].agg(['mean', 'std', "sem"]).reset_index()
+                        msd_dict[dataset][channel] = msd
+
                 diffusion_data = pd.DataFrame(list(diffusion_data))
 
         except:
             diffusion_data = None
             print(traceback.format_exc())
 
-        return diffusion_data
+        return diffusion_data, msd_dict
 
 
     def init_compute_diffusion_coefficients(self):
@@ -217,6 +267,89 @@ class _diffusion_utils:
         except:
             self.update_ui()
             print(traceback.format_exc())
+
+
+    def plot_diffusion_graph(self):
+
+        try:
+
+            self.adc_graph_canvas.clear()
+
+            plot = self.gui.adc_plot.currentText()
+
+            if plot.lower() == "msd":
+                self.plot_msd_curve()
+            else:
+                self.plot_diffusion_histogram()
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+
+    def get_msd_data(self, dataset, channel):
+
+        try:
+            if hasattr(self, "msd_dict") == False:
+                return None
+
+            if dataset not in self.msd_dict.keys():
+                return None
+
+            if channel not in self.msd_dict[dataset].keys():
+                return None
+
+            msd = self.msd_dict[dataset][channel]
+
+            return msd
+
+        except:
+            print(traceback.format_exc())
+            return None
+
+
+
+    def plot_msd_curve(self):
+
+        try:
+
+            if hasattr(self, "msd_dict") == True:
+
+                dataset = self.gui.adc_dataset.currentText()
+                channel = self.gui.adc_channel.currentText()
+
+                msd = self.get_msd_data(dataset, channel)
+
+                if msd is None:
+                    return
+
+                # Retrieve MSD values and errors
+                msd_values = msd["mean"].values
+                msd_error = msd["sem"].values
+                lagt = msd["lagt"].values
+
+                # Create a new plot
+                ax = self.adc_graph_canvas.addPlot()
+
+                # Plot the data points
+                ax.plot(lagt, msd_values, pen=None, symbol='o', symbolBrush='b')
+
+                # Create the error bars
+                error = pg.ErrorBarItem(x=lagt, y=msd_values, top=msd_error, bottom=msd_error, beam=0.5)
+                ax.addItem(error)
+
+                # Set labels
+                ax.setLabel('left', 'MSD (μm²)')
+                ax.setLabel('bottom', 'Time (seconds)')
+                ax.showGrid(x=True, y=True)
+
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+
+
 
     def plot_diffusion_histogram(self):
 
@@ -282,6 +415,59 @@ class _diffusion_utils:
             self.update_ui()
 
         pass
+
+
+
+    def export_diffusion_graph(self):
+
+        try:
+
+            plot = self.gui.adc_plot.currentText()
+
+            if plot.lower() == "msd":
+                self.export_msd_curve()
+            else:
+                self.export_diffusion_coefficients()
+
+        except:
+            print(traceback.format_exc())
+            self.update_ui()
+
+
+    def export_msd_curve(self):
+
+        try:
+
+            dataset = self.gui.adc_dataset.currentText()
+            channel = self.gui.adc_channel.currentText()
+
+            msd = self.get_msd_data(dataset, channel)
+
+            if msd is None:
+                return
+
+            dataset_list = msd["dataset"].unique()
+            file_path = self.dataset_dict[dataset_list[0]]["path"]
+
+            if type(file_path) == list:
+                file_path = file_path[0]
+
+            base, ext = os.path.splitext(file_path)
+            file_path = f"{base}_msd_curve.csv"
+
+            file_path = QFileDialog.getSaveFileName(self, f"Export MSD Curve", file_path, f"(*.csv)")[0]
+
+            if file_path == "":
+                return
+
+            msd.to_csv(file_path, index=False)
+
+            print(f"MSD curve exported to {file_path}")
+
+        except:
+            print(traceback.format_exc())
+            self.update_ui()
+
 
     def export_diffusion_coefficients(self):
 
