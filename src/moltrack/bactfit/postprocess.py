@@ -194,6 +194,7 @@ def cell_coordinate_transformation(cell, target_cell, n_segments=1000, reflect =
         if len(transformed_locs) > 0:
             transformed_locs = np.hstack(transformed_locs).view(np.recarray).copy()
             cell.locs = transformed_locs
+            cell.cell_polygon = target_polygon
         else:
             cell.locs = None
 

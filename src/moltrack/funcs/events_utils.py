@@ -310,7 +310,7 @@ class _events_utils:
         except:
             print(traceback.format_exc())
 
-    def draw_segmentation_image(self):
+    def draw_segmentation_image(self, reset_view=True):
 
         if hasattr(self, "segmentation_image"):
             pixel_size = self.segmentation_image_pixel_size
@@ -334,7 +334,9 @@ class _events_utils:
             self.viewer.scale_bar.unit = "nm"
 
             self.segmentation_layer.refresh()
-            self.viewer.reset_view()
+
+            if reset_view:
+                self.viewer.reset_view()
 
     def update_active_image(self, dataset=None, channel=None, event=None):
 
@@ -598,6 +600,7 @@ class _events_utils:
             self.gui.moltrack_window_size.show()
 
     def moltract_translation(self, event=None, direction="left"):
+
         try:
             translation_target = self.gui.translation_target.currentText()
             size = self.gui.translation_size.value()
@@ -611,7 +614,7 @@ class _events_utils:
             elif direction == "right":
                 shift_vector = [0.0, size]
 
-            if translation_target in ["Segmentation Image", "Both"]:
+            if translation_target in ["Segmentation Image", "All"]:
                 if hasattr(self, "segmentation_image"):
                     image = self.segmentation_image.copy()
 
@@ -624,9 +627,10 @@ class _events_utils:
                             image[fame_index] = shift(frame, shift=shift_vector)
                         self.segmentation_image = image
 
-                    self.draw_segmentation_image()
+                    self.segmentation_layer.data = self.segmentation_image
+                    self.segmentation_layer.refresh()
 
-            if translation_target in ["Segmentations", "Both"]:
+            if translation_target in ["Segmentations", "All"]:
                 if hasattr(self, "segLayer"):
                     seg_data = self.segLayer.data.copy()
 
@@ -639,6 +643,22 @@ class _events_utils:
                             seg_data[seg_index] = seg
 
                     self.segLayer.data = seg_data
+
+            if translation_target in ["Cells", "All"]:
+                if hasattr(self, "cellLayer"):
+                    cell_data = self.cellLayer.data.copy()
+
+                    for cell_index, cell in enumerate(cell_data):
+                        if cell.shape[1] == 2:
+                            cell = cell + shift_vector
+                            cell_data[cell_index] = cell
+                        if cell.shape[1] == 3:
+                            cell[:, 1:] = cell[:, 1:] + shift_vector
+                            cell_data[cell_index] = cell
+
+                    self.cellLayer.data = cell_data
+
+
 
         except:
             print(traceback.format_exc())

@@ -172,6 +172,11 @@ class _tracking_utils:
             if len(track_data) > 0:
                 self.gui.locs_export_data.clear()
                 self.gui.locs_export_data.addItems(["Localisations", "Tracks"])
+                self.gui.heatmap_data.clear()
+                self.gui.heatmap_data.addItems(["Localisations", "Tracks"])
+                self.gui.picasso_filter_type.clear()
+                self.gui.picasso_filter_type.addItems(["Localisations", "Tracks"])
+
                 print(f"Tracking complete, {total_tracks} tracks found")
 
         except:
