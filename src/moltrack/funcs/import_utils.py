@@ -36,6 +36,7 @@ def crop_frame(image, crop_mode):
 def import_image_data(dat, progress_dict={}, index=0):
     try:
         path = dat["path"]
+        path_index = dat["path_index"]
         crop_mode = dat["import_crop_mode"]
         import_limit = dat["import_limit"]
         frame_averaging = dat["frame_averaging"]
@@ -103,6 +104,9 @@ def import_image_data(dat, progress_dict={}, index=0):
                     DD, DA = donor[::2], donor[1::2]
                     AD, AA = acceptor[::2], acceptor[1::2]
                     image_dict = {"DD": DD, "DA": DA, "AD": AD, "AA": AA}
+                if multichannel_mode == "Multi File":
+                    chanel_name = os.path.basename(path)
+                    image_dict = {chanel_name: images}
             else:
                 image_dict = {"Segmentation Image": images}
 
@@ -199,10 +203,24 @@ class _import_utils:
             exposure_time = float(self.gui.import_exposure_time.value())
 
             for path_index, path in enumerate(paths):
-                path = self.format_import_path(path)
-                dataset_name = os.path.basename(path)
 
-                image_dict = {"path": path, "dataset_name": dataset_name, "import_limit": import_limit, "import_crop_mode": import_crop_mode, "frame_averaging": frame_averaging, "multichannel_mode": multichannel_mode, "channel_name": channel_name, "import_mode": import_mode, "pixel_size": pixel_size, "exposure_time": exposure_time, }
+                if multichannel_mode.lower() == "multi file":
+                    dataset_name = self.gui.import_dataset_name.text()
+                else:
+                    path = self.format_import_path(path)
+                    dataset_name = os.path.basename(path)
+
+                image_dict = {"path": path,
+                              "path_index": path_index,
+                              "dataset_name": dataset_name,
+                              "import_limit": import_limit,
+                              "import_crop_mode": import_crop_mode,
+                              "frame_averaging": frame_averaging,
+                              "multichannel_mode": multichannel_mode,
+                              "channel_name": channel_name,
+                              "import_mode": import_mode,
+                              "pixel_size": pixel_size,
+                              "exposure_time": exposure_time, }
 
                 import_jobs.append(image_dict)
 
@@ -262,7 +280,12 @@ class _import_utils:
                         image_dict = import_data["images"]
 
                         if image_dict != {}:
-                            import_dict[dataset_name] = import_data
+                            if dataset_name not in import_dict.keys():
+                                import_dict[dataset_name] = import_data
+                            else:
+                                for channel in image_dict.keys():
+                                    import_dict[dataset_name]["images"][channel] = image_dict[channel]
+
 
             if concat_images == True:
                 dataset_list = list(import_dict.keys())
@@ -292,7 +315,10 @@ class _import_utils:
                 image_list = np.concatenate(image_list, axis=0)
 
                 if dataset_list[0] not in self.dataset_dict.keys():
-                    self.dataset_dict[dataset_list[0]] = {"path": path_list, "pixel_size": pixel_size_list[0], "exposure_time": exposure_time_list[0], "images": {dataset_channel: image_list}, }
+                    self.dataset_dict[dataset_list[0]] = {"path": path_list,
+                                                          "pixel_size": pixel_size_list[0],
+                                                          "exposure_time": exposure_time_list[0],
+                                                          "images": {dataset_channel: image_list}, }
 
             else:
                 dataset_list = list(import_dict.keys())

@@ -119,6 +119,8 @@ class _events_utils:
                 self.gui.import_multichannel_mode.setEnabled(False)
                 self.gui.import_multichannel_mode.setCurrentIndex(0)
                 self.gui.import_concatenate.setEnabled(True)
+                self.gui.import_dataset_name.setEnabled(False)
+                self.gui.import_channel_name.setEnabled(False)
 
             if import_mode == "Data (Multi Channel)":
                 self.gui.import_multichannel_mode.setEnabled(True)
@@ -126,14 +128,25 @@ class _events_utils:
                 if multichannel_mode != "None":
                     self.gui.import_concatenate.setEnabled(False)
                     self.gui.import_concatenate.setChecked(False)
-
                 else:
                     self.gui.import_concatenate.setEnabled(True)
+
+                if multichannel_mode == "Multi File":
+                    self.gui.import_dataset_name.setEnabled(True)
+                else:
+                    self.gui.import_dataset_name.setEnabled(False)
+
+                if multichannel_mode == "None":
+                    self.gui.import_channel_name.setEnabled(True)
+                else:
+                    self.gui.import_channel_name.setEnabled(False)
 
             if import_mode == "Segmentation Image":
                 self.gui.import_multichannel_mode.setEnabled(False)
                 self.gui.import_concatenate.setEnabled(False)
                 self.gui.import_concatenate.setChecked(False)
+                self.gui.import_dataset_name.setEnabled(False)
+                self.gui.import_channel_name.setEnabled(False)
 
             self.gui.import_mode.blockSignals(False)
             self.gui.import_multichannel_mode.blockSignals(False)
