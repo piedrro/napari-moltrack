@@ -1,9 +1,7 @@
 import numpy as np
 import traceback
 from moltrack.funcs.compute_utils import Worker
-from moltrack.bactfit.fit import BactFit
 from moltrack.bactfit.preprocess import data_to_cells
-from moltrack.bactfit.fit import BactFit
 from moltrack.bactfit.cell import Cell
 from functools import partial
 from shapely.geometry import Polygon, LineString, Point
@@ -11,7 +9,7 @@ import matplotlib.pyplot as plt
 import copy
 import random
 import string
-
+from moltrack.bactfit.utils import manual_fit
 
 class _cell_events:
 
@@ -337,8 +335,7 @@ class _cell_events:
                 midline_index = cell["midline_index"]
                 polygon_index = cell["polygon_index"]
 
-                bf = BactFit()
-                fit = bf.manual_fit(polygon_coords, midline_coords, width)
+                fit = manual_fit(polygon_coords, midline_coords, width)
                 (polygon_fit_coords, midline_fit_coords, poly_params, cell_width,) = fit
 
                 if polygon_fit_coords is not None:
@@ -560,8 +557,7 @@ class _cell_events:
 
             # self.find_centerline(midline, width)
 
-            bf = BactFit()
-            fit = bf.manual_fit(polygon_coords, midline_coords, width)
+            fit = manual_fit(polygon_coords, midline_coords, width)
             polygon_fit_coords, midline_fit_coords, poly_params, cell_width = (fit)
 
             shapes[last_index] = midline_fit_coords

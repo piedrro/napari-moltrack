@@ -1,5 +1,4 @@
 from shapely.geometry import Polygon, LineString
-from moltrack.bactfit.fit import BactFit
 import matplotlib.pyplot as plt
 import traceback
 import numpy as np
@@ -13,6 +12,8 @@ import math
 import os
 import scipy
 
+from moltrack.bactfit.utils import (resize_line, moving_average, rotate_polygon,
+    rotate_linestring, get_vertical, fit_poly)
 
 class oufti:
 
@@ -120,8 +121,8 @@ class oufti:
             # resize left and right lines to have the same number of points
             right_line = LineString(right_coords)
             left_line = LineString(left_coords)
-            right_line = BactFit.resize_line(right_line, line_resolution)
-            left_line = BactFit.resize_line(left_line, line_resolution)
+            right_line = resize_line(right_line, line_resolution)
+            left_line = resize_line(left_line, line_resolution)
             right_coords = np.array(right_line.coords)
             left_coords = np.array(left_line.coords)
 
@@ -263,7 +264,7 @@ class oufti:
 
             model = midline.buffer(width)
 
-            centerline = BactFit.resize_line(midline, 1000)  # High resolution with 1000 points
+            centerline = resize_line(midline, 1000)  # High resolution with 1000 points
 
             start_points, end_points = extract_end_points(centerline)
 
@@ -285,21 +286,21 @@ class oufti:
             centerline = LineString(centerline_coords)
 
             if smooth:
-                vertical = BactFit.get_vertical(model)
+                vertical = get_vertical(model)
 
                 if vertical:
-                    centerline = BactFit.rotate_linestring(centerline, angle=90)
+                    centerline = rotate_linestring(centerline, angle=90)
 
                 centerline_coords = np.array(centerline.coords)
                 constraining_points = [centerline_coords[0], centerline_coords[-1]]
 
-                centerline_coords, _ = BactFit.fit_poly(centerline_coords, degree=[1, 2, 3],
+                centerline_coords, _ = fit_poly(centerline_coords, degree=[1, 2, 3],
                     maxiter=100, constraining_points=constraining_points, constrained=True)
 
                 centerline = LineString(centerline_coords)
 
                 if vertical:
-                    centerline = BactFit.rotate_linestring(centerline, angle=-90)
+                    centerline = rotate_linestring(centerline, angle=-90)
 
         except:
             print(traceback.format_exc())

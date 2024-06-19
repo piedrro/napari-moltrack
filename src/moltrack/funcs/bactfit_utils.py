@@ -1,9 +1,7 @@
 import numpy as np
 import traceback
 from moltrack.funcs.compute_utils import Worker
-from moltrack.bactfit.fit import BactFit
 from moltrack.bactfit.preprocess import data_to_cells
-from moltrack.bactfit.fit import BactFit
 from functools import partial
 from shapely.geometry import Polygon, LineString
 import matplotlib.pyplot as plt
