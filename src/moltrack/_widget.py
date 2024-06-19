@@ -23,6 +23,7 @@ from moltrack.funcs.events_utils import _events_utils
 from moltrack.funcs.export_utils import _export_utils
 from moltrack.funcs.import_utils import _import_utils
 from moltrack.funcs.loc_filter_utils import _loc_filter_utils
+from moltrack.funcs.track_filter_utils import _track_filter_utils
 from moltrack.funcs.picasso_detect_utils import _picasso_detect_utils
 from moltrack.funcs.picasso_render_utils import _picasso_render_utils
 from moltrack.funcs.segmentation_events import _segmentation_events
@@ -42,7 +43,8 @@ subclasses = [_import_utils, _compute_utils,
               _picasso_render_utils, _tracking_utils,
               _export_utils, _segmentation_events,
               _bactfit_utils, _cell_events,
-              oufti, _diffusion_utils, _cell_heatmap_utils]
+              oufti, _diffusion_utils, _cell_heatmap_utils,
+              _track_filter_utils]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -91,6 +93,10 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.filter_graph_container.setLayout(QVBoxLayout())
         self.filter_graph_canvas = CustomPyQTGraphWidget(self)
         self.gui.filter_graph_container.layout().addWidget(self.filter_graph_canvas)
+
+        self.gui.tracks_filter_graph_container.setLayout(QVBoxLayout())
+        self.track_graph_canvas = CustomPyQTGraphWidget(self)
+        self.gui.tracks_filter_graph_container.layout().addWidget(self.track_graph_canvas)
 
         self.gui.adc_graph_container.setLayout(QVBoxLayout())
         self.adc_graph_canvas = CustomPyQTGraphWidget(self)
@@ -142,6 +148,12 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.picasso_filter_dataset.currentIndexChanged.connect(self.update_filter_criterion)
         self.gui.filter_criterion.currentIndexChanged.connect(self.update_criterion_ranges)
         self.gui.filter_localisations.clicked.connect(self.pixseq_filter_localisations)
+
+        self.gui.track_filter_dataset.currentIndexChanged.connect(self.update_track_filter_criterion)
+        self.gui.track_filter_criterion.currentIndexChanged.connect(self.update_track_filter_metric)
+        self.gui.track_filter_metric.currentIndexChanged.connect(self.update_track_criterion_ranges)
+        self.gui.filter_tracks.clicked.connect(self.filter_tracks)
+
         self.gui.picasso_segmentation_layer.currentIndexChanged.connect(self.update_picasso_segmentation_filter)
 
         self.gui.picasso_vis_mode.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))
@@ -195,7 +207,7 @@ class QWidget(QWidget, gui, *subclasses):
 
     def devfunc(self, viewer=None):
 
-        self.tracking_finished()
+        self.update_track_filter_criterion()
 
         # self.update_ui()
         # self.plot_cell_heatmap()

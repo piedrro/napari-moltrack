@@ -135,7 +135,7 @@ class _diffusion_utils:
 
                 for particle, track in tracks.groupby("particle"):
 
-                    diffusion = track["d*"].values[0]
+                    diffusion = track["D*"].values[0]
                     coefs.append(diffusion)
 
                 if dataset_name == "All Datasets" and channel_name == "All Channels":
@@ -261,7 +261,7 @@ class _diffusion_utils:
             for (dataset_name, channel_name), tracks in track_data.groupby(["dataset", "channel"]):
                 dat = []
                 for particle, track in tracks.groupby("particle"):
-                    diffusion = track["d*"].values[0]
+                    diffusion = track["D*"].values[0]
                     if diffusion >= min_range and diffusion <= max_range:
                         dat.append([particle,diffusion])
 

@@ -205,7 +205,7 @@ class _tracking_utils:
         # Append results to the dataframe
         df["time"] = time
         df["msd"] = msd_list
-        df["d*"] = apparent_diffusion
+        df["D*"] = apparent_diffusion
         df["speed"] = speed
 
         return df
@@ -317,6 +317,10 @@ class _tracking_utils:
         self.draw_localisations()
         self.draw_tracks()
         self.plot_diffusion_graph()
+
+        self.update_track_filter_criterion()
+        self.update_track_criterion_ranges()
+
         self.update_ui()
 
     def initialise_tracking(self):
