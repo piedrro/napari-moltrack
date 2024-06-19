@@ -7,7 +7,8 @@ import time
 from napari.utils.notifications import show_info
 import napari
 from scipy.ndimage import shift
-
+from PyQt5.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QFormLayout,
+    QVBoxLayout, QWidget, QMainWindow, QSpinBox, QLineEdit, QCheckBox)
 
 class _events_utils:
 
@@ -107,53 +108,132 @@ class _events_utils:
             print(traceback.format_exc())
             pass
 
-    def update_import_options(self, event=None):
+    def update_control(self, control, enabled=None, show=None):
+
         try:
-            self.gui.import_mode.blockSignals(True)
-            self.gui.import_multichannel_mode.blockSignals(True)
+            control_label = None
+            control_label_name = str(control.objectName() + "_label")
+            if hasattr(self.gui, control_label_name):
+                control_label = getattr(self.gui, control_label_name)
 
-            import_mode = self.gui.import_mode.currentText()
-            multichannel_mode = self.gui.import_multichannel_mode.currentText()
+            if enabled is not None:
+                control.setEnabled(enabled)
+                if control_label is not None:
+                    control_label.setEnabled(enabled)
 
-            if import_mode == "Data (Single Channel)":
-                self.gui.import_multichannel_mode.setEnabled(False)
-                self.gui.import_multichannel_mode.setCurrentIndex(0)
-                self.gui.import_concatenate.setEnabled(True)
-                self.gui.import_dataset_name.setEnabled(False)
-                self.gui.import_channel_name.setEnabled(False)
-
-            if import_mode == "Data (Multi Channel)":
-                self.gui.import_multichannel_mode.setEnabled(True)
-
-                if multichannel_mode != "None":
-                    self.gui.import_concatenate.setEnabled(False)
-                    self.gui.import_concatenate.setChecked(False)
-                else:
-                    self.gui.import_concatenate.setEnabled(True)
-
-                if multichannel_mode == "Multi File":
-                    self.gui.import_dataset_name.setEnabled(True)
-                else:
-                    self.gui.import_dataset_name.setEnabled(False)
-
-                if multichannel_mode == "None":
-                    self.gui.import_channel_name.setEnabled(True)
-                else:
-                    self.gui.import_channel_name.setEnabled(False)
-
-            if import_mode == "Segmentation Image":
-                self.gui.import_multichannel_mode.setEnabled(False)
-                self.gui.import_concatenate.setEnabled(False)
-                self.gui.import_concatenate.setChecked(False)
-                self.gui.import_dataset_name.setEnabled(False)
-                self.gui.import_channel_name.setEnabled(False)
-
-            self.gui.import_mode.blockSignals(False)
-            self.gui.import_multichannel_mode.blockSignals(False)
+            if show is not None:
+                control.setVisible(show)
+                if control_label is not None:
+                    control_label.setVisible(show)
 
         except:
             print(traceback.format_exc())
             pass
+
+    def update_import_options(self, event=None):
+        try:
+
+            import_mode = self.gui.import_mode.currentText()
+            multichannel_mode = self.gui.import_multichannel_mode.currentText()
+
+            update_dict = {"import_dataset_name": False,
+                            "import_channel_name": False,
+                            "import_multichannel_mode": False,
+                            "import_concatenate": False}
+
+            if import_mode == "Data (Single Channel)":
+                update_dict["import_concatenate"] = True
+
+            elif import_mode == "Data (Multi Channel)":
+                update_dict["import_multichannel_mode"] = True
+
+                if multichannel_mode == "None":
+                    update_dict["import_channel_name"] = True
+                if multichannel_mode == "Multi File":
+                    update_dict["import_dataset_name"] = True
+
+            for contol_name, show in update_dict.items():
+                if hasattr(self.gui, contol_name):
+                    control = getattr(self.gui, contol_name)
+                    self.update_control(control, show=show)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+    def update_heatmap_options(self):
+
+        mode = self.gui.heatmap_mode.currentText()
+        layout = self.gui.heatmap_settings_layout
+
+        core_settings = ["heatmap_dataset", "heatmap_channel", "heatmap_mode",
+                         "heatmap_dataset_label", "heatmap_channel_label", "heatmap_mode_label"]
+
+        for i in reversed(range(layout.count())):
+            widget = layout.itemAt(i).widget()
+            widget_name = widget.objectName()
+            if widget_name.lower() not in core_settings:
+                if widget is not None:
+                    widget.deleteLater()
+
+        self.initialise_heatmap_controls()
+
+        if mode == "Heatmap":
+            layout.addRow("Binning", self.heatmap_binning)
+        elif mode == "Render":
+            layout.addRow("Blur Method", self.heatmap_blur_method)
+            layout.addRow("Min Blur Width", self.heatmap_min_blur_width)
+            layout.addRow("Oversampling", self.heatmap_oversampling)
+
+
+    def initialise_heatmap_controls(self):
+
+        try:
+
+            self.heatmap_binning = QSpinBox()
+            self.heatmap_blur_method = QComboBox()
+            self.heatmap_min_blur_width = QDoubleSpinBox()
+            self.heatmap_oversampling = QSpinBox()
+
+            self.heatmap_binning.setRange(1, 100)
+            self.heatmap_binning.setSingleStep(1)
+            self.heatmap_binning.setValue(30)
+
+            self.heatmap_min_blur_width.setRange(0.1, 10)
+            self.heatmap_min_blur_width.setSingleStep(0.1)
+            self.heatmap_min_blur_width.setValue(0.2)
+
+            self.heatmap_oversampling.setRange(1, 100)
+            self.heatmap_oversampling.setSingleStep(1)
+            self.heatmap_oversampling.setValue(20)
+
+            blur_methods = ["One-Pixel-Blur", "Global Localisation Precision",
+                            "Individual Localisation Precision, iso",
+                            "Individual Localisation Precision"]
+
+            self.heatmap_blur_method.clear()
+            self.heatmap_blur_method.addItems(blur_methods)
+
+            self.heatmap_binning.blockSignals(True)
+            self.heatmap_blur_method.blockSignals(True)
+            self.heatmap_min_blur_width.blockSignals(True)
+            self.heatmap_oversampling.blockSignals(True)
+
+            self.heatmap_binning.valueChanged.connect(self.plot_heatmap)
+            self.heatmap_blur_method.currentIndexChanged.connect(self.plot_heatmap)
+            self.heatmap_min_blur_width.valueChanged.connect(self.plot_heatmap)
+            self.heatmap_oversampling.valueChanged.connect(self.plot_heatmap)
+
+            self.heatmap_binning.blockSignals(False)
+            self.heatmap_blur_method.blockSignals(False)
+            self.heatmap_min_blur_width.blockSignals(False)
+            self.heatmap_oversampling.blockSignals(False)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+
 
     def update_locs_export_options(self, event=None):
         locs_export_data = self.gui.locs_export_data.currentText()
