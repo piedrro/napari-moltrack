@@ -35,239 +35,6 @@ class _diffusion_utils:
         except Exception as e:
             print(traceback.format_exc())
 
-    @staticmethod
-    def compute_adc(dat, diffusion_data):
-
-        try:
-
-            track = dat.pop("track")
-            pixel_size_nm = dat["pixel_size"]
-            exposure_time_ms = dat["exposure_time"]
-            min = dat["min_track_length"]
-            dataset = dat["dataset"]
-            channel = dat["channel"]
-            particle = dat["particle"]
-
-            pixel_size_um = pixel_size_nm * 1e-3
-            fps = 1 / (exposure_time_ms * 1e-3)
-
-            track = track[["particle", "frame", "x", "y"]]
-
-            # Calculate MSD using trackpy
-            msd_df = tp.motion.msd(track, mpp=pixel_size_um, fps=fps, max_lagtime=100)
-
-            msd_df = msd_df.reset_index(drop=True)
-            msd_df = msd_df[["lagt", "msd"]]
-
-            # Linear fit to first 10 points of msd vs time
-            msd_values = msd_df['msd'].values
-            time = msd_df['lagt'].values
-
-            if len(time) >= min and len(msd_values) >= min:  # Ensure there are enough points to fit
-                slope, intercept = np.polyfit(time[:min], msd_values[:min], 1)
-                diffusion_coefficient = slope / 4  # the slope of MSD vs time gives 4D in 2D
-
-                if diffusion_coefficient > 0:
-
-                    ddat = {"dataset":dataset,
-                            "channel": channel,
-                            "particle": particle,
-                            "pixel_size (nm)": pixel_size_nm,
-                            "exposure_time (ms)": exposure_time_ms,
-                            "msd": msd_df,
-                            "diffusion_coefficient (um^2/s)": diffusion_coefficient}
-
-                    diffusion_data.append(ddat)
-
-        except:
-            print(traceback.format_exc())
-            pass
-
-
-    def populate_diffusion_compute_jobs(self, tracks):
-
-        compute_jobs = []
-
-        try:
-
-            dataset_list = list(self.tracking_dict.keys())
-
-            for dataset in dataset_list:
-
-                channel_list = list(self.tracking_dict[dataset].keys())
-
-                for channel in channel_list:
-
-                    channel_tracks = tracks[(tracks["dataset"] == dataset) &
-                                            (tracks["channel"] == channel)]
-
-                    pixel_size = self.dataset_dict[dataset]["pixel_size"]
-                    exposure_time = self.dataset_dict[dataset]["exposure_time"]
-
-                    channel_tracks = pd.DataFrame(channel_tracks)
-
-                    for particle, track in channel_tracks.groupby("particle"):
-
-                        track = track.sort_values("frame")
-
-                        particle_data = {"dataset": dataset,
-                                         "channel": channel,
-                                         "particle": particle,
-                                         "pixel_size": pixel_size,
-                                         "exposure_time": exposure_time,
-                                         "track": track,
-                                         "min_track_length": 10,
-                                         }
-
-                        compute_jobs.append(particle_data)
-        except:
-            print(traceback.format_exc())
-
-        return compute_jobs
-
-
-    def compute_diffusion_coefficient_finished(self):
-
-        try:
-            self.update_ui()
-            self.plot_diffusion_graph()
-
-        except:
-            print(traceback.format_exc())
-
-    def compute_diffusion_coefficients_result(self, result):
-
-        try:
-
-            if result is None:
-                return
-
-            diffusion_data, msd_data = result
-
-            self.diffusion_dict = {}
-            self.msd_dict = msd_data
-
-            diffusion_min = 0
-            diffusion_max = 10
-
-            for (dataset, channel), group in diffusion_data.groupby(["dataset", "channel"]):
-
-                diffusion_coefficients = group["diffusion_coefficient (um^2/s)"].values
-
-                dmin = np.min(diffusion_coefficients)
-                dmax = np.max(diffusion_coefficients)
-
-                if dmin < diffusion_min and dmin > 0:
-                    diffusion_min = dmin
-                if dmax > diffusion_max:
-                    diffusion_max = dmax
-
-                if dataset not in self.diffusion_dict:
-                    self.diffusion_dict[dataset] = {}
-                if channel not in self.diffusion_dict[dataset]:
-                    self.diffusion_dict[dataset][channel] = {}
-
-                for col in group.columns:
-                    self.diffusion_dict[dataset][channel][col] = group[col].values
-
-            self.gui.adc_range_min.blockSignals(True)
-            self.gui.adc_range_max.blockSignals(True)
-
-            self.gui.adc_range_min.setValue(diffusion_min)
-            self.gui.adc_range_max.setValue(diffusion_max)
-
-            self.gui.adc_range_min.blockSignals(False)
-            self.gui.adc_range_max.blockSignals(False)
-
-        except:
-            print(traceback.format_exc())
-            self.update_ui()
-
-
-    def compute_diffusion_coefficients(self, tracks, progress_callback=None):
-
-        diffusion_data = None
-        msd_dict = None
-
-        try:
-
-            compute_jobs = self.populate_diffusion_compute_jobs(tracks)
-
-            print(f"Computing diffusion coefficients for {len(compute_jobs)} particles.")
-
-            n_compute_jobs = len(compute_jobs)
-
-            if len(compute_jobs) == 0:
-                return
-
-            with Manager() as manager:
-
-                diffusion_data = manager.list()
-
-                with ProcessPoolExecutor() as executor:
-                    futures = [executor.submit(_diffusion_utils.compute_adc,
-                        dat, diffusion_data) for dat in compute_jobs]
-
-                    completed = 0
-                    for future in as_completed(futures):
-                        completed += 1
-                        if progress_callback is not None:
-                            progress = (completed / n_compute_jobs) * 100
-                            progress_callback.emit(progress)
-
-                msd_dict = {}
-                for d in diffusion_data:
-                    msd = d.pop("msd")
-                    dataset = d["dataset"]
-                    channel = d["channel"]
-
-                    if dataset not in msd_dict:
-                        msd_dict[dataset] = {}
-                    if channel not in msd_dict[dataset]:
-                        msd_dict[dataset][channel] = []
-
-                    msd_dict[dataset][channel].append(msd)
-
-                for dataset in msd_dict:
-                    for channel in msd_dict[dataset]:
-                        msd = pd.concat(msd_dict[dataset][channel])
-                        msd = msd.groupby('lagt')['msd'].agg(['mean', 'std', "sem"]).reset_index()
-                        msd_dict[dataset][channel] = msd
-
-                diffusion_data = pd.DataFrame(list(diffusion_data))
-
-        except:
-            diffusion_data = None
-            print(traceback.format_exc())
-
-        return diffusion_data, msd_dict
-
-
-    def init_compute_diffusion_coefficients(self):
-        try:
-
-            dataset = "All Datasets"
-            channel = "All Channels"
-
-            tracks = self.get_tracks(dataset, channel)
-
-            if len(tracks) == 0:
-                return
-
-            self.update_ui(init=True)
-
-            self.worker = Worker(self.compute_diffusion_coefficients, tracks)
-            self.worker.signals.progress.connect(partial(self.moltrack_progress,
-                    progress_bar=self.gui.adc_progressbar))
-            self.worker.signals.result.connect(self.compute_diffusion_coefficients_result)
-            self.worker.signals.finished.connect(self.compute_diffusion_coefficient_finished)
-            self.worker.signals.error.connect(self.update_ui)
-            self.threadpool.start(self.worker)
-
-        except:
-            self.update_ui()
-            print(traceback.format_exc())
-
 
     def plot_diffusion_graph(self):
 
@@ -287,46 +54,32 @@ class _diffusion_utils:
             pass
 
 
-    def get_msd_data(self, dataset, channel):
-
-        try:
-            if hasattr(self, "msd_dict") == False:
-                return None
-
-            if dataset not in self.msd_dict.keys():
-                return None
-
-            if channel not in self.msd_dict[dataset].keys():
-                return None
-
-            msd = self.msd_dict[dataset][channel]
-
-            return msd
-
-        except:
-            print(traceback.format_exc())
-            return None
-
-
-
     def plot_msd_curve(self):
 
         try:
 
-            if hasattr(self, "msd_dict") == True:
+            if hasattr(self, "tracking_dict") == True:
 
                 dataset = self.gui.adc_dataset.currentText()
                 channel = self.gui.adc_channel.currentText()
 
-                msd = self.get_msd_data(dataset, channel)
+                tracks = self.get_tracks(dataset, channel)
 
-                if msd is None:
+                if len(tracks) == 0:
                     return
 
-                # Retrieve MSD values and errors
-                msd_values = msd["mean"].values
-                msd_error = msd["sem"].values
-                lagt = msd["lagt"].values
+                tracks = pd.DataFrame(tracks)
+
+                if "msd" not in tracks.columns:
+                    return
+
+                msd_data = tracks[["time", "msd"]]
+
+                msd_data = msd_data.groupby("time")["msd"].agg(['mean', 'std', "sem"]).reset_index()
+
+                msd_values = msd_data["mean"].values
+                msd_error = msd_data["sem"].values
+                lagt = msd_data["time"].values
 
                 # Create a new plot
                 ax = self.adc_graph_canvas.addPlot()
@@ -339,7 +92,7 @@ class _diffusion_utils:
                 ax.addItem(error)
 
                 # Set labels
-                ax.setLabel('left', 'MSD (μm²)')
+                ax.setLabel('left', "msd")
                 ax.setLabel('bottom', 'Time (seconds)')
                 ax.showGrid(x=True, y=True)
 
@@ -365,17 +118,25 @@ class _diffusion_utils:
 
             self.adc_graph_canvas.clear()
 
-            diffusion_coefficients = self.get_diffusion_coefficents(dataset, channel, return_dict=True)
+            track_data = self.get_tracks(dataset, channel)
+
+            if len(track_data) == 0:
+                return
 
             ax = self.adc_graph_canvas.addPlot()
             legend = LegendItem(offset=(-10, 10))
             legend.setParentItem(ax.graphicsItem())
 
-            for ddata in diffusion_coefficients:
+            track_data = pd.DataFrame(track_data)
 
-                dataset_name = ddata["dataset"][0]
-                channel_name = ddata["channel"][0]
-                coefs = ddata["diffusion_coefficient (um^2/s)"]
+            for (dataset_name,channel_name), tracks in track_data.groupby(["dataset", "channel"]):
+
+                coefs = []
+
+                for particle, track in tracks.groupby("particle"):
+
+                    diffusion = track["d*"].values[0]
+                    coefs.append(diffusion)
 
                 if dataset_name == "All Datasets" and channel_name == "All Channels":
                     label = f"{dataset_name} - {channel_name}"
@@ -438,31 +199,45 @@ class _diffusion_utils:
 
         try:
 
-            dataset = self.gui.adc_dataset.currentText()
-            channel = self.gui.adc_channel.currentText()
+            if hasattr(self, "tracking_dict") == True:
 
-            msd = self.get_msd_data(dataset, channel)
+                dataset = self.gui.adc_dataset.currentText()
+                channel = self.gui.adc_channel.currentText()
 
-            if msd is None:
-                return
+                tracks = self.get_tracks(dataset, channel)
 
-            dataset_list = list(self.dataset_dict.keys())
-            file_path = self.dataset_dict[dataset_list[0]]["path"]
+                if len(tracks) == 0:
+                    return
 
-            if type(file_path) == list:
-                file_path = file_path[0]
+                tracks = pd.DataFrame(tracks)
 
-            base, ext = os.path.splitext(file_path)
-            file_path = f"{base}_msd_curve.csv"
+                if "msd" not in tracks.columns:
+                    return
 
-            file_path = QFileDialog.getSaveFileName(self, f"Export MSD Curve", file_path, f"(*.csv)")[0]
+                msd_data = tracks[["time", "msd"]]
 
-            if file_path == "":
-                return
+                msd = msd_data.groupby("time")["msd"].agg(['mean', 'std', "sem"]).reset_index()
 
-            msd.to_csv(file_path, index=False)
+                if msd is None:
+                    return
 
-            print(f"MSD curve exported to {file_path}")
+                dataset_list = list(self.dataset_dict.keys())
+                file_path = self.dataset_dict[dataset_list[0]]["path"]
+
+                if type(file_path) == list:
+                    file_path = file_path[0]
+
+                base, ext = os.path.splitext(file_path)
+                file_path = f"{base}_msd_curve.csv"
+
+                file_path = QFileDialog.getSaveFileName(self, f"Export MSD Curve", file_path, f"(*.csv)")[0]
+
+                if file_path == "":
+                    return
+
+                msd.to_csv(file_path, index=False)
+
+                print(f"MSD curve exported to {file_path}")
 
         except:
             print(traceback.format_exc())
@@ -478,18 +253,27 @@ class _diffusion_utils:
             min_range = self.gui.adc_range_min.value()
             max_range = self.gui.adc_range_max.value()
 
-            coefs = self.get_diffusion_coefficents(dataset, channel, return_dict=False)
+            track_data = self.get_tracks(dataset, channel)
 
-            if len(coefs) == 0:
+            track_data = pd.DataFrame(track_data)
+
+            export_data = []
+            for (dataset_name, channel_name), tracks in track_data.groupby(["dataset", "channel"]):
+                dat = []
+                for particle, track in tracks.groupby("particle"):
+                    diffusion = track["d*"].values[0]
+                    if diffusion >= min_range and diffusion <= max_range:
+                        dat.append([particle,diffusion])
+
+                coef_data = pd.DataFrame(dat, columns=["particle","D* (um2/s)"])
+                coef_data.insert(0, "dataset", dataset_name)
+                coef_data.insert(1, "channel", channel_name)
+                export_data.append(coef_data)
+
+            if len(export_data) == 0:
                 return
 
-            coefs = coefs[(coefs["diffusion_coefficient (um^2/s)"] >= min_range) &
-                          (coefs["diffusion_coefficient (um^2/s)"] <= max_range)]
-
-            if len(coefs) == 0:
-                return
-
-            coefs = pd.DataFrame(coefs)
+            coefs = pd.concat(export_data)
 
             dataset_list = coefs["dataset"].unique()
 
@@ -501,7 +285,8 @@ class _diffusion_utils:
             base, ext = os.path.splitext(file_path)
             file_path = f"{base}_diffusion_coefficients.csv"
 
-            file_path = QFileDialog.getSaveFileName(self, f"Export Diffusion Coefficients", file_path, f"(*.csv)")[0]
+            file_path = QFileDialog.getSaveFileName(self, f"Export Diffusion Coefficients",
+                file_path, f"(*.csv)")[0]
 
             if file_path == "":
                 return

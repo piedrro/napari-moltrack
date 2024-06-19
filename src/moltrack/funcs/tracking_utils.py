@@ -3,19 +3,36 @@ import traceback
 import numpy as np
 import pandas as pd
 import trackpy as tp
+from numba import njit
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 
 from moltrack.funcs.compute_utils import Worker
+
+
+@njit
+def calculate_msd_numba(x_disp, y_disp, max_lag):
+    msd_list = np.zeros(max_lag + 1)
+    for lag in range(1, max_lag + 1):
+        squared_displacements = np.zeros(len(x_disp) - lag)
+        for i in range(len(x_disp) - lag):
+            dx = np.sum(x_disp[i:i+lag])
+            dy = np.sum(y_disp[i:i+lag])
+            squared_displacements[i] = dx**2 + dy**2
+        msd_list[lag] = np.mean(squared_displacements)
+    return msd_list
 
 
 class _tracking_utils:
 
     def get_tracks(self, dataset, channel, return_dict=False, include_metadata=True):
 
+
         order = ["dataset", "channel", "group", "particle",
                  "frame", "cell_index", "segmentation_index",
                  "x", "y", "photons", "bg",
                  "sx", "sy", "lpx", "lpy",
-                 "ellipticity", "net_gradient", "iterations", ]
+                 "ellipticity", "net_gradient", "iterations"]
 
         track_data = []
         group = 0
@@ -57,6 +74,10 @@ class _tracking_utils:
 
                         mask = []
 
+                        for col in tracks.columns:
+                            if col not in order:
+                                order.append(col)
+
                         for col in order:
                             if col in tracks.columns:
                                 mask.append(col)
@@ -87,7 +108,8 @@ class _tracking_utils:
 
         return track_data
 
-    def run_tracking(self, loc_data, progress_callback=None):
+    def detect_tracks(self, loc_data, progress_callback=None):
+
         search_range = float(self.gui.trackpy_search_range.value())
         memory = int(self.gui.trackpy_memory.value())
         min_track_length = int(self.gui.min_track_length.value())
@@ -98,9 +120,12 @@ class _tracking_utils:
             try:
                 dataset = dat["dataset"]
                 channel = dat["channel"]
-                pixel_size = float(self.dataset_dict[dataset]["pixel_size"])
-                exposure_time = float(self.dataset_dict[dataset]["exposure_time"])
+                pixel_size_nm = float(self.dataset_dict[dataset]["pixel_size"])
+                exposure_time_ms = float(self.dataset_dict[dataset]["exposure_time"])
                 locs = dat["localisations"]
+
+                pixel_size_um = pixel_size_nm * 1e-3
+                exposure_time_s = exposure_time_ms * 1e-3
 
                 columns = list(locs.dtype.names)
 
@@ -121,16 +146,125 @@ class _tracking_utils:
                     track_index += 1
 
                 tracks_df = tracks_df.sort_values(by=["particle", "frame"])
-                tracks = tracks_df.to_records(index=False)
 
-                track_dict = {"dataset": dataset, "channel": channel, "tracks": tracks, }
+                tracks_df["pixel_size (um)"] = pixel_size_um
+                tracks_df["exposure_time (s)"] = exposure_time_s
 
-                track_data.append(track_dict)
+                track_data.append(tracks_df)
 
             except:
                 print(traceback.format_exc())
 
+        if len(track_data) > 0:
+            track_data = pd.concat(track_data, ignore_index=True)
+
         return track_data
+
+    @staticmethod
+    def get_track_stats(df):
+
+        try:
+
+            pixel_size = df["pixel_size (um)"].values[0]
+            time_step = df["exposure_time (s)"].values[0]
+
+            # Convert columns to numpy arrays for faster computation
+            x = df['x'].values
+            y = df['y'].values
+
+            # Calculate the displacements using numpy diff
+            x_disp = np.diff(x, prepend=x[0]) * pixel_size
+            y_disp = np.diff(y, prepend=y[0]) * pixel_size
+
+            # Calculate the squared displacements
+            sq_disp = x_disp ** 2 + y_disp ** 2
+
+            # Calculate the MSD using numba
+            max_lag = len(x) - 1
+            msd_list = calculate_msd_numba(x_disp, y_disp, max_lag)
+
+            # Calculate speed
+            speed = np.sqrt(x_disp ** 2 + y_disp ** 2) / time_step
+
+            # Create time array
+            time = np.arange(0, max_lag + 1) * time_step
+
+            if len(time) >= 4 and len(msd_list) >= 4:  # Ensure there are enough points to fit
+                slope, intercept = np.polyfit(time[:4], msd_list[:4], 1)
+                apparent_diffusion = abs(slope / 4)  # the slope of MSD vs time gives 4D in 2D
+            else:
+                apparent_diffusion = 0
+
+        except:
+            apparent_diffusion = None
+            msd_list = None
+            time = None
+            speed = None
+            print(traceback.format_exc())
+
+        # Append results to the dataframe
+        df["time"] = time
+        df["msd"] = msd_list
+        df["d*"] = apparent_diffusion
+        df["speed"] = speed
+
+        return df
+
+
+
+
+    def compute_tracking_statistics(self, executor, track_data, progress_callback=None):
+
+        try:
+
+            pass
+
+            #split by dataset, channel and particle into list
+            stats_jobs = [dat[1] for dat in track_data.groupby(["dataset", "channel", "particle"])]
+
+            n_processed = 0
+
+            futures = [executor.submit(_tracking_utils.get_track_stats, df) for df in stats_jobs]
+
+            for future in as_completed(futures):
+                n_processed += 1
+                if progress_callback is not None:
+                    progress = int(n_processed / len(stats_jobs) * 100)
+                    progress_callback.emit(progress)
+
+            tracks_with_stats = [future.result() for future in futures if future.result() is not None]
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+        if len(tracks_with_stats) > 0:
+            track_data = pd.concat(tracks_with_stats, ignore_index=True)
+
+        return track_data
+
+
+
+    def track_particles(self, loc_data, stats = True, progress_callback=None):
+
+        with ProcessPoolExecutor() as executor:
+
+            print("Detecting tracks...")
+
+            track_data = self.detect_tracks(loc_data,
+                progress_callback=progress_callback)
+
+            if stats:
+
+                print("Computing track statistics...")
+
+                track_data = self.compute_tracking_statistics(executor,track_data,
+                    progress_callback=progress_callback)
+
+        return track_data
+
+
+
 
     def process_tracking_results(self, track_data):
         try:
@@ -141,10 +275,9 @@ class _tracking_utils:
             layers_names = [layer.name for layer in self.viewer.layers]
             total_tracks = 0
 
-            for dat in track_data:
-                dataset = dat["dataset"]
-                channel = dat["channel"]
-                tracks = dat["tracks"]
+            for (dataset, channel), tracks in track_data.groupby(["dataset", "channel"]):
+
+                tracks = tracks.to_records(index=False)
 
                 if dataset not in self.tracking_dict.keys():
                     self.tracking_dict[dataset] = {}
@@ -183,6 +316,7 @@ class _tracking_utils:
     def tracking_finished(self):
         self.draw_localisations()
         self.draw_tracks()
+        self.plot_diffusion_graph()
         self.update_ui()
 
     def initialise_tracking(self):
@@ -195,9 +329,11 @@ class _tracking_utils:
             if len(loc_data) > 0:
                 self.update_ui(init=True)
 
-                worker = Worker(self.run_tracking, loc_data)
+                worker = Worker(self.track_particles, loc_data)
                 worker.signals.result.connect(self.process_tracking_results)
                 worker.signals.finished.connect(self.tracking_finished)
+                worker.signals.progress.connect(partial(self.moltrack_progress,
+                    progress_bar=self.gui.tracking_progressbar))
                 self.threadpool.start(worker)
 
             else:
@@ -236,28 +372,39 @@ class _tracking_utils:
                     remove_tracks = False
 
                     render_tracks = pd.DataFrame(tracks)
+
+                    speed = render_tracks["speed"].values.tolist()
+
                     render_tracks = render_tracks[["particle", "frame", "y", "x"]]
                     render_tracks = render_tracks.to_records(index=False)
                     render_tracks = [list(track) for track in render_tracks]
                     render_tracks = np.array(render_tracks).copy()
                     render_tracks[:, 1] = 0
 
+                    properties = {"speed": speed}
+
                     if "Tracks" not in layer_names:
                         self.track_layer = self.viewer.add_tracks(render_tracks, name="Tracks",
-                            blending="opaque", scale=scale, )
+                            scale=scale, colormap="plasma", properties=properties, color_by="track_id",)
                         self.viewer.reset_view()
                     else:
+
+                        self.track_layer.color_by = "track_id"
                         self.track_layer.data = render_tracks
+                        self.track_layer.scale = scale
+
 
                     if self.gui.show_tracks.isChecked() == False:
                         if self.track_layer in self.viewer.layers:
                             self.viewer.layers.remove(self.track_layer)
 
-                    self.track_layer.selected_data = []
+                    self.track_layer.properties = properties
+                    self.track_layer.color_by = "speed"
                     self.track_layer.tail_length = n_frames * 2
                     self.track_layer.blending = "opaque"
 
-                    self.track_layer.scale = scale
+                    self.track_layer.selected_data = []
+
                     self.viewer.scale_bar.visible = True
                     self.viewer.scale_bar.unit = "nm"
 

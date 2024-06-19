@@ -209,13 +209,13 @@ class _events_utils:
                         "link_localisations", "export_localisations",
                         "fit_segmentations", "export_shapes",
                         "remove_seglocs", "export_shapes",
-                        "compute_adc", "export_adc", "export_heatmap",
+                         "export_adc", "export_heatmap",
                         "compute_heatmap",]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
                             "picasso_progressbar", "export_progressbar",
-                            "bactfit_progressbar", "adc_progressbar",
-                            "heatmap_progressbar",]
+                            "bactfit_progressbar",
+                            "heatmap_progressbar","tracking_progressbar"]
 
             for progressbar in progressbars:
                 if hasattr(self.gui, progressbar):

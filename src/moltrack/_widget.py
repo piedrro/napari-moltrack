@@ -164,8 +164,6 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.remove_seglocs.clicked.connect(self.remove_seglocs)
 
-        self.gui.compute_adc.clicked.connect(self.init_compute_diffusion_coefficients)
-
         self.gui.adc_plot.currentIndexChanged.connect(self.plot_diffusion_graph)
         self.gui.adc_channel.currentIndexChanged.connect(self.plot_diffusion_graph)
         self.gui.adc_dataset.currentIndexChanged.connect(self.plot_diffusion_graph)
@@ -197,9 +195,11 @@ class QWidget(QWidget, gui, *subclasses):
 
     def devfunc(self, viewer=None):
 
-        self.update_ui()
+        self.tracking_finished()
+
+        # self.update_ui()
         # self.plot_cell_heatmap()
-        self.plot_cell_render()
+        # self.plot_cell_render()
         # print(True)
         # self.tracking_dict = {}
 
