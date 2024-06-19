@@ -149,8 +149,8 @@ class _export_utils:
                     path = path[0]
 
                 export_dir = os.path.dirname(path)
-
                 file_name, ext = os.path.splitext(path)
+                file_name = dataset
 
         if export_dir is None:
             export_dir = os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop")
@@ -412,15 +412,20 @@ class _export_utils:
                     if type(import_path) == list:
                         import_path = import_path[0]
 
-                    base, ext = os.path.splitext(import_path)
+                    export_dir = os.path.dirname(import_path)
 
-                    hdf5_path = (base + f"_{channel_name}_moltrack_{export_data.lower()}.hdf5")
-                    info_path = (base + f"_{channel_name}_moltrack_{export_data.lower()}.yaml")
+                    hdf5_file_name = (dataset_name + f"_{channel_name}_moltrack_{export_data.lower()}.hdf5")
+                    info_file_name = (dataset_name + f"_{channel_name}_moltrack_{export_data.lower()}.yaml")
+
+                    hdf5_path = os.path.join(export_dir, hdf5_file_name)
+                    info_path = os.path.join(export_dir, info_file_name)
 
                     if export_loc_mode == "CSV":
-                        export_path = (base + f"_{channel_name}_moltrack_{export_data.lower()}.csv")
+                        export_file_name = (dataset_name + f"_{channel_name}_moltrack_{export_data.lower()}.csv")
+                        export_path = os.path.join(export_dir, export_file_name)
                     elif export_loc_mode == "POS.OUT":
-                        export_path = (base + f"_{channel_name}_moltrack_{export_data.lower()}.pos.out")
+                        export_file_name = (dataset_name + f"_{channel_name}_moltrack_{export_data.lower()}.pos.out")
+                        export_path = os.path.join(export_dir, export_file_name)
                     else:
                         export_path = ""
 
@@ -430,7 +435,16 @@ class _export_utils:
 
                         picasso_info = self.get_picasso_info(import_path, image_shape, box_size, min_net_gradient, )
 
-                    export_loc_job = {"dataset_name": dataset_name, "channel_name": channel_name, "export_data": export_data, "data": data, "fitted": fitted, "export_mode": export_loc_mode, "hdf5_path": hdf5_path, "info_path": info_path, "export_path": export_path, "picasso_info": picasso_info, }
+                    export_loc_job = {"dataset_name": dataset_name,
+                                      "channel_name": channel_name,
+                                      "export_data": export_data,
+                                      "data": data,
+                                      "fitted": fitted,
+                                      "export_mode": export_loc_mode,
+                                      "hdf5_path": hdf5_path,
+                                      "info_path": info_path,
+                                      "export_path": export_path,
+                                      "picasso_info": picasso_info, }
 
                     export_loc_jobs.append(export_loc_job)
 
