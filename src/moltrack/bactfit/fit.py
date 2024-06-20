@@ -33,9 +33,65 @@ from functools import partial
 import warnings
 
 from moltrack.bactfit.utils import (resize_line, moving_average, rotate_polygon,
-    rotate_linestring, get_vertical, fit_poly)
+    rotate_linestring, fit_poly)
 
 class BactFit(object):
+
+    def __init__(self,
+            cell = None,
+            celllist = None,
+            refine_fit = True,
+            min_radius = -1,
+            max_radius = -1,
+            fit_mode = "directed_hausdorff",
+            progress_callback=None,
+            parallel=True,
+            silence_tqdm=False,
+            max_workers=None,
+            **kwargs):
+
+        self.cell = cell
+        self.celllist = celllist
+        self.refine_fit = refine_fit
+        self.min_radius = min_radius
+        self.max_radius = max_radius
+        self.fit_mode = fit_mode
+        self.progress_callback = progress_callback
+        self.parallel = parallel
+        self.max_workers = max_workers
+        self.silence_tqdm = silence_tqdm
+        self.kwargs = kwargs
+
+
+    def fit(self):
+
+        if self.cell is not None:
+
+            fitted_cell = BactFit.fit_cell(
+                self.cell,
+                refine_fit=self.refine_fit,
+                fit_mode=self.fit_mode,
+                min_radius=self.min_radius,
+                max_radius=self.max_radius,
+                silence_tqdm=self.silence_tqdm)
+
+            return fitted_cell
+
+        if self.celllist is not None:
+
+            fitted_cells = BactFit.fit_celllist(
+                self.celllist,
+                refine_fit=self.refine_fit,
+                fit_mode=self.fit_mode,
+                min_radius=self.min_radius,
+                max_radius=self.max_radius,
+                progress_callback=self.progress_callback,
+                parallel=self.parallel,
+                max_workers=self.max_workers,
+                silence_tqdm=self.silence_tqdm)
+
+            return fitted_cells
+
 
     @staticmethod
     def get_polygon_medial_axis(outline, refine=True):
@@ -220,10 +276,10 @@ class BactFit(object):
 
         return cell
 
-    @staticmethod
-    def fit_cell(cell, refine_fit = True, min_radius = -1, max_radius = -1,
-            fit_mode = "directed_hausdorff", **kwargs):
 
+    @staticmethod
+    def fit_cell(cell, refine_fit=True, fit_mode="directed_hausdorff",
+            min_radius=-1, max_radius=-1, **kwargs):
 
         try:
 
@@ -274,6 +330,7 @@ class BactFit(object):
 
             cell = BactFit.bactfit_result(cell, params, cell_polygon,
                 poly_params, fit_mode)
+
             cell = BactFit.register_fit_data(cell, vertical=vertical)
 
         except:
@@ -282,15 +339,12 @@ class BactFit(object):
 
         return cell
 
-
     @staticmethod
-    def fit_cell_list(cell_list, refine_fit = True,
-            fit_mode = "directed_hausdorff",
-            min_radius = -1, max_radius = -1,
-            parallel = False, max_workers = None,
-            progress_callback = None, silence_tqdm = False, **kwargs):
+    def fit_celllist(celllist, refine_fit=True, fit_mode="directed_hausdorff",
+            min_radius=-1, max_radius=-1, progress_callback=None, parallel=True,
+            max_workers=None, silence_tqdm=False):
 
-        num_cells = len(cell_list)
+        num_cells = len(celllist.data)
 
         if parallel:
 
@@ -299,19 +353,18 @@ class BactFit(object):
 
             with ProcessPoolExecutor(max_workers=max_workers) as executor:
 
-                futures = {executor.submit(BactFit.fit_cell,
-                    cell_obj,
-                    refine_fit=refine_fit,
-                    fit_mode=fit_mode,
-                    min_radius=min_radius,
-                    max_radius=max_radius): cell_obj for cell_obj in cell_list}
+                futures = {executor.submit(BactFit.fit_cell, cell, refine_fit=refine_fit,
+                    fit_mode=fit_mode, min_radius=min_radius, max_radius=max_radius): cell
+                    for cell in celllist.data}
 
                 completed = 0
-                for future in as_completed(futures):
+                for future in tqdm(as_completed(futures), total=num_cells,
+                        desc="Optimising Cells", disable=silence_tqdm):
+
                     cell = future.result()
-                    cell_obj = futures[future]
-                    idx = cell_list.index(cell_obj)
-                    cell_list[idx] = cell
+                    if cell.fit_error is not None:
+                        cell_index  = cell.cell_index
+                        celllist.data[cell_index] = cell
 
                     completed += 1
                     if progress_callback is not None:
@@ -322,13 +375,16 @@ class BactFit(object):
 
             iter = 0
 
-            for cell_index, cell in enumerate(cell_list):
+            for cell in tqdm(celllist, total=num_cells,
+                    desc="Optimising Cells", disable=silence_tqdm):
 
                 cell = BactFit.fit_cell(cell, refine_fit=refine_fit,
                     fit_mode=fit_mode, min_radius=min_radius,
                     max_radius=max_radius)
 
-                cell_list[cell_index] = cell
+                if cell.fit_error is not None:
+                    cell_index = cell.cell_index
+                    celllist.data[cell_index] = cell
 
                 if progress_callback is not None:
                     progress = ((iter + 1) / num_cells)*100
@@ -336,4 +392,11 @@ class BactFit(object):
 
                 iter += 1
 
-        return cell_list
+        #remove cells with no fit error
+        celllist.data = [cell for cell in celllist.data if cell.fit_error is not None]
+        celllist.assign_cell_indices(reindex=True)
+
+        num_fitted_cells = len(celllist.data)
+        print(f"Fit completed for {num_fitted_cells}/{num_cells} cells")
+
+        return celllist

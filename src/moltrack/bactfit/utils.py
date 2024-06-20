@@ -33,6 +33,10 @@ from functools import partial
 import warnings
 
 
+def optimise_cell(cell, refine_fit=True, fit_mode="directed_hausdorff", min_radius=-1, max_radius=-1):
+    cell.optimise(refine_fit=refine_fit, fit_mode=fit_mode, min_radius=min_radius, max_radius=max_radius)
+
+    return cell
 
 def resize_line(line, length):
     distances = np.linspace(0, line.length, length)
@@ -91,6 +95,9 @@ def get_vertical(polygon):
 
 def fit_poly(coords, degree=2, constrained=True, constraining_points=[],
         minimise_curvature=True, curvature_weight = 0.1, degree_penalty=0.01, maxiter=50):
+
+    warnings.filterwarnings("ignore", category=np.RankWarning)
+
     def polynomial_fit(params, x):
         # Reverse the parameters to match np.polyfit order
         params = params[::-1]
@@ -198,3 +205,19 @@ def manual_fit(cell_coords, midline_coords, width = None):
     midline_coords = np.array(cell_midline.coords)
 
     return cell_fit_coords, midline_coords, poly_params, cell_width
+
+def resize_polygon(self, polygon, n_points):
+
+    outline = np.array(polygon.exterior.coords)
+    outline = outline[1:]
+
+    outline = LineString(outline)
+
+    distances = np.linspace(0, outline.length, n_points)
+    outline = LineString([outline.interpolate(distance) for distance in distances])
+
+    outline = outline.coords
+
+    polygon = Polygon(outline)
+
+    return polygon

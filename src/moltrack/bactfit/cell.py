@@ -7,14 +7,19 @@ from multiprocessing import Manager, Event
 from functools import partial
 from scipy.spatial import distance
 import os
-from moltrack.bactfit.fit import BactFit
-from moltrack.bactfit.postprocess import cell_coordinate_transformation
+import pickle
 from shapely.geometry import Polygon, LineString, Point
 from shapely.strtree import STRtree
 import pandas as pd
 import traceback
 import matplotlib.pyplot as plt
 from picasso.render import render
+import pyqtgraph as pg
+import warnings
+
+from moltrack.bactfit.fit import BactFit
+from moltrack.bactfit.postprocess import cell_coordinate_transformation
+from moltrack.bactfit.utils import resize_line, get_vertical
 
 
 class ModelCell(object):
@@ -50,7 +55,7 @@ class ModelCell(object):
 
         self.cell_centerline = LineString(centerline_coords)
 
-        self.cell_centerline = BactFit.resize_line(self.cell_centerline, 100)
+        self.cell_centerline = resize_line(self.cell_centerline, 100)
 
 
 class Cell(object):
@@ -96,22 +101,18 @@ class Cell(object):
             self.cell_polygon = self.cell_midline.buffer(self.width)
 
         if self.vertical is None and self.cell_polygon is not None:
-            self.vertical = self.get_vertical(self.cell_polygon)
+            self.vertical = get_vertical(self.cell_polygon)
 
+    def __getstate__(self):
+        # Return the state as a dictionary, omitting non-picklable attributes
+        state = self.__dict__.copy()
+        # Remove attributes that cannot be pickled
+        # state.pop('non_picklable_attribute', None)
+        return state
 
-    def get_vertical(self, polygon):
-
-        minx, miny, maxx, maxy = polygon.bounds
-
-        h = maxy - miny
-        w = maxx - minx
-
-        if h > w:
-            vertical = True
-        else:
-            vertical = False
-
-        return vertical
+    def __setstate__(self, state):
+        # Restore the state
+        self.__dict__.update(state)
 
     def remove_locs_outside_polygon(self, locs=None):
 
@@ -172,11 +173,19 @@ class Cell(object):
                 self.locs = None
 
 
-    def optimise(self, refine_fit = True, fit_mode = "directed_hausdorff"):
+    def optimise(self, refine_fit = True, fit_mode = "directed_hausdorff",
+            min_radius = -1, max_radius = -1):
 
-        bf = BactFit()
-        bf.fit_cell(self, refine_fit = refine_fit, fit_mode = fit_mode)
+        try:
+            bf = BactFit(self, refine_fit=refine_fit, fit_mode=fit_mode,
+                min_radius=min_radius, max_radius=max_radius)
 
+            self = bf.fit_cell()
+        except:
+            print(traceback.format_exc())
+            return None
+
+        return self
 
 
 
@@ -189,10 +198,13 @@ class CellList(object):
         self.assign_cell_indices()
         self.assign_cell_names()
 
-    def assign_cell_indices(self):
+    def assign_cell_indices(self, reindex=False):
 
-        self.cell_indices = [cell.cell_index for cell in self.data
-                             if cell.cell_index is not None]
+        if reindex == False:
+            self.cell_indices = [cell.cell_index for cell in self.data
+                                 if cell.cell_index is not None]
+        else:
+            self.cell_indices = []
 
         if len(self.cell_indices) == 0:
 
@@ -210,49 +222,34 @@ class CellList(object):
                 cell.name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
                 self.cell_names.append(cell.name)
 
-    def optimise(self, refine_fit=True, parallel=False, min_radius = -1, max_radius = -1,
-            max_workers=None, progress_callback=None, fit_mode="directed_hausdorff",
-            silence_tqdm=True):
+    def optimise(self, refine_fit=True, fit_mode="directed_hausdorff",
+            min_radius = -1, max_radius = -1,
+            max_workers=None, progress_callback=None, silence_tqdm=False, parallel=True):
 
-        if len(self.data) > 0:
+        try:
 
-            bf = BactFit()
+            if len(self.data) == 0:
+                return None
 
-            cell_list = bf.fit_cell_list(self.data,
-                refine_fit = refine_fit,
-                parallel = parallel,
-                fit_mode = fit_mode,
-                min_radius = float(min_radius),
-                max_radius = float(max_radius),
-                max_workers = max_workers,
-                progress_callback = progress_callback,
-                silence_tqdm = silence_tqdm)
+            if max_workers is None:
+                max_workers = os.cpu_count()
 
-            self.data = cell_list
+            bf = BactFit(celllist=self,
+                refine_fit=refine_fit, fit_mode=fit_mode,
+                min_radius=min_radius, max_radius=max_radius,
+                parallel=parallel, max_workers=max_workers,
+                progress_callback=progress_callback,
+                silence_tqdm=silence_tqdm)
 
-    def resize_polygon(self, polygon, n_points):
+            fitted_cells = bf.fit()
 
-        outline = np.array(polygon.exterior.coords)
-        outline = outline[1:]
+            self.data = fitted_cells.data
 
-        outline = LineString(outline)
+        except:
+            print(traceback.format_exc())
+            return None
 
-        distances = np.linspace(0, outline.length, n_points)
-        outline = LineString([outline.interpolate(distance) for distance in distances])
-
-        outline = outline.coords
-
-        polygon = Polygon(outline)
-
-        return polygon
-
-    def resize_line(self, line, n_points):
-
-        distances = np.linspace(0, line.length, n_points)
-        line = LineString([line.interpolate(distance) for distance in distances])
-
-        return line
-
+        return self
 
     def get_cell_fits(self, n_points = 100):
 
@@ -280,7 +277,7 @@ class CellList(object):
                         cell_fit = cell_fit.simplify(0.2)
                         seg = np.array(cell_fit.exterior.coords)
 
-                        midline = self.resize_line(cell_midline, 6)
+                        midline = resize_line(cell_midline, 6)
                         midline = np.array(midline.coords)
 
                         seg = seg[1:]

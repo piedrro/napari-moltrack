@@ -85,3 +85,5 @@ venv/
 /src/moltrack/bactfit/bactfit_dev.py
 /src/moltrack/bactfit/mask.tif
 /src/moltrack/dev/
+/src/moltrack/bactfit/bactfit_dev2.py
+/src/moltrack/bactfit/segmentations.pkl

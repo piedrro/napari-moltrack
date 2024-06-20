@@ -53,7 +53,8 @@ def data_to_cells(segmentation_list, locs = None):
 
         cell_list.append(cell)
 
-    cell_list = CellList(cell_list)
+    if len(cell_list):
+        cell_list = CellList(cell_list)
 
     return cell_list
 
