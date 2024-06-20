@@ -6,9 +6,11 @@ import trackpy as tp
 from numba import njit
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-
+from napari.utils.notifications import show_info
 from moltrack.funcs.compute_utils import Worker
-
+from shapely.geometry import Point, Polygon, LineString
+from shapely.strtree import STRtree
+import matplotlib.pyplot as plt
 
 @njit
 def calculate_msd_numba(x_disp, y_disp, max_lag):
@@ -24,6 +26,116 @@ def calculate_msd_numba(x_disp, y_disp, max_lag):
 
 
 class _tracking_utils:
+
+    def update_segtrack_options(self):
+
+        detect_mode = self.gui.segtracks_detect.currentText()
+
+        if detect_mode.lower() == "entire track":
+            self.gui.segtracks_remove.clear()
+            self.gui.segtracks_remove.addItems(["Track"])
+        else:
+            self.gui.segtracks_remove.clear()
+            self.gui.segtracks_remove.addItems(["Track", "Track Segment"])
+
+    def remove_segtracks(self):
+
+        try:
+            dataset = self.gui.segtracks_dataset.currentText()
+            channel = self.gui.segtracks_channel.currentText()
+            segchannel = self.gui.segtracks_seg.currentText()
+            detect_mode = self.gui.segtracks_detect.currentText()
+            remove_mode = self.gui.segtracks_remove.currentText()
+
+            min_track_length = int(self.gui.min_track_length.value())
+
+            self.update_ui(init=True)
+
+            polygons = self.get_shapes(segchannel, flipxy=True, polygon=True)
+
+            if len(polygons) == 0:
+                return
+
+            tracks = self.get_tracks(dataset, channel, return_dict=False, include_metadata=True)
+
+            tracks = pd.DataFrame(tracks)
+
+            filtered_tracks = []
+
+            track_groups = tracks.groupby(["dataset", "channel", "particle"])
+
+            n_tracks_removed = 0
+            n_segments_removed = 0
+
+            for (dataset, channel, particle), track in track_groups:
+
+                track = track.reset_index(drop=True)
+
+                coords = np.stack([track["x"], track["y"]], axis=1)
+                points = [Point(coord) for coord in coords]
+
+                spatial_index = STRtree(points)
+
+                inside_indices = []
+
+                for polygon_index, polygon in enumerate(polygons):
+                    possible_points = spatial_index.query(polygon)
+
+                    for point_index in possible_points:
+                        point = points[point_index]
+
+                        if polygon.contains(point):
+                            inside_indices.append(point_index)
+
+                outside_indices = list(set(range(len(points))) - set(inside_indices))
+
+                if detect_mode.lower() == "entire track":
+                    if len(outside_indices) == len(points):
+                        n_tracks_removed += 1
+                    else:
+                        filtered_tracks.append(track)
+                else:
+                    if remove_mode.lower() == "track":
+                        if len(outside_indices) == 0:
+                            filtered_tracks.append(track)
+                        else:
+                            n_tracks_removed += 1
+                    else:
+                        if len(outside_indices) == 0:
+                            filtered_tracks.append(track)
+                        else:
+                            track_length = len(track)
+
+                            if track_length - len(outside_indices) >= min_track_length:
+                                track = track.drop(outside_indices, axis=0)
+                                filtered_tracks.append(track)
+                                n_segments_removed += len(outside_indices)
+                            else:
+                                n_tracks_removed += 1
+
+            if len(filtered_tracks) > 0:
+                filtered_tracks = pd.concat(filtered_tracks, ignore_index=True)
+
+                for (dataset, channel), filtered_track in filtered_tracks.groupby(["dataset", "channel"]):
+                    filtered_track.reset_index(drop=True, inplace=True)
+                    filtered_track = filtered_track.to_records(index=False)
+                    self.tracking_dict[dataset][channel]["tracks"] = filtered_track
+
+            if remove_mode == "Track":
+                show_info(f"Removed {n_tracks_removed} complete tracks")
+            else:
+                if n_segments_removed == 0:
+                    show_info(f"Removed {n_tracks_removed} complete tracks")
+                else:
+                    show_info(f"Removed {n_tracks_removed} complete tracks and {n_segments_removed} track segments")
+
+            self.update_ui()
+            self.draw_tracks()
+
+        except:
+            self.update_ui()
+            print(traceback.format_exc())
+            pass
 
     def get_tracks(self, dataset, channel, return_dict=False, include_metadata=True):
 
@@ -108,6 +220,45 @@ class _tracking_utils:
 
         return track_data
 
+
+    def link_locs(self, f, search_range, pos_columns=None,
+            t_column='frame', progress_callback = None, **kwargs):
+
+        from trackpy.linking.linking import (coords_from_df, pandas_sort,
+            guess_pos_columns, link_iter)
+
+        if pos_columns is None:
+            pos_columns = guess_pos_columns(f)
+
+        # copy the dataframe
+        f = f.copy()
+        # coerce t_column to integer type (use np.int64 to avoid 32-bit on windows)
+        if not np.issubdtype(f[t_column].dtype, np.integer):
+            f[t_column] = f[t_column].astype(np.int64)
+        # sort on the t_column
+        pandas_sort(f, t_column, inplace=True)
+
+        coords_iter = coords_from_df(f, pos_columns, t_column)
+        ids = []
+
+        n_iter = 0
+        for t, coords in coords_iter:
+            n_iter += 1
+
+        coords_iter = coords_from_df(f, pos_columns, t_column)
+
+        for i, _ids in link_iter(coords_iter, search_range, **kwargs):
+            ids.extend(_ids)
+
+            if progress_callback is not None:
+                progress = int(i / n_iter * 50)
+                progress_callback.emit(progress)
+
+        f['particle'] = ids
+
+        return f
+
+
     def detect_tracks(self, loc_data, progress_callback=None):
 
         search_range = float(self.gui.trackpy_search_range.value())
@@ -132,7 +283,8 @@ class _tracking_utils:
                 locdf = pd.DataFrame(locs, columns=columns)
 
                 tp.quiet()
-                tracks_df = tp.link(locdf, search_range=search_range, memory=memory)
+                tracks_df = self.link_locs(locdf, search_range=search_range,
+                    memory=memory, progress_callback=progress_callback)
 
                 tracks_df.reset_index(drop=True, inplace=True)
 
@@ -229,7 +381,7 @@ class _tracking_utils:
             for future in as_completed(futures):
                 n_processed += 1
                 if progress_callback is not None:
-                    progress = int(n_processed / len(stats_jobs) * 100)
+                    progress = int(n_processed / len(stats_jobs) * 50) + 50
                     progress_callback.emit(progress)
 
             tracks_with_stats = [future.result() for future in futures if future.result() is not None]
@@ -249,14 +401,14 @@ class _tracking_utils:
 
         with ProcessPoolExecutor() as executor:
 
-            print("Detecting tracks...")
+            show_info("Detecting tracks...")
 
             track_data = self.detect_tracks(loc_data,
                 progress_callback=progress_callback)
 
             if stats:
 
-                print("Computing track statistics...")
+                show_info("Calculating tracking statistics...")
 
                 track_data = self.compute_tracking_statistics(executor,track_data,
                     progress_callback=progress_callback)
@@ -377,7 +529,10 @@ class _tracking_utils:
 
                     render_tracks = pd.DataFrame(tracks)
 
-                    speed = render_tracks["speed"].values.tolist()
+                    if "speed" in render_tracks.columns:
+                        speed = render_tracks["speed"].values.tolist()
+                    else:
+                        speed = None
 
                     render_tracks = render_tracks[["particle", "frame", "y", "x"]]
                     render_tracks = render_tracks.to_records(index=False)
@@ -403,7 +558,10 @@ class _tracking_utils:
                             self.viewer.layers.remove(self.track_layer)
 
                     self.track_layer.properties = properties
-                    self.track_layer.color_by = "speed"
+
+                    if speed is not None:
+                        self.track_layer.color_by = "speed"
+
                     self.track_layer.tail_length = n_frames * 2
                     self.track_layer.blending = "opaque"
 

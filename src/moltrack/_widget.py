@@ -175,6 +175,8 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.locs_export_data.currentIndexChanged.connect(self.update_locs_export_options)
 
         self.gui.remove_seglocs.clicked.connect(self.remove_seglocs)
+        self.gui.remove_segtracks.clicked.connect(self.remove_segtracks)
+        self.gui.segtracks_detect.currentIndexChanged.connect(self.update_segtrack_options)
 
         self.gui.adc_plot.currentIndexChanged.connect(self.plot_diffusion_graph)
         self.gui.adc_channel.currentIndexChanged.connect(self.plot_diffusion_graph)

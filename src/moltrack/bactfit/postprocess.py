@@ -2,10 +2,11 @@ import numpy as np
 import traceback
 from shapely.geometry import Point, LineString
 from shapely.strtree import STRtree
-from moltrack.bactfit.fit import BactFit
-
+from moltrack.bactfit.utils import resize_line, rotate_linestring, fit_poly, get_vertical
 
 def find_centerline(midline, width, smooth=True):
+
+    centerline = None
 
     try:
         def extract_end_points(line, num_points=2):
@@ -49,7 +50,7 @@ def find_centerline(midline, width, smooth=True):
 
         model = midline.buffer(width)
 
-        centerline = BactFit.resize_line(midline, 1000)  # High resolution with 1000 points
+        centerline = resize_line(midline, 1000)  # High resolution with 1000 points
 
         start_points, end_points = extract_end_points(centerline)
 
@@ -71,20 +72,20 @@ def find_centerline(midline, width, smooth=True):
         centerline = LineString(centerline_coords)
 
         if smooth:
-            vertical = BactFit.get_vertical(model)
+            vertical = get_vertical(model)
 
             if vertical:
-                centerline = BactFit.rotate_linestring(centerline, angle=90)
+                centerline = rotate_linestring(centerline, angle=90)
 
             centerline_coords = np.array(centerline.coords)
             constraining_points = [centerline_coords[0], centerline_coords[-1]]
 
-            centerline_coords, _ = BactFit.fit_poly(centerline_coords, degree=[1, 2, 3], maxiter=100, constraining_points=constraining_points, constrained=True)
+            centerline_coords, _ = fit_poly(centerline_coords, degree=[1, 2, 3], maxiter=100, constraining_points=constraining_points, constrained=True)
 
             centerline = LineString(centerline_coords)
 
             if vertical:
-                centerline = BactFit.rotate_linestring(centerline, angle=-90)
+                centerline = rotate_linestring(centerline, angle=-90)
 
     except:
         print(traceback.format_exc())

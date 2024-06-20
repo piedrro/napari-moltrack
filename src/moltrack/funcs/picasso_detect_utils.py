@@ -377,8 +377,11 @@ def detect_picaso_locs(dat, progress_list, fit_list):
                 if remove_overlapping:
                     locs = remove_overlapping_locs(locs, box_size)
 
+                polygon_indices = get_polygon_indices(polygons, locs)
+
                 if polygon_filter:
-                    locs = remove_segmentation_locs(locs, polygons)
+                    locs, polygon_indices = remove_segmentation_locs(polygons,
+                        locs, polygon_indices)
 
                 if len(locs) > 0:
 

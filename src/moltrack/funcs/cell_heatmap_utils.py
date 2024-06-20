@@ -83,7 +83,6 @@ class _cell_heatmap_utils:
         try:
 
             data_type = self.gui.heatmap_data.currentText()
-
             datasets = self.dataset_dict.keys()
 
             pixel_size_nm = list(set([self.dataset_dict[dataset]["pixel_size"] for dataset in datasets]))
@@ -102,12 +101,12 @@ class _cell_heatmap_utils:
             if hasattr(self, "cellLayer") == False:
                 return
 
+            self.update_ui(init=True)
+
             celllist = self.populate_celllist()
 
             celllist.add_localisations(locs)
             model = ModelCell(length=model_length, width=model_width)
-
-            self.update_ui(init=True)
 
             worker = Worker(self.cell_heatmap_compute, celllist, model)
             worker.signals.finished.connect(self.cell_heatmap_compute_finished)
