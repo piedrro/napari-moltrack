@@ -127,37 +127,42 @@ def fit_poly(coords, degree=2, constrained=True, constraining_points=[],
 
         return np.column_stack((x_fitted, y_fitted))
 
-    x = coords[:, 0]
-    y = coords[:, 1]
-    constraints = []
+    try:
 
-    param_list = []
-    error_list = []
-    success_list = []
+        x = coords[:, 0]
+        y = coords[:, 1]
+        constraints = []
 
-    if constrained and len(constraining_points) > 0:
-        for point in constraining_points:
-            if len(point) == 2:
-                constraints.append({'type': 'eq', 'fun': constraint_function, 'args': point})
+        param_list = []
+        error_list = []
+        success_list = []
 
-    if type(degree) != list:
-        degree = [degree]
+        if constrained and len(constraining_points) > 0:
+            for point in constraining_points:
+                if len(point) == 2:
+                    constraints.append({'type': 'eq', 'fun': constraint_function, 'args': point})
 
-    for deg in degree:
-        params = np.polyfit(x, y, deg)
+        if type(degree) != list:
+            degree = [degree]
 
-        result = minimize(objective_function, params, args=(x, y, minimise_curvature),
-            constraints=constraints, tol=1e-6, options={'maxiter': maxiter})
+        for deg in degree:
+            params = np.polyfit(x, y, deg)
 
-        param_list.append(result.x)
-        error_list.append(result.fun)
-        success_list.append(result.success)
+            result = minimize(objective_function, params, args=(x, y, minimise_curvature),
+                constraints=constraints, tol=1e-6, options={'maxiter': maxiter})
 
-    min_error_index = error_list.index(min(error_list))
+            param_list.append(result.x)
+            error_list.append(result.fun)
+            success_list.append(result.success)
 
-    best_params = param_list[min_error_index]
+        min_error_index = error_list.index(min(error_list))
 
-    fitted_poly = get_coords(x, y, best_params)
+        best_params = param_list[min_error_index]
+
+        fitted_poly = get_coords(x, y, best_params)
+
+    except:
+        return None, None
 
     return fitted_poly, list(best_params)
 

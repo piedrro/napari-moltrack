@@ -177,10 +177,11 @@ class Cell(object):
             min_radius = -1, max_radius = -1):
 
         try:
-            bf = BactFit(self, refine_fit=refine_fit, fit_mode=fit_mode,
+            bf = BactFit(cell=self, refine_fit=refine_fit, fit_mode=fit_mode,
                 min_radius=min_radius, max_radius=max_radius)
 
-            self = bf.fit_cell()
+            self = bf.fit()
+
         except:
             print(traceback.format_exc())
             return None
@@ -224,7 +225,7 @@ class CellList(object):
 
     def optimise(self, refine_fit=True, fit_mode="directed_hausdorff",
             min_radius = -1, max_radius = -1,
-            max_workers=None, progress_callback=None, silence_tqdm=False, parallel=True):
+            max_workers=None, progress_callback=None, silence_tqdm=False, parallel=True, max_error=5):
 
         try:
 
@@ -242,6 +243,9 @@ class CellList(object):
                 silence_tqdm=silence_tqdm)
 
             fitted_cells = bf.fit()
+
+            self.data = [cell for cell in fitted_cells.data if cell.fit_error != None]
+            self.data = [cell for cell in self.data if cell.fit_error < max_error]
 
             self.data = fitted_cells.data
 

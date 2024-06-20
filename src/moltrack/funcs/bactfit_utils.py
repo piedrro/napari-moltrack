@@ -6,6 +6,7 @@ from functools import partial
 from shapely.geometry import Polygon, LineString
 import matplotlib.pyplot as plt
 from moltrack.bactfit.fit import BactFit
+from moltrack.bactfit.cell import CellList
 
 class _bactfit_utils:
 
@@ -68,13 +69,18 @@ class _bactfit_utils:
 
             min_radius = float(self.gui.fit_min_radius.value())
             max_radius = float(self.gui.fit_max_radius.value())
+            max_error = float(self.gui.fit_max_error.value())
 
             celllist = data_to_cells(segmentations)
 
-            bf = BactFit(celllist=celllist, max_radius=max_radius, min_radius=min_radius,
+            bf = BactFit(celllist=celllist,
+                max_radius=max_radius, min_radius=min_radius, max_error=max_error,
                 progress_callback=progress_callback, parallel=True,)
 
             celllist = bf.fit()
+
+            max_error = [cell.fit_error for cell in celllist.data]
+            print(f"Max error: {max(max_error)}")
 
         except:
             print(traceback.format_exc())

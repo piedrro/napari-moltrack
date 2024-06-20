@@ -48,6 +48,7 @@ class BactFit(object):
             parallel=True,
             silence_tqdm=False,
             max_workers=None,
+            max_error = -1,
             **kwargs):
 
         self.cell = cell
@@ -60,6 +61,7 @@ class BactFit(object):
         self.parallel = parallel
         self.max_workers = max_workers
         self.silence_tqdm = silence_tqdm
+        self.max_error = max_error
         self.kwargs = kwargs
 
 
@@ -73,7 +75,8 @@ class BactFit(object):
                 fit_mode=self.fit_mode,
                 min_radius=self.min_radius,
                 max_radius=self.max_radius,
-                silence_tqdm=self.silence_tqdm)
+                silence_tqdm=self.silence_tqdm,
+                max_error=self.max_error,)
 
             return fitted_cell
 
@@ -88,7 +91,8 @@ class BactFit(object):
                 progress_callback=self.progress_callback,
                 parallel=self.parallel,
                 max_workers=self.max_workers,
-                silence_tqdm=self.silence_tqdm)
+                silence_tqdm=self.silence_tqdm,
+                max_error=self.max_error,)
 
             return fitted_cells
 
@@ -228,6 +232,10 @@ class BactFit(object):
             fit_mode = "directed_hausdorff"):
 
         try:
+
+            midline_buffer_centroid = midline_buffer.centroid
+            cell_polygon_centroid = cell_polygon.centroid
+
             if fit_mode == "hausdorff":
                 # Calculate the Hausdorff distance between the buffered spline and the target contour
                 distance = midline_buffer.hausdorff_distance(cell_polygon)
@@ -238,6 +246,9 @@ class BactFit(object):
                 dist1 = directed_hausdorff(buffer_points, contour_points)[0]
                 dist2 = directed_hausdorff(contour_points, buffer_points)[0]
                 distance = dist1 + dist2
+
+            centroid_distance = midline_buffer_centroid.distance(cell_polygon_centroid)
+            distance += centroid_distance**0.5
 
         except:
             print(traceback.format_exc())
@@ -279,12 +290,17 @@ class BactFit(object):
 
     @staticmethod
     def fit_cell(cell, refine_fit=True, fit_mode="directed_hausdorff",
-            min_radius=-1, max_radius=-1, **kwargs):
+            min_radius=-1, max_radius=-1, polygon_length = 100, max_error = -1, **kwargs):
 
         try:
 
             cell_polygon = cell.cell_polygon
+            cell_outline = LineString(cell_polygon.exterior.coords)
             vertical = cell.vertical
+
+            if len(cell_outline.coords) < polygon_length:
+                cell_outline = resize_line(cell_outline, polygon_length)
+                cell_polygon = Polygon(cell_outline.coords)
 
             if vertical:
                 cell_polygon = rotate_polygon(cell_polygon)
@@ -333,8 +349,11 @@ class BactFit(object):
 
             cell = BactFit.register_fit_data(cell, vertical=vertical)
 
+            if max_error > 0 and hasattr(cell, "fit_error"):
+                if cell.fit_error > max_error:
+                    cell = None
+
         except:
-            print(traceback.format_exc())
             pass
 
         return cell
@@ -342,7 +361,7 @@ class BactFit(object):
     @staticmethod
     def fit_celllist(celllist, refine_fit=True, fit_mode="directed_hausdorff",
             min_radius=-1, max_radius=-1, progress_callback=None, parallel=True,
-            max_workers=None, silence_tqdm=False):
+            max_workers=None, silence_tqdm=False, max_error=-1, **kwargs):
 
         num_cells = len(celllist.data)
 
@@ -354,7 +373,7 @@ class BactFit(object):
             with ProcessPoolExecutor(max_workers=max_workers) as executor:
 
                 futures = {executor.submit(BactFit.fit_cell, cell, refine_fit=refine_fit,
-                    fit_mode=fit_mode, min_radius=min_radius, max_radius=max_radius): cell
+                    fit_mode=fit_mode, min_radius=min_radius, max_radius=max_radius, max_error=max_error): cell
                     for cell in celllist.data}
 
                 completed = 0
@@ -362,9 +381,10 @@ class BactFit(object):
                         desc="Optimising Cells", disable=silence_tqdm):
 
                     cell = future.result()
-                    if cell.fit_error is not None:
-                        cell_index  = cell.cell_index
-                        celllist.data[cell_index] = cell
+                    if cell is not None:
+                        if cell.fit_error is not None:
+                            cell_index  = cell.cell_index
+                            celllist.data[cell_index] = cell
 
                     completed += 1
                     if progress_callback is not None:
