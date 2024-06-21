@@ -277,7 +277,7 @@ class _cell_heatmap_utils:
             plt.rcParams["axes.grid"] = False
             fig, ax = plt.subplots()
             ax.imshow(image, cmap='inferno')
-            # ax.plot(*polygon_coords.T, color='white')
+            ax.plot(*polygon_coords.T, color='white')
             ax.axis('off')
 
             buf = BytesIO()
