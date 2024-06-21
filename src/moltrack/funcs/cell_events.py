@@ -231,6 +231,7 @@ class _cell_events:
 
             shape_types = self.cellLayer.shape_type.copy()
             shapes = self.cellLayer.data.copy()
+            pixel_size = self.cellLayer.scale[0]
 
             cell_indices = [i for i, n in enumerate(name_list) if n == name]
 
@@ -256,7 +257,12 @@ class _cell_events:
                         cell_properties["cell_poles"] = [list(pole) for pole in cell_properties["cell_poles"]]
                         cell_properties["width"] = float(cell_properties["width"])
 
-                    cell_coords = {"midline_coords": midline_coords, "polygon_coords": polygon_coords, "midline_index": int(path_index[0]), "polygon_index": int(polygon_index[0]), }
+                    cell_coords = {"midline_coords": midline_coords,
+                                   "polygon_coords": polygon_coords,
+                                   "midline_index": int(path_index[0]),
+                                   "polygon_index": int(polygon_index[0]),
+                                   "pixel_size": pixel_size,
+                                   }
 
                     cell = {**cell_coords, **cell_properties}
 
@@ -546,9 +552,10 @@ class _cell_events:
         except:
             print(traceback.format_exc())
 
-    def add_manual_cell(self, last_index, width=5):
+    def add_manual_cell(self, last_index):
         try:
             shapes = self.cellLayer.data.copy()
+            width = self.gui.default_cell_width.value()
             properties = self.cellLayer.properties.copy()
             shape_types = self.cellLayer.shape_type.copy()
 

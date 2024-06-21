@@ -168,14 +168,17 @@ class _events_utils:
         layout = self.gui.heatmap_settings_layout
 
         core_settings = ["heatmap_dataset", "heatmap_channel", "heatmap_mode",
-                         "heatmap_dataset_label", "heatmap_channel_label", "heatmap_mode_label"]
+                         "heatmap_dataset_label", "heatmap_channel_label", "heatmap_mode_label",
+                         "heatmap_colourmap", "heatmap_colourmap_label","heatmap_length_label",
+                         "heatmap_min_length", "heatmap_max_length", "heatmap_length_spacer",]
 
         for i in reversed(range(layout.count())):
             widget = layout.itemAt(i).widget()
-            widget_name = widget.objectName()
-            if widget_name.lower() not in core_settings:
-                if widget is not None:
-                    widget.deleteLater()
+            if widget is not None:
+                widget_name = widget.objectName()
+                if widget_name.lower() not in core_settings:
+                    if widget is not None:
+                        widget.deleteLater()
 
         self.initialise_heatmap_controls()
 
@@ -219,11 +222,6 @@ class _events_utils:
             self.heatmap_blur_method.blockSignals(True)
             self.heatmap_min_blur_width.blockSignals(True)
             self.heatmap_oversampling.blockSignals(True)
-
-            self.heatmap_binning.valueChanged.connect(self.plot_heatmap)
-            self.heatmap_blur_method.currentIndexChanged.connect(self.plot_heatmap)
-            self.heatmap_min_blur_width.valueChanged.connect(self.plot_heatmap)
-            self.heatmap_oversampling.valueChanged.connect(self.plot_heatmap)
 
             self.heatmap_binning.blockSignals(False)
             self.heatmap_blur_method.blockSignals(False)
@@ -307,7 +305,8 @@ class _events_utils:
                         "fit_segmentations", "export_shapes",
                         "remove_seglocs", "export_shapes",
                          "export_adc", "export_heatmap",
-                        "compute_heatmap","filter_tracks","remove_segtracks"]
+                        "compute_heatmap","filter_tracks",
+                        "remove_segtracks", "generate_heatmap"]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
                             "picasso_progressbar", "export_progressbar",

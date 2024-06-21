@@ -12,7 +12,10 @@ from picasso.render import render
 from PyQt5.QtWidgets import QApplication, QComboBox, QDoubleSpinBox, QFormLayout, QVBoxLayout, QWidget, QMainWindow, QSpinBox
 from PyQt5.QtWidgets import QFileDialog
 import os
-
+import cv2
+from shapely.geometry import Polygon
+from matplotlib.colors import ListedColormap
+from napari.utils.notifications import show_info
 from moltrack.funcs.compute_utils import Worker
 
 
@@ -28,10 +31,86 @@ class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
 class _cell_heatmap_utils:
 
+    def update_render_length_range(self):
+
+        try:
+
+            if hasattr(self, "celllist") == False:
+                return
+
+            if self.celllist is None:
+                return
+
+            cell_lengths = self.celllist.get_cell_lengths()
+
+            if len(cell_lengths) > 0:
+                min_length = min(cell_lengths)
+                max_length = max(cell_lengths)
+                self.gui.heatmap_min_length.setRange(min_length, max_length)
+                self.gui.heatmap_max_length.setRange(min_length, max_length)
+                self.gui.heatmap_min_length.setValue(min_length)
+                self.gui.heatmap_max_length.setValue(max_length)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+    def update_render_msd_range(self):
+
+        try:
+
+            self.gui.heatmap_min_msd.setRange(0, 0)
+            self.gui.heatmap_max_msd.setRange(0, 0)
+            self.gui.heatmap_min_msd.setValue(0)
+            self.gui.heatmap_max_msd.setValue(0)
+            self.gui.heatmap_min_msd.setEnabled(False)
+            self.gui.heatmap_max_msd.setEnabled(False)
+
+            dataset = self.gui.heatmap_dataset.currentText()
+            channel = self.gui.heatmap_channel.currentText()
+
+            if hasattr(self, "tracking_dict") == False:
+                return
+
+            if self.tracking_dict is None:
+                return
+
+            tracks = self.get_tracks(dataset, channel)
+            tracks = pd.DataFrame(tracks)
+
+            if "msd" not in tracks.columns:
+                return
+
+            if len(tracks)== 0:
+                return
+
+
+            self.gui.heatmap_min_msd.setEnabled(True)
+            self.gui.heatmap_max_msd.setEnabled(True)
+
+            msd = tracks["msd"].tolist()
+            msd = [x for x in msd if x > 0]
+
+            min_msd = min(msd)
+            max_msd = max(msd)
+
+            self.gui.heatmap_min_msd.setRange(min_msd, max_msd)
+            self.gui.heatmap_max_msd.setRange(min_msd, max_msd)
+            self.gui.heatmap_min_msd.setValue(min_msd)
+            self.gui.heatmap_max_msd.setValue(max_msd)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+
     def cell_heatmap_compute_finished(self):
 
         try:
 
+            self.update_render_length_range()
+            self.update_render_msd_range()
+            self.heatmap_canvas.clear()
             self.plot_heatmap()
             self.update_ui()
             print("Cell heatmap computed.")
@@ -44,8 +123,6 @@ class _cell_heatmap_utils:
             progress_callback=None):
 
         try:
-
-            print("Computing cell heatmap...")
 
             celllist.transform_locs(model,
                 progress_callback=progress_callback)
@@ -78,6 +155,10 @@ class _cell_heatmap_utils:
 
         return cells
 
+
+
+
+
     def compute_cell_heatmap(self, viewer=None, model_length_um=5, model_width_um=2):
 
         try:
@@ -105,13 +186,6 @@ class _cell_heatmap_utils:
 
             celllist = self.populate_celllist()
 
-            # for cell in celllist.data:
-            #     cell_polygon_coords = np.array(cell.cell_polygon.exterior.coords)
-            #     plt.plot(*cell_polygon_coords.T)
-            # coords = np.array([(loc["x"], loc["y"]) for loc in locs])
-            # plt.scatter(*coords.T)
-            # plt.show()
-
             celllist.add_localisations(locs)
             model = ModelCell(length=model_length, width=model_width)
 
@@ -129,9 +203,17 @@ class _cell_heatmap_utils:
 
         try:
 
+            self.update_ui(init=True)
+
             heatmap_datset = self.gui.heatmap_dataset.currentText()
             heatmap_channel = self.gui.heatmap_channel.currentText()
             heatmap_mode = self.gui.heatmap_mode.currentText()
+            colourmap_name = self.gui.heatmap_colourmap.currentText()
+            draw_outline = self.gui.render_draw_outline.isChecked()
+            min_length = self.gui.heatmap_min_length.value()
+            max_length = self.gui.heatmap_max_length.value()
+            min_msd = self.gui.heatmap_min_msd.value()
+            max_msd = self.gui.heatmap_max_msd.value()
 
             self.heatmap_canvas.clear()
 
@@ -140,10 +222,10 @@ class _cell_heatmap_utils:
             if self.celllist is None:
                 return
 
-            celllocs = self.celllist.get_locs()
+            celllist = self.celllist.filter_by_length(min_length, max_length)
 
-            polygon = self.celllist.data[0].cell_polygon
-
+            celllocs = celllist.get_locs()
+            polygon = celllist.data[0].cell_polygon
             polygon_coords = np.array(polygon.exterior.coords)
 
             celllocs = pd.DataFrame(celllocs)
@@ -160,36 +242,48 @@ class _cell_heatmap_utils:
             if len(celllocs) == 0:
                 return
 
-            print(f"Plotting {len(celllocs)} localisations...")
+            celllocs = celllocs[celllocs["msd"] > min_msd]
+            celllocs = celllocs[celllocs["msd"] < max_msd]
+
+            n_cells = len(celllist.data)
+            n_locs = len(celllocs)
+
+            show_info(f"Generating Cell {heatmap_mode.lower()} with {n_locs} localisations from {n_cells} cells")
 
             if heatmap_mode == "Heatmap":
-                self.plot_cell_heatmap(celllocs, polygon_coords)
+                self.plot_cell_heatmap(celllocs, polygon_coords,
+                    colourmap_name, draw_outline)
             elif heatmap_mode == "Render":
-                self.plot_cell_render(celllocs, polygon_coords)
+                self.plot_cell_render(celllocs, polygon_coords,
+                    colourmap_name, draw_outline)
             else:
                 pass
 
+            self.update_ui()
+
         except:
+            self.update_ui()
             print(traceback.format_exc())
             pass
 
 
-
-    def plot_cell_heatmap(self, celllocs, polygon_coords):
+    def plot_cell_heatmap(self, celllocs, polygon_coords,
+            colourmap_name="inferno", draw_outline=True):
 
         try:
-
-            print("Generating heatmap...")
 
             bins = self.heatmap_binning.value()
 
             heatmap, xedges, yedges = np.histogram2d(celllocs["x"], celllocs["y"], bins=bins)
             extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
 
+            cmap = self.get_custom_cmap(colour=colourmap_name)
+
             plt.rcParams["axes.grid"] = False
             fig, ax = plt.subplots()
-            im = ax.imshow(heatmap.T, extent=extent, origin='lower', cmap='inferno')
-            ax.plot(*polygon_coords.T, color='white', linewidth=1)
+            im = ax.imshow(heatmap.T, extent=extent, origin='lower', cmap=cmap)
+            if draw_outline:
+                ax.plot(*polygon_coords.T, color='white', linewidth=1)
             ax.axis('off')
 
             from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -223,11 +317,23 @@ class _cell_heatmap_utils:
             print(traceback.format_exc())
             pass
 
-    def plot_cell_render(self, celllocs, polygon_coords):
+
+    def get_custom_cmap(self, colour = "jet"):
+
+        cmap = plt.get_cmap(colour.lower())
+        new_cmap = cmap(np.arange(cmap.N))
+
+        new_cmap[0] = [0, 0, 0, 1]
+
+        new_cmap = ListedColormap(new_cmap)
+
+        return new_cmap
+
+
+    def plot_cell_render(self, celllocs, polygon_coords,
+            colourmap_name="inferno", draw_outline=True):
 
         try:
-
-            print("Generating render...")
 
             blur_method = self.heatmap_blur_method.currentText()
             min_blur_width = self.heatmap_min_blur_width.value()
@@ -274,10 +380,13 @@ class _cell_heatmap_utils:
             polygon_coords = np.array(polygon_coords)
             polygon_coords = polygon_coords * oversampling
 
+            cmap = self.get_custom_cmap(colour=colourmap_name)
+
             plt.rcParams["axes.grid"] = False
             fig, ax = plt.subplots()
-            ax.imshow(image, cmap='inferno')
-            ax.plot(*polygon_coords.T, color='white')
+            ax.imshow(image, cmap=cmap)
+            if draw_outline:
+                ax.plot(*polygon_coords.T, color='white')
             ax.axis('off')
 
             buf = BytesIO()
@@ -341,3 +450,4 @@ class _cell_heatmap_utils:
 
         except:
             print(traceback.format_exc())
+

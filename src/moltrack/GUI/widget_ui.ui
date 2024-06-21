@@ -1260,7 +1260,7 @@
              <property name="sizeHint" stdset="0">
               <size>
                <width>484</width>
-               <height>136</height>
+               <height>108</height>
               </size>
              </property>
             </spacer>
@@ -1305,6 +1305,24 @@
               <string>Activate Pan/Zoom [Escape]</string>
              </property>
             </widget>
+           </item>
+           <item>
+            <layout class="QFormLayout" name="formLayout_9">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_51">
+               <property name="text">
+                <string>Default Cell Width</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QSpinBox" name="default_cell_width">
+               <property name="value">
+                <number>5</number>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </widget>
@@ -2848,7 +2866,7 @@
               </font>
              </property>
              <property name="text">
-              <string>Heatmap Plot Settings</string>
+              <string>Heatmap Settings</string>
              </property>
             </widget>
            </item>
@@ -2895,7 +2913,158 @@
                </item>
               </widget>
              </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="heatmap_colourmap_Label">
+               <property name="text">
+                <string>Colourmap</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QComboBox" name="heatmap_colourmap">
+               <item>
+                <property name="text">
+                 <string>Jet</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Turbo</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Viridis</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Plasma</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Inferno</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Magma</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Hot</string>
+                </property>
+               </item>
+              </widget>
+             </item>
             </layout>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_50">
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Filter Settings</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QFormLayout" name="formLayout_8">
+             <item row="0" column="0">
+              <widget class="QLabel" name="heatmap_length_label">
+               <property name="text">
+                <string>Cell Length Range (um)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <layout class="QGridLayout" name="gridLayout" columnstretch="10,2,10,2">
+               <item row="0" column="2">
+                <widget class="QDoubleSpinBox" name="heatmap_max_length"/>
+               </item>
+               <item row="0" column="0">
+                <widget class="QDoubleSpinBox" name="heatmap_min_length"/>
+               </item>
+               <item row="0" column="1">
+                <widget class="QLabel" name="heatmap_length_spacer">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>To</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="3">
+                <widget class="QPushButton" name="heatmap_length_reset">
+                 <property name="text">
+                  <string>Reset</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_46">
+               <property name="text">
+                <string>Particle MSD (um2/s)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <layout class="QGridLayout" name="gridLayout_5" columnstretch="10,2,10,2">
+               <item row="0" column="2">
+                <widget class="QDoubleSpinBox" name="heatmap_max_msd"/>
+               </item>
+               <item row="0" column="0">
+                <widget class="QDoubleSpinBox" name="heatmap_min_msd"/>
+               </item>
+               <item row="0" column="1">
+                <widget class="QLabel" name="heatmap_msd_spacer">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>To</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="3">
+                <widget class="QPushButton" name="heatmap_msd_reset">
+                 <property name="text">
+                  <string>Reset</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="render_draw_outline">
+             <property name="text">
+              <string>Draw Cell Outline</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="generate_heatmap">
+             <property name="text">
+              <string>Generate Heatmap</string>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QPushButton" name="export_heatmap">

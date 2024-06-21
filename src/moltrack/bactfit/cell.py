@@ -80,6 +80,7 @@ class Cell(object):
         self.cell_index = None
         self.polynomial_params = None
         self.fit_error = None
+        self.pixel_size = None
 
         if cell_data is not None:
 
@@ -422,6 +423,47 @@ class CellList(object):
         else:
             return None
 
+    def get_cell_lengths(self):
+
+        self.cell_lengths = []
+
+        for cell in self.data:
+
+            try:
+                width = cell.width
+                cell_midline = cell.cell_midline
+                midline_length = cell_midline.length
+                length = midline_length + (width * 2)
+                pixel_size_nm = cell.pixel_size
+                length_um = length * pixel_size_nm / 1000
+                cell.length_um = length_um
+
+                self.cell_lengths.append(length_um)
+            except:
+                pass
+
+        return self.cell_lengths
+
+    def filter_by_length(self, min_length = 0, max_length = 0):
+
+        if hasattr(self, "cell_lengths") == False:
+            self.get_cell_lengths()
+
+        filtered_cells = []
+
+        for i, cell in enumerate(self.data):
+
+            try:
+                length_um = cell.length_um
+
+                if length_um > min_length and length_um < max_length:
+                    filtered_cells.append(cell)
+            except:
+                pass
+
+        filtered_cells = CellList(filtered_cells)
+
+        return filtered_cells
 
     def plot_cell_heatmap(self, locs=None, color="red"):
 

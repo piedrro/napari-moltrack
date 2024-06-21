@@ -198,10 +198,10 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.compute_heatmap.clicked.connect(self.compute_cell_heatmap)
         self.gui.export_heatmap.clicked.connect(self.export_cell_heatmap)
-        self.gui.heatmap_dataset.currentIndexChanged.connect(self.plot_heatmap)
-        self.gui.heatmap_channel.currentIndexChanged.connect(self.plot_heatmap)
-        self.gui.heatmap_mode.currentIndexChanged.connect(self.plot_heatmap)
         self.gui.heatmap_mode.currentIndexChanged.connect(self.update_heatmap_options)
+        self.gui.generate_heatmap.clicked.connect(self.plot_heatmap)
+        self.gui.heatmap_length_reset.clicked.connect(self.update_render_length_range)
+        self.gui.heatmap_msd_reset.clicked.connect(self.update_render_msd_range)
 
         self.viewer.layers.events.inserted.connect(self.update_layer_combos)
         self.viewer.layers.events.removed.connect(self.update_layer_combos)
@@ -209,7 +209,8 @@ class QWidget(QWidget, gui, *subclasses):
 
     def devfunc(self, viewer=None):
 
-        self.update_track_filter_criterion()
+        self.update_render_length_range()
+        self.update_render_msd_range()
 
         # self.update_ui()
         # self.plot_cell_heatmap()
