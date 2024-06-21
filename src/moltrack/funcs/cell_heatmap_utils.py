@@ -105,6 +105,13 @@ class _cell_heatmap_utils:
 
             celllist = self.populate_celllist()
 
+            # for cell in celllist.data:
+            #     cell_polygon_coords = np.array(cell.cell_polygon.exterior.coords)
+            #     plt.plot(*cell_polygon_coords.T)
+            # coords = np.array([(loc["x"], loc["y"]) for loc in locs])
+            # plt.scatter(*coords.T)
+            # plt.show()
+
             celllist.add_localisations(locs)
             model = ModelCell(length=model_length, width=model_width)
 
@@ -135,6 +142,10 @@ class _cell_heatmap_utils:
 
             celllocs = self.celllist.get_locs()
 
+            polygon = self.celllist.data[0].cell_polygon
+
+            polygon_coords = np.array(polygon.exterior.coords)
+
             celllocs = pd.DataFrame(celllocs)
 
             if "dataset" in celllocs.columns:
@@ -152,9 +163,9 @@ class _cell_heatmap_utils:
             print(f"Plotting {len(celllocs)} localisations...")
 
             if heatmap_mode == "Heatmap":
-                self.plot_cell_heatmap(celllocs)
+                self.plot_cell_heatmap(celllocs, polygon_coords)
             elif heatmap_mode == "Render":
-                self.plot_cell_render(celllocs)
+                self.plot_cell_render(celllocs, polygon_coords)
             else:
                 pass
 
@@ -164,7 +175,7 @@ class _cell_heatmap_utils:
 
 
 
-    def plot_cell_heatmap(self, celllocs):
+    def plot_cell_heatmap(self, celllocs, polygon_coords):
 
         try:
 
@@ -178,6 +189,7 @@ class _cell_heatmap_utils:
             plt.rcParams["axes.grid"] = False
             fig, ax = plt.subplots()
             im = ax.imshow(heatmap.T, extent=extent, origin='lower', cmap='inferno')
+            ax.plot(*polygon_coords.T, color='white', linewidth=1)
             ax.axis('off')
 
             from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -211,7 +223,7 @@ class _cell_heatmap_utils:
             print(traceback.format_exc())
             pass
 
-    def plot_cell_render(self, celllocs):
+    def plot_cell_render(self, celllocs, polygon_coords):
 
         try:
 
@@ -258,9 +270,14 @@ class _cell_heatmap_utils:
                 min_blur_width=min_blur_width,
                 oversampling=oversampling, ang=0, )
 
+            #stretch polygon to image size
+            polygon_coords = np.array(polygon_coords)
+            polygon_coords = polygon_coords * oversampling
+
             plt.rcParams["axes.grid"] = False
             fig, ax = plt.subplots()
             ax.imshow(image, cmap='inferno')
+            # ax.plot(*polygon_coords.T, color='white')
             ax.axis('off')
 
             buf = BytesIO()
@@ -305,6 +322,9 @@ class _cell_heatmap_utils:
 
             dataset_list = list(self.dataset_dict.keys())
             path = self.dataset_dict[dataset_list[0]]["path"]
+
+            if type(path) == list:
+                path = path[0]
 
             directory = os.path.dirname(path)
             file_name = os.path.basename(path)

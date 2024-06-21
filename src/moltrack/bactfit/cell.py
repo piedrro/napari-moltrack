@@ -351,7 +351,14 @@ class CellList(object):
 
                 # print(f"Cell {polygon_index} has {len(polygon_locs)} localisations")
 
-    def transform_locs(self, target_cell=None, locs=None, remove_outside_locs=True, progress_callback=None):
+    @staticmethod
+    def compute_task(job):
+        cell, target_cell = job
+        cell = cell_coordinate_transformation(cell, target_cell)
+        return cell
+
+    def transform_locs(self, target_cell=None, locs=None,
+            remove_outside_locs=True, progress_callback=None):
 
         if locs is not None:
             if remove_outside_locs:
@@ -366,19 +373,14 @@ class CellList(object):
 
             # compute_jobs = compute_jobs[:5]
 
-            def compute_task(job):
-                cell, target_cell = job
-                cell = cell_coordinate_transformation(cell, target_cell)
-                return cell
-
             n_jobs = len(compute_jobs)
             completed_jobs = 0
 
             # results = {}
 
-            with ThreadPoolExecutor() as executor:
+            with ProcessPoolExecutor() as executor:
 
-                futures = [executor.submit(compute_task, job) for job in compute_jobs]
+                futures = [executor.submit(CellList.compute_task, job) for job in compute_jobs]
 
                 for future in as_completed(futures):
                     try:

@@ -109,7 +109,9 @@ class _segmentation_events:
             del self.segLayer
 
         if pixel_size is None:
-            if hasattr(self, "image_layer"):
+            if hasattr(self, "segmentation_image_pixel_size"):
+                pixel_size = self.segmentation_image_pixel_size
+            elif hasattr(self, "image_layer"):
                 pixel_size = self.image_layer.scale[0]
             else:
                 pixel_size = 1

@@ -33,6 +33,7 @@ class _cell_events:
             pass
 
     def initialise_cellLayer(self, shapes=None, shape_types=None, properties=None):
+
         layer_names = [layer.name for layer in self.viewer.layers]
 
         if "Cells" in layer_names:
@@ -45,6 +46,9 @@ class _cell_events:
 
         if hasattr(self, "segmentation_image_pixel_size"):
             pixel_size = self.segmentation_image_pixel_size
+            scale = [pixel_size, pixel_size]
+        elif self.active_dataset is not None:
+            pixel_size = self.dataset_dict[self.active_dataset]["pixel_size"]
             scale = [pixel_size, pixel_size]
         else:
             scale = [1, 1]
@@ -235,9 +239,14 @@ class _cell_events:
                 polygon_index = [i for i in cell_indices if shape_types[i] == "polygon"]
 
                 if len(path_index) == 1 and len(polygon_index) == 1:
+
                     midline_coords = shapes[path_index[0]]
                     polygon_coords = shapes[polygon_index[0]]
                     cell_properties = cell_list[path_index[0]]
+
+                    if bactfit:
+                        midline_coords = np.fliplr(midline_coords)
+                        polygon_coords = np.fliplr(polygon_coords)
 
                     if json is True:
                         midline_coords = midline_coords.tolist()

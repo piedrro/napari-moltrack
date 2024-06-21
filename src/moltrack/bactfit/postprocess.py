@@ -3,6 +3,7 @@ import traceback
 from shapely.geometry import Point, LineString
 from shapely.strtree import STRtree
 from moltrack.bactfit.utils import resize_line, rotate_linestring, fit_poly, get_vertical
+import matplotlib.pyplot as plt
 
 def find_centerline(midline, width, smooth=True):
 
@@ -120,8 +121,16 @@ def cell_coordinate_transformation(cell, target_cell, n_segments=1000, reflect =
 
         locs = cell.locs
 
+        source_polygon = cell.cell_polygon
         source_midline = cell.cell_midline
         source_width = cell.width
+
+        # polygon_coords = np.array(source_polygon.exterior.coords)
+        # coords = np.array([(loc["x"], loc["y"]) for loc in locs])
+        # plt.plot(*polygon_coords.T)
+        # plt.scatter(*coords.T)
+        # plt.show()
+
 
         if cell.cell_centerline is None:
             cell.cell_centerline = find_centerline(source_midline, source_width)
@@ -194,8 +203,11 @@ def cell_coordinate_transformation(cell, target_cell, n_segments=1000, reflect =
 
         if len(transformed_locs) > 0:
             transformed_locs = np.hstack(transformed_locs).view(np.recarray).copy()
+
             cell.locs = transformed_locs
             cell.cell_polygon = target_polygon
+
+
         else:
             cell.locs = None
 
