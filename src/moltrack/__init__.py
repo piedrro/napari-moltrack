@@ -1,4 +1,4 @@
-__version__ = "0.0.22"
+__version__ = "0.0.24"
 from ._widget import (
     QWidget,
 )

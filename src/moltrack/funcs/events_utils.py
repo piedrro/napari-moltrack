@@ -205,7 +205,7 @@ class _events_utils:
 
             self.heatmap_min_blur_width.setRange(0.1, 10)
             self.heatmap_min_blur_width.setSingleStep(0.1)
-            self.heatmap_min_blur_width.setValue(0.2)
+            self.heatmap_min_blur_width.setValue(0.4)
 
             self.heatmap_oversampling.setRange(1, 100)
             self.heatmap_oversampling.setSingleStep(1)
@@ -217,6 +217,8 @@ class _events_utils:
 
             self.heatmap_blur_method.clear()
             self.heatmap_blur_method.addItems(blur_methods)
+            self.heatmap_blur_method.setCurrentIndex(1)
+
 
             self.heatmap_binning.blockSignals(True)
             self.heatmap_blur_method.blockSignals(True)

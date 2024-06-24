@@ -1,4 +1,5 @@
 from moltrack.bactfit.cell import Cell, CellList
+from moltrack.bactfit.utils import resize_line, rotate_linestring, fit_poly, get_vertical
 from shapely.geometry import Polygon
 import numpy as np
 import cv2

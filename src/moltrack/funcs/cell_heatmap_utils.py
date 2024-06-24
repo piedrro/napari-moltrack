@@ -84,7 +84,6 @@ class _cell_heatmap_utils:
             if len(tracks)== 0:
                 return
 
-
             self.gui.heatmap_min_msd.setEnabled(True)
             self.gui.heatmap_max_msd.setEnabled(True)
 
@@ -156,9 +155,6 @@ class _cell_heatmap_utils:
         return cells
 
 
-
-
-
     def compute_cell_heatmap(self, viewer=None, model_length_um=5, model_width_um=2):
 
         try:
@@ -191,8 +187,11 @@ class _cell_heatmap_utils:
 
             worker = Worker(self.cell_heatmap_compute, celllist, model)
             worker.signals.finished.connect(self.cell_heatmap_compute_finished)
-            worker.signals.progress.connect(partial(self.moltrack_progress, progress_bar=self.gui.heatmap_progressbar, ))
+            worker.signals.progress.connect(partial(self.moltrack_progress,
+                progress_bar=self.gui.heatmap_progressbar, ))
             self.threadpool.start(worker)
+
+            self.update_ui()
 
         except:
             print(traceback.format_exc())
@@ -214,6 +213,7 @@ class _cell_heatmap_utils:
             max_length = self.gui.heatmap_max_length.value()
             min_msd = self.gui.heatmap_min_msd.value()
             max_msd = self.gui.heatmap_max_msd.value()
+            symmetry = self.gui.render_symmetry.isChecked()
 
             self.heatmap_canvas.clear()
 
@@ -224,11 +224,15 @@ class _cell_heatmap_utils:
 
             celllist = self.celllist.filter_by_length(min_length, max_length)
 
-            celllocs = celllist.get_locs()
-            polygon = celllist.data[0].cell_polygon
-            polygon_coords = np.array(polygon.exterior.coords)
+            if len(celllist.data) == 0:
+                return
+
+            celllocs = celllist.get_locs(symmetry=symmetry)
 
             celllocs = pd.DataFrame(celllocs)
+
+            polygon = celllist.data[0].cell_polygon
+            polygon_coords = np.array(polygon.exterior.coords)
 
             if "dataset" in celllocs.columns:
                 if heatmap_datset != "All Datasets":
@@ -247,6 +251,8 @@ class _cell_heatmap_utils:
 
             n_cells = len(celllist.data)
             n_locs = len(celllocs)
+            if symmetry:
+                n_locs = int(n_locs/4)
 
             show_info(f"Generating Cell {heatmap_mode.lower()} with {n_locs} localisations from {n_cells} cells")
 
@@ -352,8 +358,8 @@ class _cell_heatmap_utils:
             celllocs = celllocs[column_filter]
             celllocs = celllocs.to_records(index=False)
 
-            xmin, xmax = celllocs["x"].min(), celllocs["x"].max()
-            ymin, ymax = celllocs["y"].min(), celllocs["y"].max()
+            xmin, xmax = polygon_coords[:, 0].min(), polygon_coords[:, 0].max()
+            ymin, ymax = polygon_coords[:, 1].min(), polygon_coords[:, 1].max()
 
             h,w = int(ymax-ymin)+3, int(xmax-xmin)+3
 

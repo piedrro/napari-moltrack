@@ -246,11 +246,6 @@ def transform_locs(dat, progress_list=[], n_segments=1000, reflect = True):
             perpendicular_vectors.append(perpendicular_vector)
         return unit_vectors, perpendicular_vectors
 
-    def compute_distance():
-        
-        pass
-
-
     try:
 
         locs = dat["polylocs"]
@@ -369,9 +364,9 @@ cells = CellList(cells)
 cells.add_localisations(locs)
 model = ModelCell(length=10, width=5)
 
-cells.transform_locs(model)
-cells.plot_cell_heatmap()
-cells.plot_cell_render()
+# cells.transform_locs(model)
+# cells.plot_cell_heatmap()
+# cells.plot_cell_render()
 
 
 

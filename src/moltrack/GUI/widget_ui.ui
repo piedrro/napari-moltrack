@@ -1260,7 +1260,7 @@
              <property name="sizeHint" stdset="0">
               <size>
                <width>484</width>
-               <height>108</height>
+               <height>88</height>
               </size>
              </property>
             </spacer>
@@ -1282,6 +1282,13 @@
             <widget class="QLabel" name="label_24">
              <property name="text">
               <string>Add cell midline [M]</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_52">
+             <property name="text">
+              <string>Delete segmentation [D] or [Double Click]</string>
              </property>
             </widget>
            </item>
@@ -2962,6 +2969,24 @@
             </layout>
            </item>
            <item>
+            <layout class="QGridLayout" name="gridLayout_9">
+             <item row="0" column="0">
+              <widget class="QCheckBox" name="render_draw_outline">
+               <property name="text">
+                <string>Draw Cell Outline</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QCheckBox" name="render_symmetry">
+               <property name="text">
+                <string>Horizonal/Vertical Symmetry</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
             <widget class="QLabel" name="label_50">
              <property name="font">
               <font>
@@ -3051,13 +3076,6 @@
               </layout>
              </item>
             </layout>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="render_draw_outline">
-             <property name="text">
-              <string>Draw Cell Outline</string>
-             </property>
-            </widget>
            </item>
            <item>
             <widget class="QPushButton" name="generate_heatmap">

@@ -4,6 +4,7 @@ from shapely.geometry import Point, LineString
 from shapely.strtree import STRtree
 from moltrack.bactfit.utils import resize_line, rotate_linestring, fit_poly, get_vertical
 import matplotlib.pyplot as plt
+import math
 
 def find_centerline(midline, width, smooth=True):
 
@@ -95,119 +96,124 @@ def find_centerline(midline, width, smooth=True):
     return centerline
 
 
+
 def split_linestring(linestring, num_segments):
     points = [linestring.interpolate(float(i) / num_segments, normalized=True) for i in range(num_segments + 1)]
     return [LineString([points[i], points[i + 1]]) for i in range(num_segments)]
 
-def cell_coordinate_transformation(cell, target_cell, n_segments=1000, reflect = True, progress_list = []):
+def calculate_angle(segment, point):
+    # Calculate the angle between the segment and the point
+    line_start = segment.coords[0]
+    line_end = segment.coords[1]
+    dx = line_end[0] - line_start[0]
+    dy = line_end[1] - line_start[1]
+    segment_angle = math.atan2(dy, dx)
+    point_angle = math.atan2(point.y - line_start[1], point.x - line_start[0])
+    angle = point_angle - segment_angle
+    return math.degrees(angle)
 
-    transformed_locs = []
+def calculate_new_point(segment, distance, angle):
+     line_start = segment.coords[0]
+     line_end = segment.coords[1]
+     segment_angle = math.atan2(line_end[1] - line_start[1], line_end[0] - line_start[0])
+     new_angle = segment_angle + angle
+     new_x = line_start[0] + distance * math.cos(new_angle)
+     new_y = line_start[1] + distance * math.sin(new_angle)
+     return [new_x, new_y]
 
-    def compute_vectors(segments):
-        unit_vectors = []
-        perpendicular_vectors = []
-        for segment in segments:
-            segment_start = np.array(segment.coords[0])
-            segment_end = np.array(segment.coords[1])
-            segment_vector = segment_end - segment_start
-            segment_length = np.linalg.norm(segment_vector)
-            unit_vector = segment_vector / segment_length
-            perpendicular_vector = np.array([-unit_vector[1], unit_vector[0]])
-            unit_vectors.append(unit_vector)
-            perpendicular_vectors.append(perpendicular_vector)
-        return unit_vectors, perpendicular_vectors
+def reflect_loc_horizontally(loc, centroid):
+
+    center_y = centroid[1]
+    centroid_distance = loc.y - center_y
+
+    if centroid_distance < 0:
+        loc.y = loc.y + abs(centroid_distance)*2
+    else:
+        loc.y = loc.y - abs(centroid_distance)*2
+
+    return loc
+
+def reflect_loc_vertically(loc, centroid):
+
+    center_x = centroid[0]
+    centroid_distance = loc.x - center_x
+
+    if centroid_distance < 0:
+        loc.x = loc.x + abs(centroid_distance)*2
+    else:
+        loc.x = loc.x - abs(centroid_distance)*2
+
+    return loc
+        
+
+def cell_coordinate_transformation(cell, target_cell, n_segments=1000,
+        reflect = True, progress_list = []):
+    
 
     try:
 
         locs = cell.locs
 
-        source_polygon = cell.cell_polygon
+        source_polygon = cell.cell_fit
         source_midline = cell.cell_midline
-        source_width = cell.width
-
-        # polygon_coords = np.array(source_polygon.exterior.coords)
-        # coords = np.array([(loc["x"], loc["y"]) for loc in locs])
-        # plt.plot(*polygon_coords.T)
-        # plt.scatter(*coords.T)
-        # plt.show()
-
-
-        if cell.cell_centerline is None:
-            cell.cell_centerline = find_centerline(source_midline, source_width)
-            source_centerline = cell.cell_centerline
-
-        target_width = target_cell.width
-        target_centerline = target_cell.cell_centerline
+        
+        source_width = cell.cell_width
+        target_width = target_cell.cell_length
+        
+        target_midline = target_cell.cell_midline
         target_polygon = target_cell.cell_polygon
-
-        source_segments = split_linestring(source_centerline, n_segments)
-        target_segments = split_linestring(target_centerline, n_segments)
-
-        # Precompute vectors for source and target segments
-        source_unit_vectors, source_perpendicular_vectors = compute_vectors(source_segments)
-        target_unit_vectors, target_perpendicular_vectors = compute_vectors(target_segments)
-
+        
+        source_segments = split_linestring(source_midline, n_segments)
+        target_segments = split_linestring(target_midline, n_segments)
+        
         # Create STRtree for segments
         tree = STRtree(source_segments)
-
+        
+        transformed_locs = []
+        
         for loc in locs:
 
             try:
 
                 point = Point(loc["x"], loc["y"])
-
-                # Find the nearest segment to each point
+                
                 closest_segment_index = tree.nearest(point)
-
                 nearest_segment = source_segments[closest_segment_index]
+                
+                source_distance = point.distance(nearest_segment)
+                angle = calculate_angle(nearest_segment, point)
+                
+                target_distance = target_width * (source_distance / source_width)
+                
+                # Use the corresponding target segment
+                target_segment = target_segments[closest_segment_index]
+                
+                # Calculate the new point in the target segment
+                new_point_coords = calculate_new_point(target_segment, target_distance, angle)
+                
+                if target_polygon.contains(Point(new_point_coords)):
+                    
+                    if len(new_point_coords) == 0:
+                        continue
+                
+                    tloc = loc.copy()
+                    tloc["x"] = new_point_coords[0]
+                    tloc["y"] = new_point_coords[1]
 
-                segment_start = np.array(nearest_segment.coords[0])
-                segment_vector = source_unit_vectors[closest_segment_index]
-                point_vector = np.array([loc["x"], loc["y"]]) - segment_start
-
-                # Compute the signed distance from the point to the nearest segment
-                distance = point.distance(nearest_segment)
-                distance_sign = np.sign(np.cross(segment_vector, point_vector))
-
-                index_list = [closest_segment_index, abs(n_segments -closest_segment_index)]
-                # index_list = [closest_segment_index]
-
-                sign_list = [-1 ,1]
-                # sign_list = [distance_sign]
-
-                for segment_index in index_list:
-
-                    for sign in sign_list:
-
-                        signed_distance = distance*sign
-                        # Compute the new distance in the target coordinate system
-                        new_distance = target_width * (signed_distance / source_width)
-
-                        # Calculate the new coordinates by moving perpendicular to the target segment at the new distance
-                        segment_start_target = np.array(target_segments[segment_index].coords[0])
-                        perp_vector = target_perpendicular_vectors[segment_index]
-                        new_point_coords = segment_start_target + perp_vector * new_distance
-
-                        if target_polygon.contains(Point(new_point_coords)):
-
-                            tloc = loc.copy()
-                            tloc["x"] = new_point_coords[0]
-                            tloc["y"] = new_point_coords[1]
-
-                            transformed_locs.append(tloc)
-
+                    transformed_locs.append(tloc)
+                
             except:
+                print(traceback.format_exc())
                 pass
-
-            progress_list.append(1)
-
+            
         if len(transformed_locs) > 0:
+
             transformed_locs = np.hstack(transformed_locs).view(np.recarray).copy()
 
             cell.locs = transformed_locs
             cell.cell_polygon = target_polygon
-
-
+            cell.cell_midline = target_midline
+            
         else:
             cell.locs = None
 
@@ -216,3 +222,4 @@ def cell_coordinate_transformation(cell, target_cell, n_segments=1000, reflect =
         pass
 
     return cell
+

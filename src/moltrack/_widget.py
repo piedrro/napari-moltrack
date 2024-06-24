@@ -209,8 +209,11 @@ class QWidget(QWidget, gui, *subclasses):
 
     def devfunc(self, viewer=None):
 
-        self.update_render_length_range()
-        self.update_render_msd_range()
+        # self.update_render_length_range()
+        # self.update_render_msd_range()
+        self.update_ui()
+        # self.celllist.get_cell_lengths()
+        # self.update_render_length_range()
 
         # self.update_ui()
         # self.plot_cell_heatmap()

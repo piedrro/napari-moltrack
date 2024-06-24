@@ -18,7 +18,7 @@ import pyqtgraph as pg
 import warnings
 
 from moltrack.bactfit.fit import BactFit
-from moltrack.bactfit.postprocess import cell_coordinate_transformation
+from moltrack.bactfit.postprocess import cell_coordinate_transformation, reflect_loc_horizontally, reflect_loc_vertically
 from moltrack.bactfit.utils import resize_line, get_vertical
 
 
@@ -28,33 +28,32 @@ class ModelCell(object):
         self.cell_polygon = None
         self.cell_midline = None
         self.cell_centerline = None
-        self.width = width
-        self.length = length
+        self.cell_width = width
+        self.cell_length = length
         self.margin = margin
 
         self.create_model_cell()
 
     def create_model_cell(self):
 
-        x0 = y0 = self.width + self.margin
+        x0 = y0 = self.cell_width + self.margin
 
         # Define the coordinates of the line
-        midline_x_coords = [x0, x0 + self.length]
+        midline_x_coords = [x0, x0 + self.cell_length]
         midline_y_coords = [y0, y0]
         midline_coords = list(zip(midline_x_coords, midline_y_coords))
         self.cell_midline = LineString(midline_coords)
 
-        self.cell_polygon = self.cell_midline.buffer(self.width)
+        self.cell_polygon = self.cell_midline.buffer(self.cell_width)
 
-        y0 = self.width + self.margin
+        y0 = self.cell_width + self.margin
         x0 = self.margin
-        centerline_x_coords = [x0, x0 + self.length + (self.width * 2)]
+        centerline_x_coords = [x0, x0 + self.cell_length + (self.cell_width * 2)]
         centerline_y_coords = [y0, y0]
         centerline_coords = list(zip(centerline_x_coords, centerline_y_coords))
         centerline_coords = np.array(centerline_coords)
 
         self.cell_centerline = LineString(centerline_coords)
-
         self.cell_centerline = resize_line(self.cell_centerline, 100)
 
 
@@ -66,7 +65,7 @@ class Cell(object):
         self.cell_centre = None
         self.bbox = None
         self.height = None
-        self.width = None
+        self.cell_width = None
         self.vertical = None
 
         self.data = {}
@@ -85,7 +84,12 @@ class Cell(object):
         if cell_data is not None:
 
             for key in cell_data.keys():
-                setattr(self, key, cell_data[key])
+                if key == "width":
+                    setattr(self, "cell_width", cell_data[key])
+                elif key == "length":
+                    setattr(self, "cell_length", cell_data[key])
+                else:
+                    setattr(self, key, cell_data[key])
 
         if "name" not in cell_data.keys():
             #create random alphanumeric name
@@ -98,8 +102,8 @@ class Cell(object):
         if hasattr(self, "poly_params") and self.polynomial_params is None:
             self.polynomial_params = self.poly_params
 
-        if self.cell_midline is not None and self.width is not None:
-            self.cell_polygon = self.cell_midline.buffer(self.width)
+        if self.cell_midline is not None and self.cell_width is not None:
+            self.cell_polygon = self.cell_midline.buffer(self.cell_width)
 
         if self.vertical is None and self.cell_polygon is not None:
             self.vertical = get_vertical(self.cell_polygon)
@@ -188,8 +192,9 @@ class Cell(object):
             return None
 
         return self
+    
 
-
+        
 
 class CellList(object):
 
@@ -372,12 +377,8 @@ class CellList(object):
 
             compute_jobs = [list([cell,target_cell]) for cell in self.data if len(cell.locs) > 0]
 
-            # compute_jobs = compute_jobs[:5]
-
             n_jobs = len(compute_jobs)
             completed_jobs = 0
-
-            # results = {}
 
             with ProcessPoolExecutor() as executor:
 
@@ -390,8 +391,10 @@ class CellList(object):
                         if result is not None:
                             cell = result
                             cell_index = cell.cell_index
-                            self.data[cell_index].locs = cell.locs
-                            # self.data[cell_index].locs = transformed_locs
+                            locs = cell.locs
+
+                            if type(locs) == np.recarray:
+                                self.data[cell_index] = cell
 
                     except Exception as e:
                         print(f"Error: {e}")
@@ -404,7 +407,7 @@ class CellList(object):
                         progress_callback.emit(progress)
 
 
-    def get_locs(self):
+    def get_locs(self, symmetry=True):
 
         locs = []
 
@@ -418,7 +421,26 @@ class CellList(object):
             locs.append(cell_locs)
 
         if len(locs) > 0:
+
             locs = np.hstack(locs).view(np.recarray).copy()
+
+            if symmetry:
+                midline = self.data[0].cell_midline
+                centroid_coords = np.array(midline.centroid.coords[0])
+
+                locs = [loc for loc in locs]
+
+                for loc_index in range(len(locs)):
+                    loc = locs[loc_index].copy()
+                    rloc = reflect_loc_horizontally(loc, centroid_coords)
+                    locs.append(rloc)
+                for loc_index in range(len(locs)):
+                    loc = locs[loc_index].copy()
+                    rloc = reflect_loc_vertically(loc, centroid_coords)
+                    locs.append(rloc)
+
+                locs = np.hstack(locs).view(np.recarray).copy()
+
             return locs
         else:
             return None
@@ -430,16 +452,17 @@ class CellList(object):
         for cell in self.data:
 
             try:
-                width = cell.width
+                width = cell.cell_width
                 cell_midline = cell.cell_midline
                 midline_length = cell_midline.length
                 length = midline_length + (width * 2)
                 pixel_size_nm = cell.pixel_size
                 length_um = length * pixel_size_nm / 1000
-                cell.length_um = length_um
+                cell.cell_length_um = length_um
 
                 self.cell_lengths.append(length_um)
             except:
+                print(traceback.format_exc())
                 pass
 
         return self.cell_lengths
@@ -454,7 +477,7 @@ class CellList(object):
         for i, cell in enumerate(self.data):
 
             try:
-                length_um = cell.length_um
+                length_um = cell.cell_length_um
 
                 if length_um > min_length and length_um < max_length:
                     filtered_cells.append(cell)

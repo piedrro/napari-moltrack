@@ -183,7 +183,7 @@ class BactFit(object):
         cell.polynomial_params = poly_params
         cell.fit_error = distance
         cell.cell_width = cell_width
-
+        
         return cell
 
 
