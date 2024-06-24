@@ -310,12 +310,14 @@ class _events_utils:
                          "export_adc", "export_heatmap",
                         "compute_heatmap","filter_tracks",
                         "remove_segtracks", "generate_heatmap",
-                        "export_traces"]
+                        "export_traces","compute_track_stats",
+                        "compute_trackmap"]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
                             "picasso_progressbar", "export_progressbar",
-                            "bactfit_progressbar",
-                            "heatmap_progressbar","tracking_progressbar"]
+                            "bactfit_progressbar","track_stats_progressbar",
+                            "heatmap_progressbar","tracking_progressbar",
+                            "compute_trackmap_progressbar"]
 
             for progressbar in progressbars:
                 if hasattr(self.gui, progressbar):

@@ -11,6 +11,7 @@ from moltrack.funcs.compute_utils import Worker
 from shapely.geometry import Point, Polygon, LineString
 from shapely.strtree import STRtree
 import matplotlib.pyplot as plt
+from multiprocessing import Manager
 
 @njit
 def calculate_msd_numba(x_disp, y_disp, max_lag):
@@ -251,7 +252,7 @@ class _tracking_utils:
             ids.extend(_ids)
 
             if progress_callback is not None:
-                progress = int(i / n_iter * 50)
+                progress = int(i / n_iter * 100)
                 progress_callback.emit(progress)
 
         f['particle'] = ids
@@ -365,24 +366,29 @@ class _tracking_utils:
 
 
 
-    def compute_tracking_statistics(self, executor, track_data, progress_callback=None):
+    def compute_track_stats(self, track_data, progress_callback=None):
 
         try:
 
-            pass
+            tracks_with_stats = []
 
-            #split by dataset, channel and particle into list
-            stats_jobs = [dat[1] for dat in track_data.groupby(["dataset", "channel", "particle"])]
+            if type(track_data) == np.recarray:
+                track_data = pd.DataFrame(track_data)
 
-            n_processed = 0
+            with ProcessPoolExecutor() as executor:
 
-            futures = [executor.submit(_tracking_utils.get_track_stats, df) for df in stats_jobs]
+                #split by dataset, channel and particle into list
+                stats_jobs = [dat[1] for dat in track_data.groupby(["dataset", "channel", "particle"])]
 
-            for future in as_completed(futures):
-                n_processed += 1
-                if progress_callback is not None:
-                    progress = int(n_processed / len(stats_jobs) * 50) + 50
-                    progress_callback.emit(progress)
+                n_processed = 0
+
+                futures = [executor.submit(_tracking_utils.get_track_stats, df) for df in stats_jobs]
+
+                for future in as_completed(futures):
+                    n_processed += 1
+                    if progress_callback is not None:
+                        progress = int(n_processed / len(stats_jobs) * 100)
+                        progress_callback.emit(progress)
 
             tracks_with_stats = [future.result() for future in futures if future.result() is not None]
 
@@ -399,19 +405,10 @@ class _tracking_utils:
 
     def track_particles(self, loc_data, stats = True, progress_callback=None):
 
-        with ProcessPoolExecutor() as executor:
+        show_info("Detecting tracks...")
 
-            show_info("Detecting tracks...")
-
-            track_data = self.detect_tracks(loc_data,
-                progress_callback=progress_callback)
-
-            if stats:
-
-                show_info("Calculating tracking statistics...")
-
-                track_data = self.compute_tracking_statistics(executor,track_data,
-                    progress_callback=progress_callback)
+        track_data = self.detect_tracks(loc_data,
+            progress_callback=progress_callback)
 
         return track_data
 
@@ -466,12 +463,14 @@ class _tracking_utils:
             print(traceback.format_exc())
 
     def tracking_finished(self):
+
         self.draw_localisations()
         self.draw_tracks()
-        self.plot_diffusion_graph()
 
         self.update_track_filter_criterion()
         self.update_track_criterion_ranges()
+        self.update_traces_export_options()
+        self.update_trackmap_options()
 
         self.update_ui()
 
@@ -498,6 +497,69 @@ class _tracking_utils:
         except:
             print(traceback.format_exc())
             self.update_ui()
+
+
+    def compute_track_stats_finished(self):
+
+        self.plot_diffusion_graph()
+
+        self.update_track_filter_criterion()
+        self.update_track_criterion_ranges()
+        self.update_traces_export_options()
+        self.update_trackmap_options()
+
+        self.update_ui()
+
+    def process_track_stats_result(self, track_data):
+
+        if track_data is None:
+            return
+
+        remove_unlinked = self.gui.remove_unlinked.isChecked()
+        layers_names = [layer.name for layer in self.viewer.layers]
+        total_tracks = 0
+
+        for (dataset, channel), tracks in track_data.groupby(["dataset", "channel"]):
+            tracks = tracks.to_records(index=False)
+
+            if dataset not in self.tracking_dict.keys():
+                self.tracking_dict[dataset] = {}
+            if channel not in self.tracking_dict[dataset].keys():
+                self.tracking_dict[dataset][channel] = {}
+
+            self.tracking_dict[dataset][channel] = {"tracks": tracks}
+
+            n_tracks = len(np.unique(tracks["particle"]))
+            total_tracks += n_tracks
+
+        return tracks
+
+
+    def initialise_track_stats(self):
+
+        try:
+
+            if hasattr(self, "tracking_dict"):
+
+                tracks = self.get_tracks("All Datasets", "All Channels")
+
+                if len(tracks) == 0:
+                    show_info("No tracks found")
+                    return
+
+                self.update_ui(init=True)
+
+                worker = Worker(self.compute_track_stats, tracks)
+                worker.signals.result.connect(self.process_track_stats_result)
+                worker.signals.finished.connect(self.compute_track_stats_finished)
+                worker.signals.progress.connect(partial(self.moltrack_progress,
+                    progress_bar=self.gui.track_stats_progressbar))
+                self.threadpool.start(worker)
+
+        except:
+            print(traceback.format_exc())
+            self.update_ui(init=False)
+
 
     def draw_tracks(self, dataset=None, channel=None):
         try:
@@ -579,3 +641,187 @@ class _tracking_utils:
 
         except:
             print(traceback.format_exc())
+
+
+
+    def process_trackmap_result(self, track_data):
+
+        pass
+
+    def compute_trackmap_finished(self):
+
+        self.update_ui()
+
+    def trackmap_compute_func(self, dat, progress_list=None):
+
+        try:
+
+            pass
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+        if progress_list is not None:
+            progress_list.append(1)
+
+        return dat
+
+
+    def get_trackmap_compute_jobs(self, tracks):
+
+        metric = self.gui.trackmap_metric.currentText()
+        spot_size = int(self.gui.trackmap_spot_size.currentText())
+        spot_shape = self.gui.trackmap_spot_shape.currentText()
+        background_buffer = int(self.gui.trackmap_background_buffer.currentText())
+        background_width = int(self.gui.trackmap_background_width.currentText())
+
+        compute_jobs = []
+
+        try:
+
+            for image_chunk in self.shared_chunks:
+
+                dataset = image_chunk["dataset"]
+                channel = image_chunk["channel"]
+
+                frame_start = image_chunk["start_index"]
+                frame_end = image_chunk["end_index"]
+
+                chunk_tracks = tracks[(tracks["dataset"] == dataset) &
+                                      (tracks["channel"] == channel)]
+                chunk_tracks = chunk_tracks[(chunk_tracks["frame"] >= frame_start) &
+                                            (chunk_tracks["frame"] <= frame_end)]
+
+                if len(chunk_tracks) > 0:
+                    job = {"dataset": dataset,
+                           "channel": channel,
+                           "tracks": chunk_tracks,
+                           "metric": metric,
+                           "spot_size": spot_size,
+                           "spot_shape": spot_shape,
+                           "background_buffer": background_buffer,
+                           "background_width": background_width,
+                           "shared_memory_name": image_chunk["shared_memory_name"],
+                           "shape": image_chunk["shape"],
+                           "dtype": image_chunk["dtype"],}
+
+                    compute_jobs.append(job)
+
+        except:
+            pass
+
+        return compute_jobs
+
+    def compute_trackmap(self, tracks, progress_callback=None):
+
+        try:
+
+
+            dataset_list = tracks["dataset"].unique()
+            channel_list = tracks["channel"].unique()
+
+            self.create_shared_image_chunks(dataset_list=dataset_list,
+                channel_list=channel_list, chunk_size=100)
+
+            compute_jobs = self.get_trackmap_compute_jobs(tracks)
+
+            if len(compute_jobs) == 0:
+                return None
+
+            with Manager() as manager:
+
+                progress_list = manager.list()
+
+                with ThreadPoolExecutor() as executor:
+
+                    futures = [executor.submit(self.trackmap_compute_func,
+                        job, progress_list) for job in compute_jobs]
+
+                    for future in as_completed(futures):
+                        if progress_callback is not None:
+                            progress = int(len(progress_list) / len(compute_jobs) * 100)
+                            progress_callback.emit(progress)
+
+                results = [future.result() for future in futures if future.result() is not None]
+
+            self.restore_shared_image_chunks()
+
+        except:
+            print(traceback.format_exc())
+            self.restore_shared_image_chunks()
+            self.update_ui()
+            pass
+
+        return None
+
+    def initialise_trackmap(self):
+
+        try:
+
+            if hasattr(self, "tracking_dict"):
+
+                dataset = self.gui.trackmap_dataset.currentText()
+                channel = self.gui.trackmap_channel.currentText()
+
+                tracks = self.get_tracks(dataset, channel, return_dict=False, include_metadata=True)
+
+                if len(tracks) == 0:
+                    return
+
+                self.update_ui(init=True)
+
+                tracks = pd.DataFrame(tracks)
+                worker = Worker(self.compute_trackmap, tracks)
+                worker.signals.result.connect(self.process_trackmap_result)
+                worker.signals.finished.connect(self.compute_trackmap_finished)
+                worker.signals.progress.connect(partial(self.moltrack_progress,
+                    progress_bar=self.gui.compute_trackmap_progressbar))
+                self.threadpool.start(worker)
+
+        except:
+            print(traceback.format_exc())
+            self.update_ui()
+
+
+    def update_trackmap_combos(self):
+
+        try:
+            if hasattr(self, "tracking_dict"):
+                tracks = self.get_tracks("All Datasets", "All Channels")
+
+                if len(tracks) == 0:
+                    return
+
+                tracks = pd.DataFrame(tracks)
+
+                datasets = tracks["dataset"].unique().tolist()
+                channels = tracks["channel"].unique().tolist()
+
+                if len(datasets) > 1:
+                    datasets.insert(0, "All Datasets")
+                if len(channels) > 1:
+                    channels.insert(0, "All Channels")
+
+                self.gui.trackmap_dataset.blockSignals(True)
+                self.gui.trackmap_dataset.clear()
+                self.gui.trackmap_dataset.addItems(datasets)
+                self.gui.trackmap_dataset.blockSignals(False)
+
+                self.gui.trackmap_channel.blockSignals(True)
+                self.gui.trackmap_channel.clear()
+                self.gui.trackmap_channel.addItems(channels)
+                self.gui.trackmap_channel.blockSignals(False)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+
+    def update_trackmap_options(self):
+
+        try:
+            self.update_trackmap_combos()
+        except:
+            print(traceback.format_exc())
+            pass

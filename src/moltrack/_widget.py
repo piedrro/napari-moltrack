@@ -154,6 +154,9 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.track_filter_criterion.currentIndexChanged.connect(self.update_track_filter_metric)
         self.gui.track_filter_metric.currentIndexChanged.connect(self.update_track_criterion_ranges)
         self.gui.filter_tracks.clicked.connect(self.filter_tracks)
+        self.gui.compute_track_stats.clicked.connect(self.initialise_track_stats)
+
+        self.gui.compute_trackmap.clicked.connect(self.initialise_trackmap)
 
         self.gui.picasso_segmentation_layer.currentIndexChanged.connect(self.update_picasso_segmentation_filter)
 
@@ -215,6 +218,7 @@ class QWidget(QWidget, gui, *subclasses):
         # self.update_render_length_range()
         # self.update_render_msd_range()
         self.update_ui()
+        self.update_trackmap_options()
         # self.celllist.get_cell_lengths()
         # self.update_render_length_range()
 
