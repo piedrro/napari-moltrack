@@ -20,7 +20,7 @@ class _events_utils:
                                  "tracking_dataset", "locs_export_dataset",
                                  "remove_seglocs_dataset", "adc_dataset",
                                  "heatmap_dataset","track_filter_dataset",
-                                 "segtracks_dataset"]
+                                 "segtracks_dataset","traces_export_dataset"]
 
             for selector_name in dataset_selectors:
                 dataset_names = list(self.dataset_dict.keys())
@@ -49,7 +49,8 @@ class _events_utils:
                                  "picasso_filter_channel", "picasso_render_channel",
                                  "tracking_channel", "locs_export_channel",
                                  "remove_seglocs_channel", "adc_channel",
-                                 "heatmap_channel","track_filter_channel","segtracks_channel"]
+                                 "heatmap_channel","track_filter_channel",
+                                 "segtracks_channel", "traces_export_channel"]
 
             for channel_selector in channel_selectors:
                 dataset_selector = channel_selector.replace("channel", "dataset")
@@ -308,7 +309,8 @@ class _events_utils:
                         "remove_seglocs", "export_shapes",
                          "export_adc", "export_heatmap",
                         "compute_heatmap","filter_tracks",
-                        "remove_segtracks", "generate_heatmap"]
+                        "remove_segtracks", "generate_heatmap",
+                        "export_traces"]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
                             "picasso_progressbar", "export_progressbar",

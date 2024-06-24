@@ -146,8 +146,8 @@ def reflect_loc_vertically(loc, centroid):
     return loc
         
 
-def cell_coordinate_transformation(cell, target_cell, n_segments=1000,
-        reflect = True, progress_list = []):
+def cell_coordinate_transformation(cell, target_cell,
+        n_segments=1000, progress_list = []):
     
 
     try:

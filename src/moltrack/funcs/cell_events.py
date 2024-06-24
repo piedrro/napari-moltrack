@@ -519,8 +519,6 @@ class _cell_events:
 
                 rotated_coords = np.concatenate((coords[start_index:], coords[:start_index]))
 
-                print(n_indices // 2)
-
                 end_point = rotated_coords[n_indices // 2]
 
                 return end_point

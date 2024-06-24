@@ -3107,6 +3107,60 @@
          <property name="currentIndex">
           <number>0</number>
          </property>
+         <widget class="QWidget" name="tab_5">
+          <attribute name="title">
+           <string>Segmentations/Cells</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_6">
+           <item>
+            <layout class="QFormLayout" name="formLayout_33">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_31">
+               <property name="text">
+                <string>Export Data</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="shapes_export_data"/>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_135">
+               <property name="text">
+                <string>Export Mode</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="shapes_export_mode"/>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QPushButton" name="export_shapes">
+             <property name="text">
+              <string>Export Shapes</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_8">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::MinimumExpanding</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </widget>
          <widget class="QWidget" name="tab_4">
           <attribute name="title">
            <string>Localisations/Tracks</string>
@@ -3214,49 +3268,79 @@
            </item>
           </layout>
          </widget>
-         <widget class="QWidget" name="tab_5">
+         <widget class="QWidget" name="tab_15">
           <attribute name="title">
-           <string>Segmentations/Cells</string>
+           <string>Traces</string>
           </attribute>
-          <layout class="QVBoxLayout" name="verticalLayout_6">
+          <layout class="QVBoxLayout" name="verticalLayout_16">
            <item>
-            <layout class="QFormLayout" name="formLayout_33">
+            <widget class="QLabel" name="label_54">
+             <property name="text">
+              <string>Export univariate time traces for downstream analysis</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QFormLayout" name="formLayout_34">
              <item row="0" column="0">
-              <widget class="QLabel" name="label_31">
-               <property name="text">
-                <string>Export Data</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QComboBox" name="shapes_export_data"/>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_135">
+              <widget class="QLabel" name="label_113">
                <property name="text">
                 <string>Export Mode</string>
                </property>
               </widget>
              </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="traces_export_mode">
+               <item>
+                <property name="text">
+                 <string>TraceAnalyser (.json)</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_75">
+               <property name="text">
+                <string>Dataset</string>
+               </property>
+              </widget>
+             </item>
              <item row="1" column="1">
-              <widget class="QComboBox" name="shapes_export_mode"/>
+              <widget class="QComboBox" name="traces_export_dataset"/>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_77">
+               <property name="text">
+                <string>Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QComboBox" name="traces_export_channel"/>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_53">
+               <property name="text">
+                <string>Metric</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QComboBox" name="traces_export_metric"/>
              </item>
             </layout>
            </item>
            <item>
-            <widget class="QPushButton" name="export_shapes">
+            <widget class="QPushButton" name="export_traces">
              <property name="text">
-              <string>Export Shapes</string>
+              <string>Export Traces</string>
              </property>
             </widget>
            </item>
            <item>
-            <spacer name="verticalSpacer_8">
+            <spacer name="verticalSpacer_15">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeType">
-              <enum>QSizePolicy::MinimumExpanding</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>

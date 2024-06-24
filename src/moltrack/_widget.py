@@ -34,6 +34,7 @@ from moltrack.funcs.cell_events import _cell_events
 from moltrack.funcs.oufti_utils import oufti
 from moltrack.funcs.diffusion_utils import _diffusion_utils
 from moltrack.funcs.cell_heatmap_utils import _cell_heatmap_utils
+from moltrack.funcs.traces_utils import _traces_utils
 
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
@@ -44,7 +45,7 @@ subclasses = [_import_utils, _compute_utils,
               _export_utils, _segmentation_events,
               _bactfit_utils, _cell_events,
               oufti, _diffusion_utils, _cell_heatmap_utils,
-              _track_filter_utils]
+              _track_filter_utils, _traces_utils]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -203,6 +204,8 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.heatmap_length_reset.clicked.connect(self.update_render_length_range)
         self.gui.heatmap_msd_reset.clicked.connect(self.update_render_msd_range)
 
+        self.gui.export_traces.clicked.connect(self.export_traces)
+
         self.viewer.layers.events.inserted.connect(self.update_layer_combos)
         self.viewer.layers.events.removed.connect(self.update_layer_combos)
         self.viewer.dims.events.current_step.connect(self.slider_event)
@@ -225,6 +228,7 @@ class QWidget(QWidget, gui, *subclasses):
 
         # self.create_shared_image_chunks()
         # self.restore_shared_image_chunks()
+        self.update_traces_export_options()
 
     def initialise_keybindings(self):
 
