@@ -11,6 +11,7 @@ from functools import partial
 import tifffile
 import concurrent.futures
 from astropy.io import fits
+from napari.utils.notifications import show_info
 
 
 def crop_frame(image, crop_mode):

@@ -9,6 +9,7 @@ import napari
 from scipy.ndimage import shift
 from PyQt5.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QFormLayout,
     QVBoxLayout, QWidget, QMainWindow, QSpinBox, QLineEdit, QCheckBox)
+from napari.utils.notifications import show_info
 
 class _events_utils:
 
@@ -679,27 +680,30 @@ class _events_utils:
             pass
 
     def update_detect_options(self, event=None):
-        if self.gui.smlm_detect_mode.currentText() == "Picasso":
-            self.gui.picasso_box_size_label.show()
-            self.gui.picasso_box_size.show()
-            self.gui.picasso_min_net_gradient_label.show()
-            self.gui.picasso_min_net_gradient.show()
 
-            self.gui.moltrack_threshold_label.hide()
-            self.gui.moltrack_threshold.hide()
-            self.gui.moltrack_window_size_label.hide()
-            self.gui.moltrack_window_size.hide()
+        try:
 
-        else:
-            self.gui.picasso_box_size_label.hide()
-            self.gui.picasso_box_size.hide()
-            self.gui.picasso_min_net_gradient_label.hide()
-            self.gui.picasso_min_net_gradient.hide()
+            if self.gui.smlm_detect_mode.currentText() == "Picasso":
 
-            self.gui.moltrack_threshold_label.show()
-            self.gui.moltrack_threshold.show()
-            self.gui.moltrack_window_size_label.show()
-            self.gui.moltrack_window_size.show()
+                self.gui.smlm_threshold.setRange(1, 1000000)
+                self.gui.smlm_threshold.setValue(1000)
+                self.gui.smlm_threshold_label.setText("Min Net Gradient")
+
+                self.gui.moltrack_kernel_size.setHidden(True)
+                self.gui.moltrack_kernel_size_label.setHidden(True)
+
+            else:
+                self.gui.smlm_threshold.setRange(1, 255)
+                self.gui.smlm_threshold.setValue(50)
+                self.gui.smlm_threshold_label.setText("Threshold")
+
+                self.gui.moltrack_kernel_size.setHidden(False)
+                self.gui.moltrack_kernel_size_label.setHidden(False)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
 
     def moltract_translation(self, event=None, direction="left"):
 

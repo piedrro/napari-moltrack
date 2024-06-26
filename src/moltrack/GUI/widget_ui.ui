@@ -1379,7 +1379,7 @@
             </widget>
            </item>
            <item>
-            <layout class="QFormLayout" name="formLayout_3">
+            <layout class="QFormLayout" name="formLayout_11">
              <item row="0" column="0">
               <widget class="QLabel" name="label_7">
                <property name="text">
@@ -1391,9 +1391,25 @@
               <widget class="QComboBox" name="smlm_detect_mode">
                <item>
                 <property name="text">
-                 <string>MolTrack</string>
+                 <string>GaussThresh</string>
                 </property>
                </item>
+               <item>
+                <property name="text">
+                 <string>Picasso</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label">
+               <property name="text">
+                <string>Fit Mode</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="smlm_fit_mode">
                <item>
                 <property name="text">
                  <string>Picasso</string>
@@ -1410,6 +1426,16 @@
              </item>
              <item row="2" column="1">
               <widget class="QComboBox" name="picasso_dataset"/>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_38">
+               <property name="text">
+                <string>Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QComboBox" name="picasso_channel"/>
              </item>
              <item row="4" column="0">
               <widget class="QLabel" name="label_8">
@@ -1432,38 +1458,48 @@
                </item>
               </widget>
              </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label">
+             <item row="5" column="0">
+              <widget class="QLabel" name="picasso_box_size_label">
                <property name="text">
-                <string>Fit Mode</string>
+                <string>Box Size</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="1">
-              <widget class="QComboBox" name="smlm_fit_mode">
-               <item>
-                <property name="text">
-                 <string>Picasso</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-             <item row="11" column="1">
-              <widget class="QLineEdit" name="picasso_roi_border_width">
-               <property name="text">
-                <string>5</string>
+             <item row="5" column="1">
+              <widget class="QSpinBox" name="picasso_box_size">
+               <property name="minimum">
+                <number>3</number>
+               </property>
+               <property name="maximum">
+                <number>21</number>
+               </property>
+               <property name="singleStep">
+                <number>2</number>
+               </property>
+               <property name="value">
+                <number>7</number>
                </property>
               </widget>
              </item>
-             <item row="11" column="0">
-              <widget class="QLabel" name="label_35">
+             <item row="6" column="0">
+              <widget class="QLabel" name="smlm_threshold_label">
                <property name="text">
-                <string>ROI Border Width (Pixels)</string>
+                <string>Threshold</string>
                </property>
               </widget>
              </item>
-             <item row="9" column="1">
-              <widget class="QSpinBox" name="moltrack_window_size">
+             <item row="6" column="1">
+              <widget class="QSpinBox" name="smlm_threshold"/>
+             </item>
+             <item row="7" column="0">
+              <widget class="QLabel" name="moltrack_kernel_size_label">
+               <property name="text">
+                <string>Kernel Size</string>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="1">
+              <widget class="QSpinBox" name="moltrack_kernel_size">
                <property name="maximum">
                 <number>100</number>
                </property>
@@ -1472,126 +1508,29 @@
                </property>
               </widget>
              </item>
-             <item row="9" column="0">
-              <widget class="QLabel" name="moltrack_window_size_label">
+             <item row="8" column="0">
+              <widget class="QLabel" name="label_35">
                <property name="text">
-                <string>Window Size</string>
+                <string>ROI Border Width (Pixels)</string>
                </property>
               </widget>
              </item>
              <item row="8" column="1">
-              <widget class="QSpinBox" name="moltrack_threshold">
-               <property name="maximum">
-                <number>255</number>
-               </property>
-               <property name="value">
-                <number>50</number>
-               </property>
-              </widget>
-             </item>
-             <item row="8" column="0">
-              <widget class="QLabel" name="moltrack_threshold_label">
+              <widget class="QLineEdit" name="picasso_roi_border_width">
                <property name="text">
-                <string>Threshold</string>
+                <string>5</string>
                </property>
               </widget>
              </item>
-             <item row="7" column="1">
-              <widget class="QLineEdit" name="picasso_min_net_gradient">
-               <property name="text">
-                <string>1000</string>
-               </property>
-              </widget>
-             </item>
-             <item row="7" column="0">
-              <widget class="QLabel" name="picasso_min_net_gradient_label">
-               <property name="text">
-                <string>Min Net Gradient</string>
-               </property>
-              </widget>
-             </item>
-             <item row="6" column="1">
-              <widget class="QComboBox" name="picasso_box_size">
-               <property name="currentIndex">
-                <number>1</number>
-               </property>
-               <item>
-                <property name="text">
-                 <string>3</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>5</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>7</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>9</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>11</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>13</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>15</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-             <item row="6" column="0">
-              <widget class="QLabel" name="picasso_box_size_label">
-               <property name="text">
-                <string>Box Size</string>
-               </property>
-              </widget>
-             </item>
-             <item row="5" column="0">
-              <widget class="QLabel" name="label_4">
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-             <item row="10" column="0">
-              <widget class="QLabel" name="label_5">
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-             <item row="12" column="0">
+             <item row="9" column="0">
               <widget class="QLabel" name="label_30">
                <property name="text">
                 <string>Segmentation layer</string>
                </property>
               </widget>
              </item>
-             <item row="12" column="1">
+             <item row="9" column="1">
               <widget class="QComboBox" name="picasso_segmentation_layer"/>
-             </item>
-             <item row="3" column="0">
-              <widget class="QLabel" name="label_38">
-               <property name="text">
-                <string>Channel</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="1">
-              <widget class="QComboBox" name="picasso_channel"/>
              </item>
             </layout>
            </item>

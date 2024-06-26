@@ -12,6 +12,7 @@ from skimage import exposure
 import numpy as np
 import torch
 import traceback
+from napari.utils.notifications import show_info
 from PyQt5.QtWidgets import QApplication, QComboBox, QDoubleSpinBox, QFormLayout, QVBoxLayout, QWidget, QMainWindow
 from PyQt5 import uic
 
@@ -70,7 +71,7 @@ class QWidget(QWidget, gui, *subclasses):
 
         from moltrack.__init__ import __version__ as version
 
-        print(f"napari-moltrack version: {version}")
+        show_info(f"napari-moltrack version: {version}")
 
         self.initialise_variables()
         self.initialise_events()
@@ -151,6 +152,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.filter_localisations.clicked.connect(self.pixseq_filter_localisations)
 
         self.gui.track_filter_dataset.currentIndexChanged.connect(self.update_track_filter_criterion)
+        self.gui.track_filter_channel.currentIndexChanged.connect(self.update_track_filter_criterion)
         self.gui.track_filter_criterion.currentIndexChanged.connect(self.update_track_filter_metric)
         self.gui.track_filter_metric.currentIndexChanged.connect(self.update_track_criterion_ranges)
         self.gui.track_filter_subtract_bg.stateChanged.connect(self.update_track_criterion_ranges)
@@ -214,13 +216,16 @@ class QWidget(QWidget, gui, *subclasses):
         self.viewer.layers.events.removed.connect(self.update_layer_combos)
         self.viewer.dims.events.current_step.connect(self.slider_event)
 
+        self.gui.traces_export_dataset.currentIndexChanged.connect(self.update_traces_export_options)
+        self.gui.traces_export_channel.currentIndexChanged.connect(self.update_traces_export_options)
+
     def devfunc(self, viewer=None):
 
         # self.update_render_length_range()
         # self.update_render_msd_range()
-        self.update_ui()
+        # self.update_ui()
 
-        self.update_filter_criterion()
+        self.update_traces_export_options()
 
         # self.update_pixmap_options()
         # self.compute_pixmap_finished()
@@ -238,6 +243,7 @@ class QWidget(QWidget, gui, *subclasses):
         # self.create_shared_image_chunks()
         # self.restore_shared_image_chunks()
         # self.update_traces_export_options()
+        self.gui.track_filter_channel.currentIndexChanged.connect(self.update_track_filter_criterion)
 
     def initialise_keybindings(self):
 
@@ -287,9 +293,9 @@ class QWidget(QWidget, gui, *subclasses):
 
         try:
             if torch.cuda.is_available():
-                print("Pytorch Using GPU")
+                show_info("Pytorch Using GPU")
             else:
-                print("Pytorch Using CPU")
+                show_info("Pytorch Using CPU")
         except:
             print(traceback.format_exc())
             pass
@@ -306,7 +312,7 @@ class QWidget(QWidget, gui, *subclasses):
 
         if package_installed:
             if not gf.cuda_available():
-                print("Pygpufit not available due to missing CUDA")
+                show_info("Pygpufit not available due to missing CUDA")
             else:
                 runtime_version, driver_version = gf.get_cuda_version()
 
@@ -319,18 +325,19 @@ class QWidget(QWidget, gui, *subclasses):
                 self.gpufit_available = True
 
         else:
-            print("Pygpufit not available due to missing package")
+            show_info("Pygpufit not available due to missing package")
 
             import moltrack
             src_dir = moltrack.__file__.replace("\moltrack\__init__.py", "")
-            print(f"Add pygpufit package to moltrack src directory [{src_dir}] to enable GPUFit.")
+            show_info(f"Add pygpufit package to moltrack src directory [{src_dir}] to enable GPUFit.")
 
         if self.gpufit_available:
             if driver_version < runtime_version:
-                print("Pygpufit may not work due to mismatched CUDA driver and runtime versions: {driver_version} < {runtime_version}")
+                show_info("Pygpufit may not work due to mismatched CUDA driver and runtime versions")
+                show_info(f"GPUFit runtime: {runtime_version}, driver: {driver_version}")
             else:
-                print("GPUFit available")
-                print(f"GPUFit runtime: {runtime_version}, driver: {driver_version}")
+                show_info("GPUFit available")
+                show_info(f"GPUFit runtime: {runtime_version}, driver: {driver_version}")
 
             self.gui.smlm_fit_mode.addItem("GPUFit")
             self.gui.smlm_fit_mode.setCurrentIndex(1)

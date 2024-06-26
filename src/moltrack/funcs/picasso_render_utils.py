@@ -8,6 +8,7 @@ import numpy as np
 import time
 from functools import partial
 import cv2
+from napari.utils.notifications import show_info
 
 
 class _picasso_render_utils:
@@ -33,9 +34,7 @@ class _picasso_render_utils:
             images = []
             total_rendered_locs = 0
 
-            print(
-                f"Rendering localisations from {len(loc_data)} dataset(s)/channel(s)."
-            )
+            show_info(f"Rendering localisations from {len(loc_data)} dataset(s)/channel(s).")
 
             for dat in loc_data:
 
@@ -60,9 +59,7 @@ class _picasso_render_utils:
 
             end_time = time.time()
 
-            print(
-                f"Rendered {total_rendered_locs} localisations in {end_time - start_time:.2f} seconds."
-            )
+            show_info(f"Rendered {total_rendered_locs} localisations in {end_time - start_time:.2f} seconds.")
 
         except:
             print(traceback.format_exc())

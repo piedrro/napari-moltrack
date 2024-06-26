@@ -17,7 +17,7 @@ from shapely.geometry import Polygon
 from matplotlib.colors import ListedColormap
 from napari.utils.notifications import show_info
 from moltrack.funcs.compute_utils import Worker
-
+from napari.utils.notifications import show_info
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -112,7 +112,7 @@ class _cell_heatmap_utils:
             self.heatmap_canvas.clear()
             self.plot_heatmap()
             self.update_ui()
-            print("Cell heatmap computed.")
+            show_info("Cell heatmap computed.")
 
         except:
             print(traceback.format_exc())

@@ -11,6 +11,7 @@ from shapely.geometry.polygon import orient
 import math
 import os
 import scipy
+from napari.utils.notifications import show_info
 
 from moltrack.bactfit.utils import (resize_line, moving_average, rotate_polygon,
     rotate_linestring, get_vertical, fit_poly)
@@ -34,8 +35,7 @@ class oufti:
             if len(oufti_data) > 1:
 
                 self.export_oufti(oufti_data,path)
-
-                print("Exported to: ", path)
+                show_info("Exported to: " + path)
 
         except:
             print(traceback.format_exc())

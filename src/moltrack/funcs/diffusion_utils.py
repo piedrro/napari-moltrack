@@ -10,6 +10,7 @@ from pyqtgraph import LegendItem
 import os
 from PyQt5.QtWidgets import QFileDialog
 import pyqtgraph as pg
+from napari.utils.notifications import show_info
 
 class _diffusion_utils:
 
@@ -236,8 +237,7 @@ class _diffusion_utils:
                     return
 
                 msd.to_csv(file_path, index=False)
-
-                print(f"MSD curve exported to {file_path}")
+                show_info(f"MSD curve exported to {file_path}")
 
         except:
             print(traceback.format_exc())
@@ -292,8 +292,7 @@ class _diffusion_utils:
                 return
 
             coefs.to_csv(file_path, index=False)
-
-            print(f"Diffusion coefficients exported to {file_path}")
+            show_info(f"Diffusion coefficients exported to {file_path}")
 
         except:
             print(traceback.format_exc())

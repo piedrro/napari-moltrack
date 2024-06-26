@@ -18,6 +18,7 @@ import cv2
 from skimage.feature import peak_local_max
 from shapely.geometry import Polygon, Point, MultiPolygon, MultiPoint
 from shapely.strtree import STRtree
+from napari.utils.notifications import show_info
 
 def precompute_kernels(lnoise=0, lobject=1):
 
@@ -72,21 +73,17 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
     result = None
 
     try:
-        min_net_gradient = dat["min_net_gradient"]
+
         box_size = dat["box_size"]
-        roi = dat["roi"]
         dataset = dat["dataset"]
         channel = dat["channel"]
         start_index = dat["start_index"]
-        end_index = dat["end_index"]
-        detect = dat["detect"]
-        fit = dat["fit"]
         remove_overlapping = dat["remove_overlapping"]
         stop_event = dat["stop_event"]
         polygon_filter = dat["polygon_filter"]
         polygons = dat["polygons"]
         threshold = dat["threshold"]
-        window_size = dat["window_size"]
+        kernel_size = dat["kernel_size"]
         segmentation_layer = dat["segmentation_layer"]
 
         if segmentation_layer not in ["None",""]:
@@ -99,7 +96,7 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
 
         if not stop_event.is_set():
 
-            kernel_size = max(round(window_size), 1)
+            kernel_size = max(round(kernel_size), 1)
             kernels = precompute_kernels(1, kernel_size)
 
             # Access the shared memory
@@ -342,15 +339,12 @@ def detect_picaso_locs(dat, progress_list, fit_list):
     result = None
 
     try:
-        min_net_gradient = dat["min_net_gradient"]
+        min_net_gradient = dat["threshold"]
         box_size = dat["box_size"]
         roi = dat["roi"]
         dataset = dat["dataset"]
         channel = dat["channel"]
         start_index = dat["start_index"]
-        end_index = dat["end_index"]
-        detect = dat["detect"]
-        fit = dat["fit"]
         remove_overlapping = dat["remove_overlapping"]
         stop_event = dat["stop_event"]
         polygon_filter = dat["polygon_filter"]
@@ -541,20 +535,19 @@ class _picasso_detect_utils:
 
 
 
-    def populate_picasso_detect_jobs(self, detect, fit,
-            min_net_gradient, roi_dict):
+    def populate_picasso_detect_jobs(self, detect, fit, roi_dict):
 
         try:
 
             compute_jobs = []
             n_frames = 0
 
-            box_size = int(self.gui.picasso_box_size.currentText())
+            box_size = int(self.gui.picasso_box_size.value())
             remove_overlapping = self.gui.picasso_remove_overlapping.isChecked()
             segmentation_layer = self.gui.picasso_segmentation_layer.currentText()
             polygon_filter = self.gui.picasso_segmentation_filter.isChecked()
-            threshold = int(self.gui.moltrack_threshold.text())
-            window_size = int(self.gui.moltrack_window_size.text())
+            threshold = int(self.gui.smlm_threshold.value())
+            kernel_size = int(self.gui.moltrack_kernel_size.text())
 
             segmentation_polygons = self.get_segmentation_polygons(segmentation_layer)
 
@@ -577,10 +570,9 @@ class _picasso_detect_utils:
                                "dtype": image_chunk["dtype"],
                                "detect": detect,
                                "fit": fit,
-                               "min_net_gradient": int(min_net_gradient),
+                               "threshold": int(threshold),
                                "box_size": int(box_size),
-                               "threshold": threshold,
-                               "window_size": window_size,
+                               "kernel_size": kernel_size,
                                "roi": roi_dict[dataset][channel],
                                "remove_overlapping": remove_overlapping,
                                "segmentation_layer": segmentation_layer,
@@ -651,7 +643,7 @@ class _picasso_detect_utils:
 
 
         end_time = time.time()
-        print(f"Finished detecting spots in {n_frames} frames in {end_time - start_time} seconds")
+        show_info(f"Finished detecting spots in {n_frames} frames in {end_time - start_time} seconds")
 
         if len(locs) > 0:
             locs = np.hstack(locs).view(np.recarray).copy()
@@ -737,7 +729,7 @@ class _picasso_detect_utils:
 
 
     def _picasso_wrapper(self, progress_callback, detect, fit,
-            min_net_gradient, dataset_list = [], channel_list = [],
+            dataset_list = [], channel_list = [],
             frame_index = None, detect_mode = "Picasso", fit_mode = "Picasso"):
 
         try:
@@ -745,7 +737,7 @@ class _picasso_detect_utils:
 
             frame_mode = self.gui.picasso_frame_mode.currentText()
             detect_mode = self.gui.smlm_detect_mode.currentText()
-            box_size = int(self.gui.picasso_box_size.currentText())
+            box_size = int(self.gui.picasso_box_size.value())
             roi_dict = self.generate_roi()
 
             if frame_mode.lower() == "active":
@@ -765,21 +757,21 @@ class _picasso_detect_utils:
                             channel_list=channel_list, frame_index=frame_index,
                             chunk_size = 1000)
 
-                        detect_jobs, n_frames = self.populate_picasso_detect_jobs(detect,
-                            fit, min_net_gradient, roi_dict)
+                        detect_jobs, n_frames = self.populate_picasso_detect_jobs(
+                            detect, fit, roi_dict)
 
-                        print(f"Starting Picasso {len(detect_jobs)} compute jobs...")
+                        show_info(f"Starting Picasso {len(detect_jobs)} compute jobs...")
 
                         if len(detect_jobs) > 0:
                             if self.verbose:
                                 print(f"Starting Picasso {len(detect_jobs)} compute jobs...")
 
-                            print(f"Detecting spots in {n_frames} frames...")
+                            show_info(f"Detecting spots in {n_frames} frames...")
 
                             locs, spots = self.detect_spots_parallel(detect_mode, detect_jobs,
                                 executor, manager, n_workers, n_frames, fit, progress_callback)
 
-                            print(f"Detected {len(locs)} spots")
+                            show_info(f"Detected {len(locs)} spots")
 
                     if detect is False and fit is True:
 
@@ -790,20 +782,19 @@ class _picasso_detect_utils:
 
                         if fit_mode == "GPUFit":
 
-                            print(f"Fitting {len(locs)} spots on GPU...")
+                            show_info(f"Fitting {len(locs)} spots on GPU...")
 
                             locs = self.fit_spots_gpu(locs, spots, box_size)
 
                         else:
 
-                            print(f"Fitting {len(locs)} spots on CPU...")
+                            show_info(f"Fitting {len(locs)} spots on CPU...")
 
                             locs = self.fit_spots_parallel(locs, spots, box_size, executor, manager,
                                 n_workers, detect, progress_callback)
 
                         fitted = True
-
-                        print(f"Fitted {len(locs)} spots")
+                        show_info(f"Fitted {len(locs)} spots")
 
                     else:
                         fitted = False
@@ -883,8 +874,7 @@ class _picasso_detect_utils:
             print(traceback.format_exc())
             return None
 
-        print("Finished processing locs")
-
+        show_info(f"Finished processing locs")
 
     def init_picasso(self, detect = False, fit = False):
 
@@ -895,12 +885,11 @@ class _picasso_detect_utils:
                 fit_mode = self.gui.smlm_fit_mode.currentText()
                 dataset_name = self.gui.picasso_dataset.currentText()
                 channel_name = self.gui.picasso_channel.currentText()
-                min_net_gradient = self.gui.picasso_min_net_gradient.text()
                 frame_mode = self.gui.picasso_frame_mode.currentText()
                 minimise_ram = self.gui.picasso_minimise_ram.isChecked()
                 smlm_fit_mode = self.gui.smlm_fit_mode.currentText()
 
-                if min_net_gradient.isdigit() and dataset_name != "":
+                if dataset_name != "":
 
                     self.gui.picasso_progressbar.setValue(0)
                     self.gui.picasso_detect.setEnabled(False)
@@ -942,7 +931,6 @@ class _picasso_detect_utils:
 
                     self.worker = Worker(self._picasso_wrapper,
                         detect=detect, fit=fit,
-                        min_net_gradient=min_net_gradient,
                         dataset_list=dataset_list,
                         channel_list=channel_list,
                         detect_mode=detect_mode,

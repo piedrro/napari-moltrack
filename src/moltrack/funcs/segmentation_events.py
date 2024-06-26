@@ -1,12 +1,11 @@
 import time
-
 from napari.utils.notifications import show_info
 import traceback
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
 import numpy as np
 import warnings
-
+from napari.utils.notifications import show_info
 
 class _segmentation_events:
 

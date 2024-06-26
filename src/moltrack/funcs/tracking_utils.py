@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from multiprocessing import Manager, shared_memory
 from functools import partial
 import warnings
+from napari.utils.notifications import show_info
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -221,7 +222,15 @@ class _tracking_utils:
             elif len(track_data) == 1:
                 track_data = track_data[0]
             else:
-                track_data = np.hstack(track_data).view(np.recarray).copy()
+
+                name_list = [set(dat.dtype.names) for dat in track_data]
+                common_names = list(set.intersection(*name_list))
+
+                if len(common_names) > 0:
+                    track_data = [dat[common_names] for dat in track_data]
+                    track_data = np.hstack(track_data).view(np.recarray).copy()
+                else:
+                    track_data = []
 
         return track_data
 
@@ -452,7 +461,7 @@ class _tracking_utils:
                     n_removed = n_locs - n_filtered
 
                     if n_removed > 0:
-                        print(f"Removed {n_removed} unlinked localisations")
+                        show_info(f"Removed {n_removed} unlinked localisations")
                         loc_dict["localisations"] = tracks
 
             if len(track_data) > 0:
@@ -461,7 +470,7 @@ class _tracking_utils:
                 self.gui.heatmap_data.clear()
                 self.gui.heatmap_data.addItems(["Localisations", "Tracks"])
 
-                print(f"Tracking complete, {total_tracks} tracks found")
+                show_info(f"Tracking complete, {total_tracks} tracks found")
 
         except:
             print(traceback.format_exc())
@@ -496,7 +505,7 @@ class _tracking_utils:
                 self.threadpool.start(worker)
 
             else:
-                print(f"No localisations found for {dataset}`")
+                show_info(f"No localisations found for {dataset}`")
 
         except:
             print(traceback.format_exc())
@@ -553,6 +562,20 @@ class _tracking_utils:
 
                 self.update_ui(init=True)
 
+                tracks = pd.DataFrame(tracks)
+                tracks["pixel_size (um)"] = 0.0
+                tracks["exposure_time (s)"] = 0.0
+
+                for dataset, data in tracks.groupby("dataset"):
+                    pixel_size_nm = float(self.dataset_dict[dataset]["pixel_size"])
+                    exposure_time_ms = float(self.dataset_dict[dataset]["exposure_time"])
+                    pixel_size_um = pixel_size_nm * 1e-3
+                    exposure_time_s = exposure_time_ms * 1e-3
+                    tracks.loc[data.index, "pixel_size (um)"] = pixel_size_um
+                    tracks.loc[data.index, "exposure_time (s)"] = exposure_time_s
+
+                tracks = tracks.to_records(index=False)
+
                 worker = Worker(self.compute_track_stats, tracks)
                 worker.signals.result.connect(self.process_track_stats_result)
                 worker.signals.finished.connect(self.compute_track_stats_finished)
@@ -562,7 +585,7 @@ class _tracking_utils:
 
         except:
             print(traceback.format_exc())
-            self.update_ui(init=False)
+            self.update_ui()
 
 
     def draw_tracks(self, dataset=None, channel=None):
@@ -582,7 +605,8 @@ class _tracking_utils:
                 dataset_name = self.gui.moltrack_dataset_selector.currentText()
                 channel_name = self.gui.moltrack_channel_selector.currentText()
 
-                tracks = self.get_tracks(dataset_name, channel_name, return_dict=False, include_metadata=True, )
+                tracks = self.get_tracks(dataset_name, channel_name,
+                    return_dict=False, include_metadata=True, )
 
                 if len(tracks) > 0:
                     image_dict = self.dataset_dict[dataset_name]["images"]
@@ -656,6 +680,8 @@ class _tracking_utils:
         pixmap_data = pd.DataFrame(pixmap_data)
 
         for (dataset, channel), data in pixmap_data.groupby(["dataset", "channel"]):
+
+            data = data.dropna(axis=1, how="all")
 
             if "index" in data.columns:
                 data = data.drop("index", axis=1)
@@ -936,10 +962,17 @@ class _tracking_utils:
 
     def get_pixmap_compute_jobs(self, pixmap_data):
 
+        pixmap_dataset = self.gui.pixmap_dataset.currentText()
+        pixmap_channel = self.gui.pixmap_channel.currentText()
         spot_size = int(self.gui.pixmap_spot_size.currentText())
         spot_shape = self.gui.pixmap_spot_shape.currentText()
         background_buffer = int(self.gui.pixmap_background_buffer.currentText())
         background_width = int(self.gui.pixmap_background_width.currentText())
+
+        pixmap_columns = ["dataset", "channel",
+                          "group", "particle", "frame",
+                          "cell_index", "segmentation_index",
+                          "x", "y", ]
 
         compute_jobs = []
 
@@ -953,8 +986,21 @@ class _tracking_utils:
                 frame_start = image_chunk["start_index"]
                 frame_end = image_chunk["end_index"]
 
-                pixmap_data_chunks = pixmap_data[(pixmap_data["dataset"] == dataset) &
-                                           (pixmap_data["channel"] == channel)]
+                pixmap_data_chunks = pixmap_data.copy()
+
+                if dataset == pixmap_dataset and channel == pixmap_channel:
+                    pass
+                else:
+
+                    pixmap_data_chunks["dataset"] = dataset
+                    pixmap_data_chunks["channel"] = channel
+
+                    for col in pixmap_data_chunks.columns:
+                        if col not in pixmap_columns:
+                            pixmap_data_chunks.drop(col, axis=1, inplace=True)
+
+                pixmap_data_chunks = pixmap_data_chunks.to_records(index=False)
+
                 pixmap_data_chunks = pixmap_data_chunks[(pixmap_data_chunks["frame"] >= frame_start) &
                                             (pixmap_data_chunks["frame"] <= frame_end)]
 
@@ -985,7 +1031,7 @@ class _tracking_utils:
             results = None
 
             dataset_list = pixmap_data["dataset"].unique()
-            channel_list = pixmap_data["channel"].unique()
+            channel_list = list(self.dataset_dict[dataset_list[0]]["images"].keys())
 
             self.create_shared_image_chunks(dataset_list=dataset_list,
                 channel_list=channel_list, chunk_size=100)
@@ -1037,6 +1083,8 @@ class _tracking_utils:
                 dataset = self.gui.pixmap_dataset.currentText()
                 channel = self.gui.pixmap_channel.currentText()
 
+                pixmap_data = []
+
                 if data == "Tracks":
                     pixmap_data = self.get_tracks(dataset, channel,
                         return_dict=False, include_metadata=True)
@@ -1082,11 +1130,6 @@ class _tracking_utils:
 
                 datasets = pixmap_data["dataset"].unique().tolist()
                 channels = pixmap_data["channel"].unique().tolist()
-
-                if len(datasets) > 1:
-                    datasets.insert(0, "All Datasets")
-                if len(channels) > 1:
-                    channels.insert(0, "All Channels")
 
                 self.gui.pixmap_dataset.blockSignals(True)
                 self.gui.pixmap_dataset.clear()

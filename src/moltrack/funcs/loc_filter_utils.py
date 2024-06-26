@@ -4,6 +4,7 @@ import pandas as pd
 from shapely.geometry import Polygon, Point, MultiPolygon, MultiPoint
 from shapely.strtree import STRtree
 import matplotlib.pyplot as plt
+from napari.utils.notifications import show_info
 
 class _loc_filter_utils:
 
@@ -134,7 +135,7 @@ class _loc_filter_utils:
                     n_filtered += len(flocs)
 
             n_removed = n_locs - n_filtered
-            print(f"Removed {n_removed} localisations.")
+            show_info(f"Removed {n_removed} localisations.")
 
             self.draw_localisations()
             self.update_filter_criterion()
@@ -163,8 +164,8 @@ class _loc_filter_utils:
         loc_data = []
 
         fitted = False
-        box_size = int(self.gui.picasso_box_size.currentText())
-        min_net_gradient = int(self.gui.picasso_min_net_gradient.text())
+        box_size = int(self.gui.picasso_box_size.value())
+        net_gradient = 0
 
         try:
 
@@ -246,8 +247,8 @@ class _loc_filter_utils:
                                     fitted = loc_dict["fitted"]
                                 if "box_size" in loc_dict.keys():
                                     box_size = loc_dict["box_size"]
-                                if "min_net_gradient" in loc_dict.keys():
-                                    min_net_gradient = loc_dict["min_net_gradient"]
+                                if "net_gradient" in loc_dict.keys():
+                                    net_gradient = loc_dict["net_gradient"]
 
                                 loc_dict = {"dataset": dataset_name,
                                             "channel": channel_name,
@@ -255,7 +256,7 @@ class _loc_filter_utils:
                                             "image_shape": image_shape,
                                             "fitted": fitted,
                                             "box_size": box_size,
-                                            "min_net_gradient": min_net_gradient,
+                                            "net_gradient": net_gradient,
                                             }
                                 loc_data.append(loc_dict)
 
@@ -270,7 +271,14 @@ class _loc_filter_utils:
             elif len(loc_data) == 1:
                 loc_data = loc_data[0]
             else:
-                loc_data = np.hstack(loc_data).view(np.recarray).copy()
+                name_list = [set(dat.dtype.names) for dat in loc_data]
+                common_names = list(set.intersection(*name_list))
+
+                if len(common_names) > 0:
+                    loc_data = [dat[common_names] for dat in loc_data]
+                    loc_data = np.hstack(loc_data).view(np.recarray).copy()
+                else:
+                    loc_data = []
 
         return loc_data
 
@@ -333,7 +341,7 @@ class _loc_filter_utils:
                             self.draw_localisations(update_vis=True)
 
             self.update_criterion_ranges()
-            print(f"Filtered {n_removed} localisations.")
+            show_info(f"Filtered {n_removed} localisations.")
 
             self.gui.filter_localisations.setEnabled(True)
 

@@ -10,6 +10,7 @@ import copy
 import random
 import string
 from moltrack.bactfit.utils import manual_fit
+from napari.utils.notifications import show_info
 
 class _cell_events:
 

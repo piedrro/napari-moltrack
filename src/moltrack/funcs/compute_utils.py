@@ -6,6 +6,7 @@ import sys
 from multiprocessing import Process, shared_memory, Pool
 import numpy as np
 import napari
+from napari.utils.notifications import show_info
 
 class _compute_utils:
 

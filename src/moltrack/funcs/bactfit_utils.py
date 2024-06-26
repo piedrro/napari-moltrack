@@ -7,6 +7,7 @@ from shapely.geometry import Polygon, LineString
 import matplotlib.pyplot as plt
 from moltrack.bactfit.fit import BactFit
 from moltrack.bactfit.cell import CellList
+from napari.utils.notifications import show_info
 
 class _bactfit_utils:
 

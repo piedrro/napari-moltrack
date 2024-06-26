@@ -93,7 +93,7 @@ class _traces_utils:
                     return
 
                 json_dict = {"metadata": {}, "data": {}}
-                track_cols = ["dataset", "channel", "particle", metric_name]
+                track_cols = ["dataset", "channel","frame", "particle", metric_name]
                 if bg_metric_name in tracks.dtype.names:
                     track_cols.append(bg_metric_name)
 
@@ -101,38 +101,49 @@ class _traces_utils:
                 tracks = tracks[track_cols]
 
                 n_traces = 0
+                trace_channels = []
 
-                for (dataset_name,channel_name), track_data in tracks.groupby(["dataset", "channel"]):
+                for (dataset_name,particle), track_data in tracks.groupby(["dataset", "particle"]):
+
+                    track_data = track_data.sort_values("frame")
+
+                    channel_list = track_data["channel"].unique()
 
                     if dataset_name not in json_dict["data"]:
                         json_dict["data"][dataset_name] = []
 
-                    particle_list = track_data["particle"].unique()
+                    channel_dict = {}
 
-                    n_traces += len(particle_list)
+                    for channel_name in channel_list:
 
-                    for particle in particle_list:
+                        channel_data = track_data[track_data["channel"] == channel_name]
 
-                        particle_data = track_data[track_data["particle"] == particle]
+                        data = channel_data[metric_name]
 
-                        data = particle_data[metric_name].tolist()
-                        data = data[1:]
+                        if len(data) == 0:
+                            continue
 
-                        if bg_metric_name in particle_data.columns:
-                            bg_data = particle_data[bg_metric_name].tolist()
-                            bg_data = bg_data[1:]
+                        if channel_name not in trace_channels:
+                            trace_channels.append(channel_name)
 
+                        if bg_metric_name in channel_data.columns:
+                            bg_data = channel_data[bg_metric_name]
                             if subtract_background:
-                                data = np.array(data) - np.array(bg_data)
-                                data = data.tolist()
+                                data = data - bg_data
 
-                        dat = {"Data": data}
-                        json_dict["data"][dataset_name].append(dat)
+                        data_name = channel_name
+                        if channel_name not in ["Donor", "Acceptor", "DD", "DA", "AA","AD"]:
+                            data_name = "Data"
+
+                        channel_dict[data_name] = data.tolist()
+
+                    json_dict["data"][dataset_name].append(channel_dict)
+                    n_traces += 1
 
                 with open(traces_path, "w") as f:
                     json.dump(json_dict, f)
 
-                show_info(f"Eported {n_traces} traces to JSON file")
+                show_info(f"Eported {n_traces} traces with channels {trace_channels} to JSON file")
 
         except:
             print(traceback.format_exc())
@@ -142,12 +153,17 @@ class _traces_utils:
         try:
             if hasattr(self, "tracking_dict"):
 
-                tracks = self.get_tracks("All Datasets", "All Channels")
+                dataset = self.gui.traces_export_dataset.currentText()
+                channel = self.gui.traces_export_channel.currentText()
+
+                tracks = self.get_tracks(dataset, channel)
 
                 if len(tracks) == 0:
                     return
 
                 tracks = pd.DataFrame(tracks)
+
+                # print(tracks.columns)
 
                 export_metric = []
 

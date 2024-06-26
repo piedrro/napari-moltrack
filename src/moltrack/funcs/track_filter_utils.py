@@ -4,6 +4,7 @@ import pandas as pd
 from shapely.geometry import Polygon, Point, MultiPolygon, MultiPoint
 from shapely.strtree import STRtree
 import matplotlib.pyplot as plt
+from napari.utils.notifications import show_info
 
 
 class _track_filter_utils:
@@ -40,9 +41,10 @@ class _track_filter_utils:
 
                 tracks = self.get_tracks(dataset, channel)
 
-                if len(tracks) > 0:
+                critertion_options = []
 
-                    critertion_options = ["Track Length"]
+                if len(tracks) > 0:
+                    critertion_options.append("Track Length")
 
                     tracks = pd.DataFrame(tracks)
 
@@ -67,10 +69,8 @@ class _track_filter_utils:
                     if "pixel_sum" in tracks.columns:
                         critertion_options.append("Pixel Sum")
 
-                    self.gui.track_filter_criterion.blockSignals(True)
-                    self.gui.track_filter_criterion.clear()
-                    self.gui.track_filter_criterion.addItems(critertion_options)
-                    self.gui.track_filter_criterion.blockSignals(False)
+                self.gui.track_filter_criterion.clear()
+                self.gui.track_filter_criterion.addItems(critertion_options)
 
         except:
             traceback.print_exc()
@@ -89,6 +89,8 @@ class _track_filter_utils:
                 self.gui.track_filter_subtract_bg.setEnabled(True)
 
             stats = self.track_statistics_filtering(viewer)
+
+            values = []
 
             if len(stats) > 0:
 
@@ -110,8 +112,10 @@ class _track_filter_utils:
                 self.gui.track_filter_min.blockSignals(False)
                 self.gui.track_filter_max.blockSignals(False)
 
-                if plot:
-                    self.plot_track_filter_graph(values)
+            if len(values) > 0 and plot:
+                self.plot_track_filter_graph(values)
+            else:
+                self.track_graph_canvas.clear()
 
         except:
             traceback.print_exc()
@@ -143,6 +147,9 @@ class _track_filter_utils:
             for (dataset, channel, particle), track in tracks.groupby(['dataset', 'channel', 'particle']):
 
                 try:
+
+                    if len(track) == 0:
+                        continue
 
                     if criterion == "Track Length":
                         stat = len(track)
@@ -203,7 +210,7 @@ class _track_filter_utils:
                             filtered_tracks.append(track)
 
                 except:
-                    print(traceback.print_exc())
+                    pass
 
 
         if mode == "stats":
@@ -280,7 +287,8 @@ class _track_filter_utils:
             self.update_track_criterion_ranges()
             self.plot_diffusion_graph()
 
-            print(f"Removed {n_removed} tracks")
+
+            show_info(f"Removed {n_removed} tracks")
 
         except:
             print(traceback.print_exc())
