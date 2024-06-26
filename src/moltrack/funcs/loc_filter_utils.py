@@ -154,7 +154,11 @@ class _loc_filter_utils:
                  "cell_index", "segmentation_index",
                  "x", "y", "photons", "bg", "sx", "sy",
                  "lpx", "lpy", "ellipticity", "net_gradient",
-                 "iterations"]
+                 "iterations",
+                 "pixel_mean", "pixel_median", "pixel_sum",
+                 "pixel_min", "pixel_max","pixel_std",
+                 "pixel_mean_bg", "pixel_median_bg", "pixel_sum_bg",
+                    "pixel_min_bg", "pixel_max_bg", "pixel_std_bg"]
 
         loc_data = []
 
@@ -282,6 +286,7 @@ class _loc_filter_utils:
             criterion = self.gui.filter_criterion.currentText()
             min_value = self.gui.filter_min.value()
             max_value = self.gui.filter_max.value()
+            subtract_background = self.gui.filter_subtract_bg.isChecked()
 
             n_removed = 0
 
@@ -303,8 +308,18 @@ class _loc_filter_utils:
 
                         n_locs = len(locs)
 
-                        locs = locs[locs[criterion] > min_value]
-                        locs = locs[locs[criterion] < max_value]
+                        criterion_data = locs[criterion]
+
+                        if subtract_background:
+                            bg_criterion = criterion + "_bg"
+                            if bg_criterion in columns:
+                                bg_values = locs[bg_criterion]
+                                criterion_data = criterion_data - bg_values
+
+                        keep_indices = np.where((criterion_data > min_value) &
+                                                (criterion_data < max_value))[0]
+
+                        locs = locs[keep_indices]
 
                         n_filtered = len(locs)
 
@@ -344,6 +359,7 @@ class _loc_filter_utils:
                 columns = list(locs.dtype.names)
 
                 columns = [col for col in columns if col not in ["dataset","channel"]]
+                columns = [col for col in columns if "_bg" not in col]
 
             selector.clear()
 
@@ -363,6 +379,16 @@ class _loc_filter_utils:
             dataset = self.gui.picasso_filter_dataset.currentText()
             channel = self.gui.picasso_filter_channel.currentText()
             criterion = self.gui.filter_criterion.currentText()
+            subtract_background = self.gui.filter_subtract_bg.isChecked()
+
+            if "pixel" not in criterion.lower():
+                subtract_background = False
+                self.gui.filter_subtract_bg.blockSignals(True)
+                self.gui.filter_subtract_bg.setChecked(False)
+                self.gui.filter_subtract_bg.setEnabled(False)
+                self.gui.filter_subtract_bg.blockSignals(False)
+            else:
+                self.gui.filter_subtract_bg.setEnabled(True)
 
             locs = self.get_locs(dataset, channel)
 
@@ -373,6 +399,14 @@ class _loc_filter_utils:
                 if criterion in columns:
 
                     values = locs[criterion]
+
+                    if subtract_background:
+                        bg_criterion = criterion + "_bg"
+                        if bg_criterion in columns:
+                            bg_values = locs[bg_criterion]
+                            values = values - bg_values
+
+                    values = values[~np.isnan(values)]
 
                     if values.dtype in [np.float32, np.float64,
                                         np.int32, np.int64,

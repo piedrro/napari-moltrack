@@ -14,7 +14,7 @@ class _track_filter_utils:
 
             criterion = self.gui.track_filter_criterion.currentText()
 
-            if criterion == "Track Length" or criterion == "Track Duration":
+            if criterion in ["Track Length", "Track Duration"]:
                 metrics = [""]
             else:
                 metrics = ["Mean", "Median", "Standard Deviation", "Min", "Max"]
@@ -42,16 +42,30 @@ class _track_filter_utils:
 
                 if len(tracks) > 0:
 
-                    critertion_options = ["Track Length", "Track Duration"]
+                    critertion_options = ["Track Length"]
 
                     tracks = pd.DataFrame(tracks)
 
+                    if "time" in tracks.columns:
+                        critertion_options.append("Track Duration")
                     if "msd" in tracks.columns:
                         critertion_options.append("Mean Squared Displacement")
                     if "speed" in tracks.columns:
                         critertion_options.append("Speed")
                     if "D*" in tracks.columns:
                         critertion_options.append("Apparent Diffusion Coefficient")
+                    if "pixel_mean" in tracks.columns:
+                        critertion_options.append("Pixel Mean")
+                    if "pixel_std" in tracks.columns:
+                        critertion_options.append("Pixel Standard Deviation")
+                    if "pixel_median" in tracks.columns:
+                        critertion_options.append("Pixel Median")
+                    if "pixel_min" in tracks.columns:
+                        critertion_options.append("Pixel Min")
+                    if "pixel_max" in tracks.columns:
+                        critertion_options.append("Pixel Max")
+                    if "pixel_sum" in tracks.columns:
+                        critertion_options.append("Pixel Sum")
 
                     self.gui.track_filter_criterion.blockSignals(True)
                     self.gui.track_filter_criterion.clear()
@@ -64,6 +78,15 @@ class _track_filter_utils:
     def update_track_criterion_ranges(self, viewer=None, plot=True):
 
         try:
+            criterion = self.gui.track_filter_criterion.currentText()
+
+            if "pixel" not in criterion.lower():
+                self.gui.track_filter_subtract_bg.blockSignals(True)
+                self.gui.track_filter_subtract_bg.setChecked(False)
+                self.gui.track_filter_subtract_bg.setEnabled(False)
+                self.gui.track_filter_subtract_bg.blockSignals(False)
+            else:
+                self.gui.track_filter_subtract_bg.setEnabled(True)
 
             stats = self.track_statistics_filtering(viewer)
 
@@ -71,8 +94,12 @@ class _track_filter_utils:
 
                 values = np.array(stats['stat'])
 
-                stat_min = values.min()
-                stat_max = values.max()
+                values = values.tolist()
+                values = [v for v in values if v not in [None, np.nan]]
+                values = np.array(values)
+
+                stat_min = min(values)
+                stat_max = max(values)
 
                 self.gui.track_filter_min.blockSignals(True)
                 self.gui.track_filter_max.blockSignals(True)
@@ -90,17 +117,16 @@ class _track_filter_utils:
             traceback.print_exc()
 
 
-
-
-
-
-
     def track_statistics_filtering(self, viewer=None, mode="stats"):
 
         dataset = self.gui.track_filter_dataset.currentText()
         channel = self.gui.track_filter_channel.currentText()
         criterion = self.gui.track_filter_criterion.currentText()
         metric = self.gui.track_filter_metric.currentText()
+        subtract_background = self.gui.track_filter_subtract_bg.isChecked()
+
+        if "pixel" not in criterion.lower():
+            subtract_background = False
 
         min_filter = self.gui.track_filter_min.value()
         max_filter = self.gui.track_filter_max.value()
@@ -133,8 +159,28 @@ class _track_filter_utils:
                             data = track['speed']
                         elif criterion == "Apparent Diffusion Coefficient":
                             data = track['D*']
+                        elif criterion == "Pixel Mean":
+                            data = track['pixel_mean']
+                        elif criterion == "Pixel Standard Deviation":
+                            data = track['pixel_std']
+                        elif criterion == "Pixel Median":
+                            data = track['pixel_median']
+                        elif criterion == "Pixel Min":
+                            data = track['pixel_min']
+                        elif criterion == "Pixel Max":
+                            data = track['pixel_max']
+                        elif criterion == "Pixel Sum":
+                            data = track['pixel_sum']
+
+                        if subtract_background:
+                            data_name = data.name
+                            bg_data_name = f"{data_name}_bg"
+                            if bg_data_name in track.columns:
+                                bg_data = track[bg_data_name]
+                                data = data - bg_data
 
                         data = data.iloc[1:]
+                        data = data.dropna()
 
                         if metric.lower() == "mean":
                             stat = data.mean()
@@ -184,14 +230,18 @@ class _track_filter_utils:
             self.track_graph_canvas.clear()
 
             if values is not None:
-                values = values[~np.isnan(values)]
 
                 if len(values) > 0:
+
+                    values = values[~np.isnan(values)]
 
                     if criterion == "Track Length":
                         xlabel = "Track Length (frames)"
                     elif criterion == "Track Duration":
                         xlabel = "Track Duration (s)"
+                    elif criterion in ["Pixel Mean", "Pixel Standard Deviation",
+                                       "Pixel Median", "Pixel Min", "Pixel Max", "Pixel Sum"]:
+                        xlabel = criterion
                     else:
                         if criterion == "Mean Squared Displacement":
                             xlabel = f"{metric} MSD (µm²)"
@@ -200,11 +250,10 @@ class _track_filter_utils:
                         if criterion == "Apparent Diffusion Coefficient":
                             xlabel = f"{metric} Apparent Diffusion Coefficient (µm²/s)"
 
-
                     ax = self.track_graph_canvas.addPlot()
 
                     # Create histogram
-                    y, x = np.histogram(values, bins=100)
+                    y, x = np.histogram(values, bins=50)
 
                     ax.plot(x, y, stepMode=True, fillLevel=0, brush=(0, 0, 255, 75))
                     ax.setLabel('bottom', xlabel)

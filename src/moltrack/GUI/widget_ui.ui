@@ -1809,6 +1809,13 @@
             </layout>
            </item>
            <item>
+            <widget class="QCheckBox" name="filter_subtract_bg">
+             <property name="text">
+              <string>Subtract Background</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QWidget" name="filter_graph_container" native="true">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -2456,31 +2463,31 @@
               </font>
              </property>
              <property name="text">
-              <string>Multi-Channel Mask Mapping</string>
+              <string>Multi-Channel Pixel Mapping</string>
              </property>
             </widget>
            </item>
            <item>
             <layout class="QFormLayout" name="formLayout_10">
-             <item row="0" column="0">
+             <item row="1" column="0">
               <widget class="QLabel" name="label_59">
                <property name="text">
                 <string>Mapping Dataset</string>
                </property>
               </widget>
              </item>
-             <item row="0" column="1">
-              <widget class="QComboBox" name="trackmap_dataset"/>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="pixmap_dataset"/>
              </item>
-             <item row="1" column="0">
+             <item row="2" column="0">
               <widget class="QLabel" name="label_57">
                <property name="text">
                 <string>Mapping Channel</string>
                </property>
               </widget>
              </item>
-             <item row="1" column="1">
-              <widget class="QComboBox" name="trackmap_channel"/>
+             <item row="2" column="1">
+              <widget class="QComboBox" name="pixmap_channel"/>
              </item>
              <item row="3" column="0">
               <widget class="QLabel" name="label_58">
@@ -2490,7 +2497,7 @@
               </widget>
              </item>
              <item row="3" column="1">
-              <widget class="QComboBox" name="trackmap_spot_size">
+              <widget class="QComboBox" name="pixmap_spot_size">
                <property name="currentIndex">
                 <number>0</number>
                </property>
@@ -2544,7 +2551,7 @@
               </widget>
              </item>
              <item row="4" column="1">
-              <widget class="QComboBox" name="trackmap_spot_shape">
+              <widget class="QComboBox" name="pixmap_spot_shape">
                <item>
                 <property name="text">
                  <string>Square</string>
@@ -2560,12 +2567,12 @@
              <item row="5" column="0">
               <widget class="QLabel" name="label_61">
                <property name="text">
-                <string>Background Mask Buffer (Pixels)</string>
+                <string>Background Buffer (Pixels)</string>
                </property>
               </widget>
              </item>
              <item row="5" column="1">
-              <widget class="QComboBox" name="trackmap_background_buffer">
+              <widget class="QComboBox" name="pixmap_background_buffer">
                <property name="currentIndex">
                 <number>1</number>
                </property>
@@ -2604,12 +2611,12 @@
              <item row="6" column="0">
               <widget class="QLabel" name="label_62">
                <property name="text">
-                <string>Background Mask Width (Pixels)</string>
+                <string>Background Width (Pixels)</string>
                </property>
               </widget>
              </item>
              <item row="6" column="1">
-              <widget class="QComboBox" name="trackmap_background_width">
+              <widget class="QComboBox" name="pixmap_background_width">
                <property name="currentIndex">
                 <number>2</number>
                </property>
@@ -2640,48 +2647,27 @@
                </item>
               </widget>
              </item>
-             <item row="2" column="0">
+             <item row="0" column="0">
               <widget class="QLabel" name="label_63">
                <property name="text">
-                <string>Mask Metric</string>
+                <string>Mapping Data</string>
                </property>
               </widget>
              </item>
-             <item row="2" column="1">
-              <widget class="QComboBox" name="trackmap_metric">
-               <item>
-                <property name="text">
-                 <string>Mean</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Max</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Sum</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Standard Deviation</string>
-                </property>
-               </item>
-              </widget>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="pixmap_data"/>
              </item>
             </layout>
            </item>
            <item>
-            <widget class="QPushButton" name="compute_trackmap">
+            <widget class="QPushButton" name="compute_pixmap">
              <property name="text">
               <string>Compute Mask Mapping</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QProgressBar" name="compute_trackmap_progressbar">
+            <widget class="QProgressBar" name="compute_pixmap_progressbar">
              <property name="maximumSize">
               <size>
                <width>16777215</width>
@@ -2895,6 +2881,13 @@
               </layout>
              </item>
             </layout>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="track_filter_subtract_bg">
+             <property name="text">
+              <string>Subtract Background</string>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QWidget" name="tracks_filter_graph_container" native="true">
@@ -3641,6 +3634,13 @@
               <widget class="QComboBox" name="traces_export_metric"/>
              </item>
             </layout>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="traces_export_subtract_background">
+             <property name="text">
+              <string>Subtract Background</string>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QPushButton" name="export_traces">
