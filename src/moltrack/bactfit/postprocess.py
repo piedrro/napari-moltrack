@@ -194,17 +194,17 @@ def compute_vectors(segments):
     return unit_vectors, perpendicular_vectors
 
 
-def cell_coordinate_transformation(cell, target_cell, locs,
+def cell_coordinate_transformation(cell, target_cell,
         method = "angular", n_segments=1000,progress_list = []):
 
     if method == "angular":
 
-        cell = angular_coordinate_transformation(cell, target_cell, locs.
+        cell = angular_coordinate_transformation(cell, target_cell,
             n_segments, progress_list)
 
     elif method == "perpendicular":
 
-        cell = perpendicular_coordinate_transformation(cell, target_cell, locs,
+        cell = perpendicular_coordinate_transformation(cell, target_cell,
             n_segments, progress_list)
 
     return cell
@@ -267,14 +267,14 @@ def compute_vectors(segments):
     return unit_vectors, perpendicular_vectors
 
 
-def perpendicular_coordinate_transformation(cell, target_cell, locs,
+def perpendicular_coordinate_transformation(cell, target_cell,
         n_segments=1000, progress_list = []):
 
     transformed_locs = []
 
     try:
 
-        cell.locs = remove_locs_outside_cell(locs,
+        cell.locs = remove_locs_outside_cell(cell.locs,
             cell.cell_polygon)
 
         locs = cell.locs
@@ -283,7 +283,6 @@ def perpendicular_coordinate_transformation(cell, target_cell, locs,
             return cell
 
         if len(locs) == 0:
-            cell.locs = None
             return cell
 
         source_polygon = cell.cell_polygon
