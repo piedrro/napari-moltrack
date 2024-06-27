@@ -119,7 +119,7 @@ class Cell(object):
         # Restore the state
         self.__dict__.update(state)
 
-    def remove_locs_outside_polygon(self, locs=None):
+    def remove_locs_outside_cell(self, locs=None):
 
         if locs is not None:
             self.locs = locs
@@ -145,7 +145,7 @@ class Cell(object):
                 polygon_point_indices.append(point_index)
 
         if len(polygon_point_indices) > 0:
-            polygon_locs = locs[polygon_point_indices]
+            polygon_locs = self.locs[polygon_point_indices]
 
             polygon_locs = pd.DataFrame(polygon_locs)
 
@@ -164,12 +164,11 @@ class Cell(object):
         else:
             self.locs = None
 
-
     def transform_locs(self, target_cell=None, locs=None, remove_outside_locs=True):
 
         if locs is not None:
             if remove_outside_locs:
-                self.remove_locs_outside_polygon(locs)
+                self.remove_locs_outside_cell(locs)
             else:
                 self.locs = locs
 
@@ -197,6 +196,37 @@ class Cell(object):
             return None
 
         return self
+
+    def plot(self):
+
+        if self.cell_fit is not None:
+            ploygon = self.cell_fit
+        elif self.cell_polygon is not None:
+            polygon = self.cell_polygon
+        else:
+            polygon = None
+
+        if self.cell_midline is not None:
+            midline = self.cell_midline
+        else:
+            midline = None
+
+        if self.locs is not None:
+            locs = self.locs
+        else:
+            locs = None
+
+        if polygon is not None:
+            ploygon_coords = np.array(polygon.exterior.coords)
+            plt.plot(*ploygon_coords.T, color="black")
+        if midline is not None:
+            midline_coords = np.array(midline.coords)
+            plt.plot(*midline_coords.T, color="red")
+        if locs is not None:
+            plt.scatter(locs["x"], locs["y"], color="blue")
+        plt.show()
+
+
     
 
         
@@ -317,59 +347,13 @@ class CellList(object):
 
         return data
 
-    def add_localisations(self, locs, remove_outside = True):
+    def add_localisations(self, locs, remove_outside = False):
 
-        if remove_outside:
-            self.remove_locs_outside_polygons(locs)
-        else:
-            for cell in self.data:
-                cell.locs = locs
+        for cell_index, cell in enumerate(self.data):
+            cell.locs = locs
 
-    def remove_locs_outside_polygons(self, locs=None):
-
-        polygon_list = [cell.cell_polygon for cell in self.data]
-        locs = []
-
-        if locs is None:
-            locs = [pd.DataFrame(cell.locs) for cell in self.data]
-            locs = pd.concat(locs)
-            locs = locs.to_records(index=False)
-
-        if len(locs) == 0:
-            return None
-
-        coords = np.stack([locs["x"], locs["y"]], axis=1)
-        points = [Point(coord) for coord in coords]
-        spatial_index = STRtree(points)
-
-        for polygon_index, polygon in enumerate(polygon_list):
-
-            possible_points = spatial_index.query(polygon)
-
-            polygon_point_indices = []
-
-            for point_index in possible_points:
-                point = points[point_index]
-
-                if polygon.contains(point):
-                    polygon_point_indices.append(point_index)
-
-            if len(polygon_point_indices) > 0:
-                polygon_locs = locs[polygon_point_indices]
-
-                polygon_locs = pd.DataFrame(polygon_locs)
-
-                if "cell_index" in polygon_locs.columns:
-                    polygon_locs = polygon_locs.drop(columns=["cell_index"])
-                if "segmentation_index" in polygon_locs.columns:
-                    polygon_locs = polygon_locs.drop(columns=["segmentation_index"])
-
-                polygon_locs["cell_index"] = polygon_index
-                polygon_locs = polygon_locs.to_records(index=False)
-
-                self.data[polygon_index].locs = polygon_locs
-
-                # print(f"Cell {polygon_index} has {len(polygon_locs)} localisations")
+            if remove_outside:
+                cell.remove_locs_outside_cell()
 
     @staticmethod
     def compute_task(job):
@@ -381,11 +365,7 @@ class CellList(object):
             remove_outside_locs=True, progress_callback=None):
 
         if locs is not None:
-            if remove_outside_locs:
-                self.remove_locs_outside_polygons(locs)
-            else:
-                for cell in self.data:
-                    cell.locs = locs
+            self.add_localisations(locs, remove_outside=True)
 
         if target_cell is not None:
 
@@ -394,7 +374,7 @@ class CellList(object):
             n_jobs = len(compute_jobs)
             completed_jobs = 0
 
-            with ProcessPoolExecutor() as executor:
+            with ThreadPoolExecutor() as executor:
 
                 futures = [executor.submit(CellList.compute_task, job) for job in compute_jobs]
 
@@ -429,7 +409,7 @@ class CellList(object):
             try:
 
                 if remove_outside:
-                    cell.remove_locs_outside_polygon()
+                    cell.remove_locs_outside_cell()
 
                 cell_locs = cell.locs
 

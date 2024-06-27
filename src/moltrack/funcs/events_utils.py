@@ -695,7 +695,7 @@ class _events_utils:
             else:
                 self.gui.smlm_threshold.setRange(1, 255)
                 self.gui.smlm_threshold.setValue(50)
-                self.gui.smlm_threshold_label.setText("Threshold")
+                self.gui.smlm_threshold_label.setText("Gaussian Threshold")
 
                 self.gui.moltrack_kernel_size.setHidden(False)
                 self.gui.moltrack_kernel_size_label.setHidden(False)

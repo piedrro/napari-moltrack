@@ -4,6 +4,7 @@ import numpy as np
 from functools import partial
 from moltrack.bactfit.preprocess import data_to_cells
 from moltrack.bactfit.cell import CellList, ModelCell
+from moltrack.bactfit.postprocess import remove_locs_outside_cell
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import pyqtgraph as pg
@@ -137,6 +138,7 @@ class _cell_heatmap_utils:
         try:
 
             name_list = self.cellLayer.properties["name"].copy()
+            name_list = list(set(name_list))
             cell_list = []
 
             for name in name_list:
@@ -178,12 +180,15 @@ class _cell_heatmap_utils:
             if hasattr(self, "cellLayer") == False:
                 return
 
-            self.update_ui(init=True)
+            # self.update_ui(init=True)
 
             celllist = self.populate_celllist()
+            n_cells = len(celllist.data)
 
             celllist.add_localisations(locs)
             model = ModelCell(length=model_length, width=model_width)
+
+            show_info(f"Computing cell heatmap for {n_cells} cells")
 
             worker = Worker(self.cell_heatmap_compute, celllist, model)
             worker.signals.finished.connect(self.cell_heatmap_compute_finished)
@@ -226,11 +231,12 @@ class _cell_heatmap_utils:
             if len(celllist.data) == 0:
                 return
 
-            celllocs = celllist.get_locs(symmetry=symmetry)
-            celllocs = pd.DataFrame(celllocs)
-
             polygon = celllist.data[0].cell_polygon
             polygon_coords = np.array(polygon.exterior.coords)
+
+            celllocs = celllist.get_locs(symmetry=symmetry)
+            celllocs = remove_locs_outside_cell(celllocs, polygon)
+            celllocs = pd.DataFrame(celllocs)
 
             if "dataset" in celllocs.columns:
                 if heatmap_datset != "All Datasets":
@@ -244,8 +250,9 @@ class _cell_heatmap_utils:
             if len(celllocs) == 0:
                 return
 
-            celllocs = celllocs[celllocs["msd"] > min_msd]
-            celllocs = celllocs[celllocs["msd"] < max_msd]
+            if "msd" in celllocs.dtype.names:
+                celllocs = celllocs[celllocs["msd"] > min_msd]
+                celllocs = celllocs[celllocs["msd"] < max_msd]
 
             n_cells = len(celllist.data)
             n_locs = len(celllocs)

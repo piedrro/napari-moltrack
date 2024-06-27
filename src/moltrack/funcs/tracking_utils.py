@@ -661,8 +661,11 @@ class _tracking_utils:
                     self.viewer.scale_bar.unit = "nm"
 
             if remove_tracks:
-                if "Tracks" in layer_names:
-                    self.viewer.layers["Tracks"].data = []
+                try:
+                    if "Tracks" in layer_names:
+                        self.viewer.layers["Tracks"].data = []
+                except:
+                    pass
 
             for layer in layer_names:
                 self.viewer.layers[layer].refresh()

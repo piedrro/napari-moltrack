@@ -223,9 +223,9 @@ class QWidget(QWidget, gui, *subclasses):
 
         # self.update_render_length_range()
         # self.update_render_msd_range()
-        # self.update_ui()
+        self.update_ui()
 
-        self.update_traces_export_options()
+        # self.update_traces_export_options()
 
         # self.update_pixmap_options()
         # self.compute_pixmap_finished()

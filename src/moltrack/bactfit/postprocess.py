@@ -144,7 +144,43 @@ def reflect_loc_vertically(loc, centroid):
         loc.x = loc.x - abs(centroid_distance)*2
 
     return loc
-        
+
+
+def remove_locs_outside_cell(locs, polygon):
+
+    try:
+
+        if type(locs) != np.recarray:
+            return None
+
+        polygon_locs = None
+
+        coords = np.stack([locs["x"], locs["y"]], axis=1)
+        points = [Point(coord) for coord in coords]
+        spatial_index = STRtree(points)
+
+        possible_points = spatial_index.query(polygon)
+
+        polygon_point_indices = []
+
+        for point_index in possible_points:
+            point = points[point_index]
+
+            if polygon.contains(point):
+                polygon_point_indices.append(point_index)
+
+        if len(polygon_point_indices) > 0:
+            polygon_locs = locs[polygon_point_indices]
+
+    except:
+        print(traceback.format_exc())
+        pass
+
+    return polygon_locs
+
+
+
+
 
 def cell_coordinate_transformation(cell, target_cell,
         n_segments=1000, progress_list = []):
@@ -152,60 +188,69 @@ def cell_coordinate_transformation(cell, target_cell,
 
     try:
 
+        cell.locs = remove_locs_outside_cell(cell.locs,
+            cell.cell_polygon)
+
         locs = cell.locs
+
+        if type(locs) != np.recarray:
+            return cell
+
+        if len(locs) == 0:
+            return cell
 
         source_polygon = cell.cell_fit
         source_midline = cell.cell_midline
-        
+
         source_width = cell.cell_width
         target_width = target_cell.cell_length
-        
+
         target_midline = target_cell.cell_midline
         target_polygon = target_cell.cell_polygon
-        
+
         source_segments = split_linestring(source_midline, n_segments)
         target_segments = split_linestring(target_midline, n_segments)
-        
+
         # Create STRtree for segments
         tree = STRtree(source_segments)
-        
+
         transformed_locs = []
-        
+
         for loc in locs:
 
             try:
 
                 point = Point(loc["x"], loc["y"])
-                
+
                 closest_segment_index = tree.nearest(point)
                 nearest_segment = source_segments[closest_segment_index]
-                
+
                 source_distance = point.distance(nearest_segment)
                 angle = calculate_angle(nearest_segment, point)
-                
+
                 target_distance = target_width * (source_distance / source_width)
-                
+
                 # Use the corresponding target segment
                 target_segment = target_segments[closest_segment_index]
-                
+
                 # Calculate the new point in the target segment
                 new_point_coords = calculate_new_point(target_segment, target_distance, angle)
-                
+
                 if target_polygon.contains(Point(new_point_coords)):
-                    
+
                     if len(new_point_coords) == 0:
                         continue
-                
+
                     tloc = loc.copy()
                     tloc["x"] = new_point_coords[0]
                     tloc["y"] = new_point_coords[1]
 
                     transformed_locs.append(tloc)
-                
+
             except:
                 print(traceback.format_exc())
                 pass
-            
+
         if len(transformed_locs) > 0:
 
             transformed_locs = np.hstack(transformed_locs).view(np.recarray).copy()
@@ -213,7 +258,7 @@ def cell_coordinate_transformation(cell, target_cell,
             cell.locs = transformed_locs
             cell.cell_polygon = target_polygon
             cell.cell_midline = target_midline
-            
+
         else:
             cell.locs = None
 
