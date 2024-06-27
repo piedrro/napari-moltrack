@@ -243,8 +243,6 @@ class _cell_heatmap_utils:
             polygon_coords = np.array(polygon.exterior.coords)
 
             celllocs = celllist.get_locs(symmetry=symmetry)
-
-            celllocs = remove_locs_outside_cell(celllocs, polygon)
             celllocs = pd.DataFrame(celllocs)
 
             if "dataset" in celllocs.columns:
@@ -278,7 +276,7 @@ class _cell_heatmap_utils:
                     colourmap_name, draw_outline)
             else:
                 pass
-            #
+
             self.update_ui()
 
         except:

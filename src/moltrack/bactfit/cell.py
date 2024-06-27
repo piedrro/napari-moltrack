@@ -346,6 +346,8 @@ class CellList(object):
 
     def add_localisations(self, locs, remove_outside = False):
 
+        locs = np.unique(locs)
+
         for cell_index, cell in enumerate(self.data):
             cell.locs = locs
 
@@ -383,6 +385,8 @@ class CellList(object):
 
                             if type(locs) == np.recarray:
                                 self.data[cell_index] = cell
+                            else:
+                                self.data[cell_index].locs = None
 
                     except Exception as e:
                         print(f"Error: {e}")
@@ -395,17 +399,15 @@ class CellList(object):
                         progress_callback.emit(progress)
 
 
-    def get_locs(self, symmetry=True, remove_outside=False):
+    def get_locs(self, symmetry=True):
 
         locs = []
 
         for cell in self.data:
             try:
-
-                if remove_outside:
-                    cell.remove_locs_outside_cell()
-
                 cell_locs = cell.locs
+
+                # print(f"Cell index: {cell.cell_index}, {len(cell_locs)} localisations")
 
                 if cell_locs is None:
                     continue
@@ -417,11 +419,10 @@ class CellList(object):
             except:
                 continue
 
-
-
         if len(locs) > 0:
 
             locs = np.hstack(locs).view(np.recarray).copy()
+            locs = np.unique(locs)
 
             if symmetry:
                 midline = self.data[0].cell_midline
