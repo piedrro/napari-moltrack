@@ -21,7 +21,8 @@ class _events_utils:
                                  "tracking_dataset", "locs_export_dataset",
                                  "remove_seglocs_dataset", "adc_dataset",
                                  "heatmap_dataset","track_filter_dataset",
-                                 "segtracks_dataset","traces_export_dataset"]
+                                 "segtracks_dataset","traces_export_dataset",
+                                 "locs_import_dataset"]
 
             for selector_name in dataset_selectors:
                 dataset_names = list(self.dataset_dict.keys())
@@ -51,7 +52,8 @@ class _events_utils:
                                  "tracking_channel", "locs_export_channel",
                                  "remove_seglocs_channel", "adc_channel",
                                  "heatmap_channel","track_filter_channel",
-                                 "segtracks_channel", "traces_export_channel"]
+                                 "segtracks_channel", "traces_export_channel",
+                                 "locs_import_channel",]
 
             for channel_selector in channel_selectors:
                 dataset_selector = channel_selector.replace("channel", "dataset")
@@ -244,7 +246,7 @@ class _events_utils:
         if locs_export_data == "Localisations":
             export_modes = ["Picasso HDF5", "CSV", "POS.OUT"]
         else:
-            export_modes = ["CSV", "POS.OUT"]
+            export_modes = ["CSV"]
 
         self.gui.locs_export_mode.clear()
         self.gui.locs_export_mode.addItems(export_modes)
@@ -300,7 +302,7 @@ class _events_utils:
             if self.verbose:
                 print(f"Updating UI, init = {init}")
 
-            controls = ["import_images", "import_picasso",
+            controls = ["import_images",
                         "cellpose_load_model", "segment_active",
                         "dilate_segmentations", "picasso_detect",
                         "picasso_fit", "picasso_detectfit",
@@ -312,7 +314,7 @@ class _events_utils:
                         "compute_heatmap","filter_tracks",
                         "remove_segtracks", "generate_heatmap",
                         "export_traces","compute_track_stats",
-                        "compute_pixmap"]
+                        "compute_pixmap","import_localisations"]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
                             "picasso_progressbar", "export_progressbar",
@@ -587,6 +589,7 @@ class _events_utils:
 
                 if dataset_name in self.localisation_dict.keys():
                     if (channel_name in self.localisation_dict[dataset_name].keys()):
+
                         localisation_dict = self.localisation_dict[dataset_name][channel_name].copy()
 
                         if "localisations" in localisation_dict.keys():
@@ -839,5 +842,18 @@ class _events_utils:
 
         else:
             pass
+
+
+    def update_locs_import_options(self, event=None):
+
+        locs_import_data = self.gui.locs_import_data.currentText()
+
+        if locs_import_data == "Localisations":
+            export_modes = ["Picasso HDF5", "CSV", "POS.OUT"]
+        else:
+            export_modes = ["CSV"]
+
+        self.gui.locs_import_mode.clear()
+        self.gui.locs_import_mode.addItems(export_modes)
 
 

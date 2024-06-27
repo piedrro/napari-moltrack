@@ -1,6 +1,8 @@
 import traceback
 import numpy as np
 import os
+
+import pandas as pd
 from PIL import Image
 from qtpy.QtWidgets import QFileDialog
 from moltrack.funcs.compute_utils import Worker
@@ -13,7 +15,7 @@ import concurrent.futures
 from astropy.io import fits
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from napari.utils.notifications import show_info
-
+import h5py
 
 def crop_frame(image, crop_mode):
     try:
@@ -402,3 +404,178 @@ class _import_utils:
             self.update_ui()
             print(traceback.format_exc())
             pass
+
+
+
+
+    def import_pos_out_locs(self, path, loc_cols=None):
+
+        try:
+
+            col_dict = {"FRAME": "frame",
+                        "XCENTER": "x", "YCENTER": "y",
+                        "BRIGHTNESS": "photons", "BG": "bg",
+                        "S_X": "sx", "S_Y": "sy",
+                        }
+
+            locs = pd.read_csv(path, sep="\t")
+            locs = locs.rename(columns=col_dict)
+
+            for col in locs.columns:
+                if col not in loc_cols:
+                    locs = locs.drop(col, axis=1)
+
+            locs_frames = np.array(locs["frame"].values)
+            locs_frames = locs_frames - 1
+            locs["frame"] = locs_frames
+
+        except:
+            locs = None
+
+        return locs
+
+    def import_csv_locs(self, path, loc_cols):
+
+        try:
+
+            locs = pd.read_csv(path)
+
+            for col in locs.columns:
+                if col not in loc_cols:
+                    locs = locs.drop(col, axis=1)
+
+        except:
+            locs = None
+
+        return locs
+
+    def import_hdf5_locs(self, path, loc_cols):
+
+        try:
+
+            dtype = [('frame', '<u4'), ('x', '<f4'), ('y', '<f4'),
+                     ('photons', '<f4'), ('sx', '<f4'), ('sy', '<f4'),
+                     ('bg', '<f4'), ('lpx', '<f4'), ('lpy', '<f4'),
+                     ('ellipticity', '<f4'),('net_gradient', '<f4')]
+
+            with h5py.File(path, "r") as f:
+                locs = np.array(f["locs"], dtype=dtype).view(np.recarray)
+
+            locs = pd.DataFrame(locs)
+
+        except:
+            print(traceback.format_exc())
+            locs = None
+
+        return locs
+
+
+    def import_localisations(self):
+
+        try:
+
+            import_dataset = self.gui.locs_import_dataset.currentText()
+            import_channel = self.gui.locs_import_channel.currentText()
+            import_data = self.gui.locs_import_data.currentText()
+            import_mode = self.gui.locs_import_mode.currentText()
+
+            if import_dataset == "" or import_channel == "":
+                show_info("Localisation import requires image data to be loaded first")
+                return None
+
+            if "picasso" in import_mode.lower():
+                ext = "HDF5 files (*.hdf5)"
+                import_func = self.import_hdf5_locs
+            elif import_mode == "CSV":
+                ext = "CSV files (*.csv)"
+                import_func = self.import_csv_locs
+            elif import_mode == "POS.OUT":
+                ext = "POS.OUT files (*.pos.out)"
+                import_func = self.import_pos_out_locs
+            else:
+                return None
+
+            path = os.path.expanduser("~/Desktop")
+
+            if hasattr(self, "dataset_dict"):
+                if import_dataset in self.dataset_dict.keys():
+                    path = self.dataset_dict[import_dataset]["path"]
+                    if type(path) == list:
+                        path = path[0]
+
+            loc_cols = ["dataset", "channel", "group", "particle", "frame",
+                        "cell_index", "segmentation_index",
+                        "x", "y", "photons", "bg", "sx", "sy", "lpx", "lpy",
+                        "ellipticity", "net_gradient", "iterations",
+                        "pixel_mean", "pixel_median", "pixel_sum", "pixel_min",
+                        "pixel_max", "pixel_std", "pixel_mean_bg", "pixel_median_bg",
+                        "pixel_sum_bg", "pixel_min_bg", "pixel_max_bg", "pixel_std_bg"]
+
+            path = QFileDialog.getOpenFileName(self, "Open file", path, ext)[0]
+
+            if path != "":
+
+                locs = import_func(path, loc_cols)
+
+                if locs is not None:
+                    locs["dataset"] = import_dataset
+                    locs["channel"] = import_channel
+                    locs = locs.to_records(index=False)
+
+                    if import_data == "Localisations":
+
+                        locs_cols = locs.dtype.names
+                        if set(["dataset","channel","frame","x","y"]).issubset(locs_cols):
+
+                            if import_dataset not in self.localisation_dict.keys():
+                                self.localisation_dict[import_dataset] = {}
+                            if import_channel not in self.localisation_dict[import_dataset].keys():
+                                self.localisation_dict[import_dataset][import_channel] = {}
+
+                            locdict = self.localisation_dict[import_dataset][import_channel]
+                            locdict["localisations"] = locs
+
+                            imported_locs = self.get_locs(import_dataset, import_channel)
+                            show_info(f"Imported {len(imported_locs)} localisations")
+
+                            self.draw_localisations()
+
+                            self.update_filter_criterion()
+                            self.update_criterion_ranges()
+
+                            self.update_pixmap_options()
+
+                        else:
+                            show_info("Missing required columns for localisation data import")
+
+                    if import_data == "Tracks":
+
+                        locs_cols = locs.dtype.names
+                        if set(["dataset","channel","particle", "frame","x","y"]).issubset(locs_cols):
+
+                            if import_dataset not in self.tracking_dict.keys():
+                                self.tracking_dict[import_dataset] = {}
+                            if import_channel not in self.tracking_dict[import_dataset].keys():
+                                self.tracking_dict[import_dataset][import_channel] = {}
+
+                            self.tracking_dict[import_dataset][import_channel]["tracks"] = locs
+                            self.draw_tracks()
+
+                            imported_tracks = self.get_tracks(import_dataset, import_channel)
+                            show_info(f"Imported {len(imported_tracks)} tracks")
+
+                            self.update_filter_criterion()
+                            self.update_criterion_ranges()
+
+                            self.update_track_filter_criterion()
+                            self.update_track_criterion_ranges()
+                            self.update_traces_export_options()
+                            self.update_pixmap_options()
+
+                        else:
+                            show_info("Missing required columns for tracking data import")
+        except:
+            pass
+
+
+

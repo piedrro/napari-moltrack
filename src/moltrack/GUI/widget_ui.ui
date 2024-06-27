@@ -295,26 +295,56 @@
          </widget>
          <widget class="QWidget" name="tab_16">
           <attribute name="title">
-           <string>Import Localisations</string>
+           <string>Import Localisations/Tracks</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_19">
            <item>
             <layout class="QFormLayout" name="formLayout_21">
-             <item row="0" column="0">
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_116">
+               <property name="text">
+                <string>Import Mode</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="locs_import_mode">
+               <item>
+                <property name="text">
+                 <string>Picasso HDF5</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>CSV</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>POS.OUT</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item row="2" column="0">
               <widget class="QLabel" name="label_76">
                <property name="text">
-                <string>Localisation Type</string>
+                <string>Dataset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QComboBox" name="locs_import_dataset"/>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_40">
+               <property name="text">
+                <string>Import Data</string>
                </property>
               </widget>
              </item>
              <item row="0" column="1">
-              <widget class="QComboBox" name="import_picasso_type">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="editable">
-                <bool>false</bool>
-               </property>
+              <widget class="QComboBox" name="locs_import_data">
                <item>
                 <property name="text">
                  <string>Localisations</string>
@@ -322,48 +352,27 @@
                </item>
                <item>
                 <property name="text">
-                 <string>Bounding Boxes</string>
+                 <string>Tracks</string>
                 </property>
                </item>
               </widget>
              </item>
-             <item row="1" column="1">
-              <widget class="QComboBox" name="import_picasso_dataset">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_2">
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_78">
                <property name="text">
-                <string>Dataset</string>
+                <string>Channel</string>
                </property>
               </widget>
              </item>
-             <item row="2" column="0">
-              <widget class="QLabel" name="label_40">
-               <property name="text">
-                <string>Dataset</string>
-               </property>
-              </widget>
-             </item>
-             <item row="2" column="1">
-              <widget class="QComboBox" name="import_picasso_channel">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-              </widget>
+             <item row="3" column="1">
+              <widget class="QComboBox" name="locs_import_channel"/>
              </item>
             </layout>
            </item>
            <item>
-            <widget class="QPushButton" name="import_picasso">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
+            <widget class="QPushButton" name="import_localisations">
              <property name="text">
-              <string>Import Picasso Localisations</string>
+              <string>Import Localisations/Tracks</string>
              </property>
             </widget>
            </item>
@@ -3450,6 +3459,11 @@
                <item>
                 <property name="text">
                  <string>Localisations</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Tracks</string>
                 </property>
                </item>
               </widget>

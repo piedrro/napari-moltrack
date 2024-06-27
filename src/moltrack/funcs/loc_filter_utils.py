@@ -159,7 +159,7 @@ class _loc_filter_utils:
                  "pixel_mean", "pixel_median", "pixel_sum",
                  "pixel_min", "pixel_max","pixel_std",
                  "pixel_mean_bg", "pixel_median_bg", "pixel_sum_bg",
-                    "pixel_min_bg", "pixel_max_bg", "pixel_std_bg"]
+                 "pixel_min_bg", "pixel_max_bg", "pixel_std_bg"]
 
         loc_data = []
 

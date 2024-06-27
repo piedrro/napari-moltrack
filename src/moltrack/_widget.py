@@ -84,6 +84,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.update_import_options()
         self.update_heatmap_options()
         self.update_diffusion_options()
+        self.update_locs_import_options()
 
         # create threadpool and stop event
         self.threadpool = QThreadPool()
@@ -219,11 +220,15 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.traces_export_dataset.currentIndexChanged.connect(self.update_traces_export_options)
         self.gui.traces_export_channel.currentIndexChanged.connect(self.update_traces_export_options)
 
+        self.gui.import_localisations.clicked.connect(self.import_localisations)
+        self.gui.locs_import_data.currentIndexChanged.connect(self.update_locs_import_options)
+
     def devfunc(self, viewer=None):
 
         # self.update_render_length_range()
         # self.update_render_msd_range()
         self.update_ui()
+        self.draw_localisations()
 
         # self.update_traces_export_options()
 
