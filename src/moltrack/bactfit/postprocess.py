@@ -1,10 +1,11 @@
 import numpy as np
 import traceback
-from shapely.geometry import Point, LineString
+from shapely.geometry import Point, LineString, Polygon
 from shapely.strtree import STRtree
 from moltrack.bactfit.utils import resize_line, rotate_linestring, fit_poly, get_vertical
 import matplotlib.pyplot as plt
 import math
+from shapely.affinity import rotate, translate
 
 def find_centerline(midline, width, smooth=True):
 
@@ -178,11 +179,98 @@ def remove_locs_outside_cell(locs, polygon):
 
     return polygon_locs
 
-
-
+def compute_vectors(segments):
+    unit_vectors = []
+    perpendicular_vectors = []
+    for segment in segments:
+        segment_start = np.array(segment.coords[0])
+        segment_end = np.array(segment.coords[1])
+        segment_vector = segment_end - segment_start
+        segment_length = np.linalg.norm(segment_vector)
+        unit_vector = segment_vector / segment_length
+        perpendicular_vector = np.array([-unit_vector[1], unit_vector[0]])
+        unit_vectors.append(unit_vector)
+        perpendicular_vectors.append(perpendicular_vector)
+    return unit_vectors, perpendicular_vectors
 
 
 def cell_coordinate_transformation(cell, target_cell,
+        method = "angular", n_segments=1000,progress_list = []):
+
+    if method == "angular":
+
+        cell = angular_coordinate_transformation(cell, target_cell,
+            n_segments, progress_list)
+
+    elif method == "perpendicular":
+
+        cell = perpendicular_coordinate_transformation(cell, target_cell,
+            n_segments, progress_list)
+
+    return cell
+
+
+def plot_cell(polygon=None, locs=None, midline=None, title=None):
+
+    try:
+
+        if type(polygon) == Polygon:
+            polygon_coords = np.array(polygon.exterior.coords)
+            plt.plot(*polygon_coords.T, color='black')
+        if type(locs) == np.recarray:
+            coords = np.stack([locs["x"], locs["y"]], axis=1)
+            plt.scatter(*coords.T, color='red', s=1)
+        if type(midline) == LineString:
+            plt.plot(*np.array(midline.coords).T, color='blue')
+        if title:
+            plt.title(title)
+
+        plt.show()
+
+    except:
+        print(traceback.format_exc())
+        pass
+
+def perpendicular_bisector(segment, width):
+    mid_point = segment.interpolate(0.5, normalized=True)
+    start, end = segment.coords
+    dx, dy = end[0] - start[0], end[1] - start[1]
+    bisector = LineString([(-dy, dx), (dy, -dx)])  # Create a perpendicular line
+    bisector = translate(bisector, mid_point.x, mid_point.y)  # Translate to midpoint
+    scale_factor = width / bisector.length / 2  # Scale factor to get the desired length on each side
+    bisector = LineString([mid_point, (mid_point.x - scale_factor * dy, mid_point.y + scale_factor * dx),
+                           (mid_point.x + scale_factor * dy, mid_point.y - scale_factor * dx)])
+    return bisector
+
+def build_strtree_index(bisectors):
+    return STRtree(bisectors)
+
+def find_closest_bisector_with_strtree(strtree, bisectors, point):
+    nearest_geom = strtree.nearest(point)
+    closest_index = bisectors.index(nearest_geom)
+    min_distance = point.distance(nearest_geom)
+    return closest_index, min_distance
+
+
+def perpendicular_coordinate_transformation(cell, target_cell,
+        n_segments=1000, progress_list = []):
+
+    transformed_locs = []
+
+    try:
+
+        pass
+
+    except:
+        print(traceback.format_exc())
+        pass
+
+    cell.locs = None
+
+    return cell
+
+
+def angular_coordinate_transformation(cell, target_cell,
         n_segments=1000, progress_list = []):
     
 
@@ -268,3 +356,36 @@ def cell_coordinate_transformation(cell, target_cell,
 
     return cell
 
+    # print("closest_index", closest_index, "min_distance", min_distance)
+
+#
+#         # Find the nearest segment to each point
+#         closest_segment_index = tree.nearest(point)
+#
+#         nearest_segment = source_segments[closest_segment_index]
+#
+#         segment_start = np.array(nearest_segment.coords[0])
+#         segment_vector = source_unit_vectors[closest_segment_index]
+#         point_vector = np.array([loc["x"], loc["y"]]) - segment_start
+#
+#         # Compute the signed distance from the point to the nearest segment
+#         distance = point.distance(nearest_segment)
+#         distance_sign = np.sign(np.cross(segment_vector, point_vector))
+#         signed_distance = distance*distance_sign
+#
+#         # Compute the new distance in the target coordinate system
+#         new_distance = target_width * (signed_distance / source_width)
+#
+#         # Calculate the new coordinates by moving perpendicular to the target segment at the new distance
+#         segment_start_target = np.array(target_segments[closest_segment_index].coords[0])
+#         perp_vector = target_perpendicular_vectors[closest_segment_index]
+#         new_point_coords = segment_start_target + perp_vector * new_distance
+#
+#         if target_polygon.contains(Point(new_point_coords)):
+#
+#             tloc = loc.copy()
+#             tloc["x"] = new_point_coords[0]
+#             tloc["y"] = new_point_coords[1]
+#
+#             transformed_locs.append(tloc)
+#

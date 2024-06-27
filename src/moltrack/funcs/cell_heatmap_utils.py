@@ -1,3 +1,4 @@
+import cellpose.io
 import pandas as pd
 import traceback
 import numpy as np
@@ -119,12 +120,13 @@ class _cell_heatmap_utils:
             print(traceback.format_exc())
             pass
 
-    def cell_heatmap_compute(self, celllist, model,
+    def cell_heatmap_compute(self, celllist, model,method,
             progress_callback=None):
 
         try:
 
             celllist.transform_locs(model,
+                method=method,
                 progress_callback=progress_callback)
 
             self.celllist = celllist
@@ -162,7 +164,13 @@ class _cell_heatmap_utils:
         try:
 
             data_type = self.gui.heatmap_data.currentText()
+            compute_method = self.gui.heatmap_compute_method.currentText()
             datasets = self.dataset_dict.keys()
+
+            if "angular" in compute_method.lower():
+                method = "angular"
+            else:
+                method = "perpendicular"
 
             pixel_size_nm = list(set([self.dataset_dict[dataset]["pixel_size"] for dataset in datasets]))
             pixel_size_um = pixel_size_nm[0] / 1000
@@ -190,7 +198,7 @@ class _cell_heatmap_utils:
 
             show_info(f"Computing cell heatmap for {n_cells} cells")
 
-            worker = Worker(self.cell_heatmap_compute, celllist, model)
+            worker = Worker(self.cell_heatmap_compute, celllist, model, method)
             worker.signals.finished.connect(self.cell_heatmap_compute_finished)
             worker.signals.progress.connect(partial(self.moltrack_progress,
                 progress_bar=self.gui.heatmap_progressbar, ))
@@ -235,6 +243,7 @@ class _cell_heatmap_utils:
             polygon_coords = np.array(polygon.exterior.coords)
 
             celllocs = celllist.get_locs(symmetry=symmetry)
+
             celllocs = remove_locs_outside_cell(celllocs, polygon)
             celllocs = pd.DataFrame(celllocs)
 
@@ -269,7 +278,7 @@ class _cell_heatmap_utils:
                     colourmap_name, draw_outline)
             else:
                 pass
-
+            #
             self.update_ui()
 
         except:

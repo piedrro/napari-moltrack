@@ -164,17 +164,14 @@ class Cell(object):
         else:
             self.locs = None
 
-    def transform_locs(self, target_cell=None, locs=None, remove_outside_locs=True):
+    def transform_locs(self, target_cell=None, locs=None, method = "angular"):
 
         if locs is not None:
-            if remove_outside_locs:
-                self.remove_locs_outside_cell(locs)
-            else:
                 self.locs = locs
 
         if target_cell is not None and self.locs is not None:
 
-            transformed_locs = cell_coordinate_transformation(self, target_cell)
+            transformed_locs = cell_coordinate_transformation(self, target_cell, method)
 
             if len(transformed_locs) > 0:
                 self.locs = transformed_locs
@@ -357,19 +354,16 @@ class CellList(object):
 
     @staticmethod
     def compute_task(job):
-        cell, target_cell = job
-        cell = cell_coordinate_transformation(cell, target_cell)
+        cell, target_cell, method = job
+        cell = cell_coordinate_transformation(cell, target_cell, method)
         return cell
 
-    def transform_locs(self, target_cell=None, locs=None,
-            remove_outside_locs=True, progress_callback=None):
-
-        if locs is not None:
-            self.add_localisations(locs, remove_outside=True)
+    def transform_locs(self, target_cell=None, method = "angular",
+            progress_callback=None):
 
         if target_cell is not None:
 
-            compute_jobs = [list([cell,target_cell]) for cell in self.data if len(cell.locs) > 0]
+            compute_jobs = [list([cell, target_cell, method]) for cell in self.data if len(cell.locs) > 0]
 
             n_jobs = len(compute_jobs)
             completed_jobs = 0
