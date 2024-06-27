@@ -88,3 +88,4 @@ venv/
 /src/moltrack/bactfit/bactfit_dev2.py
 /src/moltrack/bactfit/segmentations.pkl
 /src/moltrack/bactfit/transform_dev.py
+/dev_data/

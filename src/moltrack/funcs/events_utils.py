@@ -856,4 +856,15 @@ class _events_utils:
         self.gui.locs_import_mode.clear()
         self.gui.locs_import_mode.addItems(export_modes)
 
+    def update_shapes_import_options(self):
+
+        import_data = self.gui.shapes_import_data.currentText()
+
+        if import_data == "Segmentations":
+            self.gui.shapes_import_mode.clear()
+            self.gui.shapes_import_mode.addItems(["Binary Mask", "JSON", "Oufti/MicrobTracker Mesh"])
+
+        if import_data == "Cells":
+            self.gui.shapes_import_mode.clear()
+            self.gui.shapes_import_mode.addItems(["JSON"])
 

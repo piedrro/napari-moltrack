@@ -16,6 +16,9 @@ from astropy.io import fits
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from napari.utils.notifications import show_info
 import h5py
+import json
+import mat4py
+from shapely.geometry import Polygon
 
 def crop_frame(image, crop_mode):
     try:
@@ -377,19 +380,27 @@ class _import_utils:
             print(traceback.format_exc())
             pass
 
-    def init_import_data(self):
+    def init_import_data(self, viewer=None, import_mode=None, import_path=None):
+
         try:
-            import_mode = self.gui.import_mode.currentText()
-            desktop = os.path.expanduser("~/Desktop")
 
-            if import_mode.lower() != ["segmentation image"]:
-                paths = QFileDialog.getOpenFileNames(self, "Open file", desktop, "Image files (*.tif *.fits)")[0]
+            if import_mode is None:
+                import_mode = self.gui.import_mode.currentText()
 
-                paths = [path for path in paths if path != ""]
+            if import_path is None:
+                desktop = os.path.expanduser("~/Desktop")
 
+                if import_mode.lower() != ["segmentation image"]:
+                    paths = QFileDialog.getOpenFileNames(self, "Open file", desktop, "Image files (*.tif *.fits)")[0]
+
+                    paths = [path for path in paths if path != ""]
+
+                else:
+                    path = QFileDialog.getOpenFileName(self, "Open file", desktop, "Image files (*.tif *.fits)")[0]
+                    paths = [path]
             else:
-                path = QFileDialog.getOpenFileName(self, "Open file", desktop, "Image files (*.tif *.fits)")[0]
-                paths = [path]
+                if type(import_path) == str:
+                    paths = [import_path]
 
             if paths != []:
                 self.update_ui(init=True)
@@ -436,6 +447,8 @@ class _import_utils:
 
     def import_csv_locs(self, path, loc_cols):
 
+        print("importing csv locs")
+
         try:
 
             locs = pd.read_csv(path)
@@ -470,18 +483,31 @@ class _import_utils:
         return locs
 
 
-    def import_localisations(self):
+    def import_localisations(self, import_dataset=None, import_channel=None,
+            import_data=None, import_mode=None, path = None):
 
         try:
 
-            import_dataset = self.gui.locs_import_dataset.currentText()
-            import_channel = self.gui.locs_import_channel.currentText()
-            import_data = self.gui.locs_import_data.currentText()
-            import_mode = self.gui.locs_import_mode.currentText()
+            if import_dataset is None:
+                import_dataset = self.gui.locs_import_dataset.currentText()
+            if import_channel is None:
+                import_channel = self.gui.locs_import_channel.currentText()
+            if import_data is None:
+                import_data = self.gui.locs_import_data.currentText()
+            if import_mode is None:
+                import_mode = self.gui.locs_import_mode.currentText()
 
             if import_dataset == "" or import_channel == "":
                 show_info("Localisation import requires image data to be loaded first")
                 return None
+
+            loc_cols = ["dataset", "channel", "group", "particle", "frame",
+                        "cell_index", "segmentation_index",
+                        "x", "y", "photons", "bg", "sx", "sy", "lpx", "lpy",
+                        "ellipticity", "net_gradient", "iterations",
+                        "pixel_mean", "pixel_median", "pixel_sum", "pixel_min",
+                        "pixel_max", "pixel_std", "pixel_mean_bg", "pixel_median_bg",
+                        "pixel_sum_bg", "pixel_min_bg", "pixel_max_bg", "pixel_std_bg"]
 
             if "picasso" in import_mode.lower():
                 ext = "HDF5 files (*.hdf5)"
@@ -495,23 +521,16 @@ class _import_utils:
             else:
                 return None
 
-            path = os.path.expanduser("~/Desktop")
+            if path is None:
+                path = os.path.expanduser("~/Desktop")
 
-            if hasattr(self, "dataset_dict"):
-                if import_dataset in self.dataset_dict.keys():
-                    path = self.dataset_dict[import_dataset]["path"]
-                    if type(path) == list:
-                        path = path[0]
+                if hasattr(self, "dataset_dict"):
+                    if import_dataset in self.dataset_dict.keys():
+                        path = self.dataset_dict[import_dataset]["path"]
+                        if type(path) == list:
+                            path = path[0]
 
-            loc_cols = ["dataset", "channel", "group", "particle", "frame",
-                        "cell_index", "segmentation_index",
-                        "x", "y", "photons", "bg", "sx", "sy", "lpx", "lpy",
-                        "ellipticity", "net_gradient", "iterations",
-                        "pixel_mean", "pixel_median", "pixel_sum", "pixel_min",
-                        "pixel_max", "pixel_std", "pixel_mean_bg", "pixel_median_bg",
-                        "pixel_sum_bg", "pixel_min_bg", "pixel_max_bg", "pixel_std_bg"]
-
-            path = QFileDialog.getOpenFileName(self, "Open file", path, ext)[0]
+                path = QFileDialog.getOpenFileName(self, "Open file", path, ext)[0]
 
             if path != "":
 
@@ -525,6 +544,7 @@ class _import_utils:
                     if import_data == "Localisations":
 
                         locs_cols = locs.dtype.names
+
                         if set(["dataset","channel","frame","x","y"]).issubset(locs_cols):
 
                             if import_dataset not in self.localisation_dict.keys():
@@ -575,7 +595,159 @@ class _import_utils:
                         else:
                             show_info("Missing required columns for tracking data import")
         except:
+            print(traceback.format_exc())
             pass
+
+
+
+    def import_binary_mask(self, path):
+
+        try:
+
+            mask = tifffile.imread(path)
+            shapes = self.mask_to_shape(mask)
+
+        except:
+            shapes = None
+
+        return shapes
+
+    def import_cells(self, path):
+
+        #import json file
+        with open(path, 'r') as f:
+            data = json.load(f)
+
+        cell_names = data["name"]
+        polygon_coords = data["polygon_coords"]
+        midline_coords = data["midline_coords"]
+
+        shapes = []
+        shape_types = []
+        properties = {"name": [], "cell": []}
+
+        for cell_index, (name, polygon, midline) in enumerate(zip(
+                cell_names, polygon_coords, midline_coords)):
+
+            try:
+
+                fit_params = {}
+                if "name" in data.keys():
+                    fit_params["name"] = data["name"][cell_index]
+                if "width" in data.keys():
+                    fit_params["width"] = data["width"][cell_index]
+                if "poly_params" in data.keys():
+                    fit_params["poly_params"] = data["poly_params"][cell_index]
+                if "cell_poles" in data.keys():
+                    fit_params["cell_poles"] = data["cell_poles"][cell_index]
+
+                polygon = Polygon(polygon)
+                polygon = np.array(polygon.exterior.coords)
+                polygon = polygon[:-1]
+
+                shapes.append(polygon)
+                shape_types.append("polygon")
+                properties["name"].append(name)
+                properties["cell"].append(fit_params)
+
+                shapes.append(midline)
+                shape_types.append("path")
+                properties["name"].append(name)
+                properties["cell"].append(fit_params)
+
+            except:
+                print(traceback.format_exc())
+
+        shapes = {"shapes": shapes,
+                  "shape_types": shape_types,
+                  "properties": properties}
+
+        return shapes
+
+    def import_mesh(self, path):
+
+        try:
+
+            mat_data = mat4py.loadmat(path)
+
+            mat_data = mat_data["cellList"]
+
+            shapes = []
+
+            for dat in mat_data:
+                try:
+                    if type(dat) == dict:
+                        shape = np.array(dat["model"])
+                        shape = np.fliplr(shape)
+                        shape = shape[:-1]
+                        shapes.append(shape)
+                except:
+                    pass
+
+        except:
+            shapes = None
+
+        return shapes
+
+    def import_shapes(self, import_data=None, import_mode=None, pixel_size=None, path=None):
+
+        try:
+
+            if import_data is None:
+                import_data = self.gui.shapes_import_data.currentText()
+            if import_mode is None:
+                import_mode = self.gui.shapes_import_mode.currentText()
+            if pixel_size is None:
+                pixel_size = float(self.gui.shapes_import_pixel_size.value())
+
+            self.segmentation_image_pixel_size = pixel_size
+
+            if import_mode == "Binary Mask":
+                import_func = self.import_binary_mask
+                ext = "*.tif"
+            elif import_mode == "JSON":
+                import_func = self.import_cells
+                ext = "*.json"
+            elif import_mode == "Oufti/MicrobTracker Mesh":
+                import_func = self.import_mesh
+                ext = "*.mat"
+            else:
+                return None
+
+            if path is None:
+                path = os.path.expanduser("~/Desktop")
+                path = QFileDialog.getOpenFileName(self, "Open file", path, ext)[0]
+
+            if path != "":
+
+                shape_data = import_func(path)
+
+                if shape_data is not None:
+
+                    if import_data == "Segmentations":
+
+                        if import_mode in ["Binary Mask","Oufti/MicrobTracker Mesh"]:
+                            self.initialise_segLayer(shape_data, pixel_size)
+
+                        else:
+                            shape_types = shape_data["shape_types"]
+                            polygons = [shape_data["shapes"][i] for i, shape_type in enumerate(shape_types) if shape_type == "polygon"]
+
+                            self.initialise_segLayer(polygons, pixel_size)
+
+                    else:
+
+                        shapes = shape_data["shapes"]
+                        shape_types = shape_data["shape_types"]
+                        properties = shape_data["properties"]
+
+                        self.cellLayer = self.initialise_cellLayer(shapes=shapes,
+                            shape_types=shape_types, properties=properties)
+
+                        self.store_cell_shapes()
+
+        except:
+            print(traceback.format_exc())
 
 
 

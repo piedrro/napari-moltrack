@@ -15,6 +15,7 @@ import traceback
 from napari.utils.notifications import show_info
 from PyQt5.QtWidgets import QApplication, QComboBox, QDoubleSpinBox, QFormLayout, QVBoxLayout, QWidget, QMainWindow
 from PyQt5 import uic
+import os
 
 if TYPE_CHECKING:
     import napari
@@ -85,11 +86,60 @@ class QWidget(QWidget, gui, *subclasses):
         self.update_heatmap_options()
         self.update_diffusion_options()
         self.update_locs_import_options()
+        self.update_shapes_import_options()
 
         # create threadpool and stop event
         self.threadpool = QThreadPool()
         manager = Manager()
         self.stop_event = manager.Event()
+
+        # self.import_dev_data()
+
+    def import_dev_data(self):
+
+        moltrack_root = os.path.dirname(os.path.abspath(__file__))
+        package_dir = os.path.dirname(os.path.dirname(moltrack_root))
+
+        dev_data_path = os.path.join(package_dir, "dev_data")
+
+        image_path = os.path.join(dev_data_path, "image.fits")
+        localisation_path = os.path.join(dev_data_path, "moltrack_localisations.csv")
+        track_path = os.path.join(dev_data_path, "moltrack_tracks.csv")
+        shapes_path = os.path.join(dev_data_path, "moltrack_shapes.json")
+
+        self.init_import_data(
+            import_mode="Data (Single Channel)",
+            import_path=image_path)
+
+        self.import_shapes(
+            import_data="Segmentations",
+            import_mode="JSON",
+            path=shapes_path,
+        )
+
+        self.import_shapes(
+            import_data="Cells",
+            import_mode="JSON",
+            path=shapes_path,
+        )
+
+        #wait for control to be enabled
+        while self.gui.import_images.isEnabled() is False:
+            QApplication.processEvents()
+
+        self.import_localisations(
+            import_dataset=self.active_dataset,
+            import_channel=self.active_channel,
+            import_mode="CSV",
+            import_data="Localisations",
+            path=localisation_path)
+
+        self.import_localisations(
+            import_dataset=self.active_dataset,
+            import_channel=self.active_channel,
+            import_mode="CSV",
+            import_data="Tracks",
+            path=track_path)
 
     def initialise_variables(self):
         # initialise graph PyQtGraph canvases
@@ -222,6 +272,9 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.import_localisations.clicked.connect(self.import_localisations)
         self.gui.locs_import_data.currentIndexChanged.connect(self.update_locs_import_options)
+
+        self.gui.import_shapes.clicked.connect(self.import_shapes)
+        self.gui.shapes_import_data.currentIndexChanged.connect(self.update_shapes_import_options)
 
     def devfunc(self, viewer=None):
 

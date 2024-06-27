@@ -391,6 +391,101 @@
            </item>
           </layout>
          </widget>
+         <widget class="QWidget" name="tab_18">
+          <attribute name="title">
+           <string>Segmentations/Cells</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_20">
+           <item>
+            <layout class="QFormLayout" name="formLayout_35">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_55">
+               <property name="text">
+                <string>Export Data</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="shapes_import_data">
+               <item>
+                <property name="text">
+                 <string>Segmentations</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Cells</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_137">
+               <property name="text">
+                <string>Export Mode</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="shapes_import_mode">
+               <item>
+                <property name="text">
+                 <string>Binary Mask</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>JSON</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Oufti/MicrobTracker Mesh</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="import_pixel_size_label_2">
+               <property name="text">
+                <string>Pixel Size (nm)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QDoubleSpinBox" name="shapes_import_pixel_size">
+               <property name="maximum">
+                <double>1000.000000000000000</double>
+               </property>
+               <property name="value">
+                <double>100.000000000000000</double>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QPushButton" name="import_shapes">
+             <property name="text">
+              <string>Import Shapes</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_17">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </widget>
         </widget>
        </item>
        <item>

@@ -45,6 +45,7 @@ dependencies = [
     "trackpy",
     "shapely",
     "astropy",
+    "mat4py",
 ]
 
 [project.optional-dependencies]
