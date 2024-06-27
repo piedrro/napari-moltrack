@@ -252,6 +252,21 @@ def find_closest_bisector_with_strtree(strtree, bisectors, point):
     return closest_index, min_distance
 
 
+def compute_vectors(segments):
+    unit_vectors = []
+    perpendicular_vectors = []
+    for segment in segments:
+        segment_start = np.array(segment.coords[0])
+        segment_end = np.array(segment.coords[1])
+        segment_vector = segment_end - segment_start
+        segment_length = np.linalg.norm(segment_vector)
+        unit_vector = segment_vector / segment_length
+        perpendicular_vector = np.array([-unit_vector[1], unit_vector[0]])
+        unit_vectors.append(unit_vector)
+        perpendicular_vectors.append(perpendicular_vector)
+    return unit_vectors, perpendicular_vectors
+
+
 def perpendicular_coordinate_transformation(cell, target_cell,
         n_segments=1000, progress_list = []):
 
@@ -259,15 +274,105 @@ def perpendicular_coordinate_transformation(cell, target_cell,
 
     try:
 
-        pass
+        cell.locs = remove_locs_outside_cell(cell.locs,
+            cell.cell_polygon)
+
+        locs = cell.locs
+
+        if type(locs) != np.recarray:
+            return cell
+
+        if len(locs) == 0:
+            cell.locs = None
+            return cell
+
+        source_polygon = cell.cell_polygon
+        source_midline = cell.cell_midline
+        source_width = cell.width
+
+        if cell.cell_centerline is None:
+            cell.cell_centerline = find_centerline(source_midline, source_width)
+            source_centerline = cell.cell_centerline
+
+        target_width = target_cell.width
+        target_centerline = target_cell.cell_centerline
+        target_polygon = target_cell.cell_polygon
+
+        source_segments = split_linestring(source_centerline, n_segments)
+        target_segments = split_linestring(target_centerline, n_segments)
+
+        # Precompute vectors for source and target segments
+        source_unit_vectors, source_perpendicular_vectors = compute_vectors(source_segments)
+        target_unit_vectors, target_perpendicular_vectors = compute_vectors(target_segments)
+
+        # Create STRtree for segments
+        tree = STRtree(source_segments)
+
+        for loc in locs:
+
+            try:
+
+                point = Point(loc["x"], loc["y"])
+
+                # Find the nearest segment to each point
+                closest_segment_index = tree.nearest(point)
+
+                nearest_segment = source_segments[closest_segment_index]
+
+                segment_start = np.array(nearest_segment.coords[0])
+                segment_vector = source_unit_vectors[closest_segment_index]
+                point_vector = np.array([loc["x"], loc["y"]]) - segment_start
+
+                # Compute the signed distance from the point to the nearest segment
+                distance = point.distance(nearest_segment)
+                distance_sign = np.sign(np.cross(segment_vector, point_vector))
+
+                signed_distance = distance*distance_sign
+                # Compute the new distance in the target coordinate system
+                new_distance = target_width * (signed_distance / source_width)
+
+                # Calculate the new coordinates by moving perpendicular to the target segment at the new distance
+                segment_start_target = np.array(target_segments[closest_segment_index].coords[0])
+                perp_vector = target_perpendicular_vectors[closest_segment_index]
+                new_point_coords = segment_start_target + perp_vector * new_distance
+
+                if target_polygon.contains(Point(new_point_coords)):
+
+                    tloc = loc.copy()
+                    tloc["x"] = new_point_coords[0]
+                    tloc["y"] = new_point_coords[1]
+
+                    transformed_locs.append(tloc)
+            except:
+                pass
+
+            progress_list.append(1)
+
+        if len(transformed_locs) > 0:
+            transformed_locs = np.hstack(transformed_locs).view(np.recarray).copy()
+
+            cell.locs = transformed_locs
+            cell.cell_polygon = target_polygon
+
+        else:
+            cell.locs = None
 
     except:
         print(traceback.format_exc())
         pass
 
-    cell.locs = None
-
     return cell
+
+
+
+
+
+
+
+
+
+
+
 
 
 def angular_coordinate_transformation(cell, target_cell,
@@ -356,36 +461,3 @@ def angular_coordinate_transformation(cell, target_cell,
 
     return cell
 
-    # print("closest_index", closest_index, "min_distance", min_distance)
-
-#
-#         # Find the nearest segment to each point
-#         closest_segment_index = tree.nearest(point)
-#
-#         nearest_segment = source_segments[closest_segment_index]
-#
-#         segment_start = np.array(nearest_segment.coords[0])
-#         segment_vector = source_unit_vectors[closest_segment_index]
-#         point_vector = np.array([loc["x"], loc["y"]]) - segment_start
-#
-#         # Compute the signed distance from the point to the nearest segment
-#         distance = point.distance(nearest_segment)
-#         distance_sign = np.sign(np.cross(segment_vector, point_vector))
-#         signed_distance = distance*distance_sign
-#
-#         # Compute the new distance in the target coordinate system
-#         new_distance = target_width * (signed_distance / source_width)
-#
-#         # Calculate the new coordinates by moving perpendicular to the target segment at the new distance
-#         segment_start_target = np.array(target_segments[closest_segment_index].coords[0])
-#         perp_vector = target_perpendicular_vectors[closest_segment_index]
-#         new_point_coords = segment_start_target + perp_vector * new_distance
-#
-#         if target_polygon.contains(Point(new_point_coords)):
-#
-#             tloc = loc.copy()
-#             tloc["x"] = new_point_coords[0]
-#             tloc["y"] = new_point_coords[1]
-#
-#             transformed_locs.append(tloc)
-#
