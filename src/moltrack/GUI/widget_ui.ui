@@ -1693,6 +1693,252 @@
              </property>
             </spacer>
            </item>
+           <item>
+            <widget class="QLabel" name="label_27">
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Localisation Visualisation Settings</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QGridLayout" name="gridLayout_14">
+             <item row="0" column="3">
+              <widget class="QComboBox" name="picasso_vis_size">
+               <property name="currentIndex">
+                <number>4</number>
+               </property>
+               <item>
+                <property name="text">
+                 <string>1</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>2</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>3</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>4</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>5</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>6</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>7</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>8</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>9</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>10</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_114">
+               <property name="text">
+                <string>Mode</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="picasso_vis_mode">
+               <item>
+                <property name="text">
+                 <string>Disk</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Square</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item row="0" column="2">
+              <widget class="QLabel" name="label_115">
+               <property name="text">
+                <string>Size</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_120">
+               <property name="text">
+                <string>Opacity</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="picasso_vis_opacity">
+               <property name="currentIndex">
+                <number>9</number>
+               </property>
+               <item>
+                <property name="text">
+                 <string>0.1</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.2</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.3</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.4</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.5</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.6</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.7</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.8</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.9</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>1.0</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item row="1" column="2">
+              <widget class="QLabel" name="label_121">
+               <property name="text">
+                <string>Edge Width</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="3">
+              <widget class="QComboBox" name="picasso_vis_edge_width">
+               <property name="currentText">
+                <string>0.1</string>
+               </property>
+               <property name="currentIndex">
+                <number>0</number>
+               </property>
+               <item>
+                <property name="text">
+                 <string>0.1</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.2</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.3</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.4</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.5</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.6</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.7</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.8</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>0.9</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>1.0</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_10">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
           </layout>
          </widget>
          <widget class="QWidget" name="tab_23">
@@ -1946,259 +2192,6 @@
            </item>
           </layout>
          </widget>
-         <widget class="QWidget" name="tab_22">
-          <attribute name="title">
-           <string>Settings</string>
-          </attribute>
-          <layout class="QVBoxLayout" name="verticalLayout_24">
-           <item>
-            <widget class="QLabel" name="label_27">
-             <property name="font">
-              <font>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Localisation Visualisation Settings</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <layout class="QGridLayout" name="gridLayout_14">
-             <item row="0" column="3">
-              <widget class="QComboBox" name="picasso_vis_size">
-               <property name="currentIndex">
-                <number>4</number>
-               </property>
-               <item>
-                <property name="text">
-                 <string>1</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>2</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>3</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>4</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>5</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>6</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>7</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>8</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>9</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>10</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-             <item row="0" column="0">
-              <widget class="QLabel" name="label_114">
-               <property name="text">
-                <string>Mode</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QComboBox" name="picasso_vis_mode">
-               <item>
-                <property name="text">
-                 <string>Disk</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Square</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-             <item row="0" column="2">
-              <widget class="QLabel" name="label_115">
-               <property name="text">
-                <string>Size</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_120">
-               <property name="text">
-                <string>Opacity</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="1">
-              <widget class="QComboBox" name="picasso_vis_opacity">
-               <property name="currentIndex">
-                <number>9</number>
-               </property>
-               <item>
-                <property name="text">
-                 <string>0.1</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.2</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.3</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.4</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.5</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.6</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.7</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.8</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.9</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>1.0</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-             <item row="1" column="2">
-              <widget class="QLabel" name="label_121">
-               <property name="text">
-                <string>Edge Width</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="3">
-              <widget class="QComboBox" name="picasso_vis_edge_width">
-               <property name="currentText">
-                <string>0.1</string>
-               </property>
-               <property name="currentIndex">
-                <number>0</number>
-               </property>
-               <item>
-                <property name="text">
-                 <string>0.1</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.2</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.3</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.4</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.5</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.6</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.7</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.8</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>0.9</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>1.0</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-            </layout>
-           </item>
-           <item>
-            <spacer name="verticalSpacer_10">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>354</width>
-               <height>254</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </widget>
         </widget>
        </item>
        <item>
@@ -2342,13 +2335,13 @@
            </item>
           </layout>
          </widget>
-         <widget class="QWidget" name="tab_17">
+         <widget class="QWidget" name="tab_3">
           <attribute name="title">
-           <string>Process</string>
+           <string>Edit</string>
           </attribute>
-          <layout class="QVBoxLayout" name="verticalLayout_17">
+          <layout class="QVBoxLayout" name="verticalLayout_4">
            <item>
-            <widget class="QLabel" name="label_55">
+            <widget class="QLabel" name="label_39">
              <property name="font">
               <font>
                <weight>75</weight>
@@ -2356,32 +2349,95 @@
               </font>
              </property>
              <property name="text">
-              <string>Compute Tracking Statistics</string>
+              <string>Remove Tracks/Track Coords Outside Segmentations</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="compute_track_stats">
+            <layout class="QFormLayout" name="formLayout_6">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_43">
+               <property name="text">
+                <string>Dataset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="segtracks_dataset"/>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_44">
+               <property name="text">
+                <string>Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="segtracks_channel"/>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_42">
+               <property name="text">
+                <string>Segmentations</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QComboBox" name="segtracks_seg"/>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_32">
+               <property name="text">
+                <string>Detect Mode</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QComboBox" name="segtracks_detect">
+               <item>
+                <property name="text">
+                 <string>Entire Track</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Track Segments</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item row="4" column="0">
+              <widget class="QLabel" name="label_22">
+               <property name="text">
+                <string>Remove Mode</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="1">
+              <widget class="QComboBox" name="segtracks_remove">
+               <item>
+                <property name="text">
+                 <string>Track</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Track Segment</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QPushButton" name="remove_segtracks">
              <property name="text">
-              <string>Compute Statistics</string>
+              <string>Remove</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QProgressBar" name="track_stats_progressbar">
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>10</height>
-              </size>
-             </property>
-             <property name="value">
-              <number>0</number>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="verticalSpacer_17">
+            <spacer name="verticalSpacer_14">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
              </property>
@@ -2393,6 +2449,13 @@
              </property>
             </spacer>
            </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="tab_17">
+          <attribute name="title">
+           <string>PixMap</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_17">
            <item>
             <widget class="QLabel" name="label_56">
              <property name="font">
@@ -2601,7 +2664,7 @@
            <item>
             <widget class="QPushButton" name="compute_pixmap">
              <property name="text">
-              <string>Compute Mask Mapping</string>
+              <string>Compute Pixel Mapping</string>
              </property>
             </widget>
            </item>
@@ -2620,122 +2683,6 @@
            </item>
            <item>
             <spacer name="verticalSpacer_16">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </widget>
-         <widget class="QWidget" name="tab_3">
-          <attribute name="title">
-           <string>Edit</string>
-          </attribute>
-          <layout class="QVBoxLayout" name="verticalLayout_4">
-           <item>
-            <widget class="QLabel" name="label_39">
-             <property name="font">
-              <font>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Remove Tracks/Track Coords Outside Segmentations</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <layout class="QFormLayout" name="formLayout_6">
-             <item row="0" column="0">
-              <widget class="QLabel" name="label_43">
-               <property name="text">
-                <string>Dataset</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QComboBox" name="segtracks_dataset"/>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_44">
-               <property name="text">
-                <string>Channel</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="1">
-              <widget class="QComboBox" name="segtracks_channel"/>
-             </item>
-             <item row="2" column="0">
-              <widget class="QLabel" name="label_42">
-               <property name="text">
-                <string>Segmentations</string>
-               </property>
-              </widget>
-             </item>
-             <item row="2" column="1">
-              <widget class="QComboBox" name="segtracks_seg"/>
-             </item>
-             <item row="3" column="0">
-              <widget class="QLabel" name="label_32">
-               <property name="text">
-                <string>Detect Mode</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="1">
-              <widget class="QComboBox" name="segtracks_detect">
-               <item>
-                <property name="text">
-                 <string>Entire Track</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Track Segments</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-             <item row="4" column="0">
-              <widget class="QLabel" name="label_22">
-               <property name="text">
-                <string>Remove Mode</string>
-               </property>
-              </widget>
-             </item>
-             <item row="4" column="1">
-              <widget class="QComboBox" name="segtracks_remove">
-               <item>
-                <property name="text">
-                 <string>Track</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Track Segment</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-            </layout>
-           </item>
-           <item>
-            <widget class="QPushButton" name="remove_segtracks">
-             <property name="text">
-              <string>Remove</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="verticalSpacer_14">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
              </property>
@@ -2925,6 +2872,26 @@
            <string>Diffusion Plots</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_10">
+           <item>
+            <widget class="QPushButton" name="compute_track_stats">
+             <property name="text">
+              <string>Compute Diffusion Data</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QProgressBar" name="track_stats_progressbar">
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>10</height>
+              </size>
+             </property>
+             <property name="value">
+              <number>0</number>
+             </property>
+            </widget>
+           </item>
            <item>
             <widget class="QWidget" name="adc_graph_container" native="true">
              <property name="sizePolicy">

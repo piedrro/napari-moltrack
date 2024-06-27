@@ -420,11 +420,15 @@ class _picasso_detect_utils:
         try:
 
             dataset_name = self.gui.picasso_dataset.currentText()
+            channel_name = self.gui.picasso_channel.currentText()
 
             if dataset_name == "All Datasets":
                 dataset_name = self.active_dataset
+            if channel_name == "All Channels":
+                channel_name = self.active_channel
 
-            self.update_active_image(dataset=dataset_name)
+            self.update_active_image(dataset=dataset_name,
+                channel=channel_name)
 
             self.draw_localisations()
 
@@ -793,6 +797,8 @@ class _picasso_detect_utils:
                             locs = self.fit_spots_parallel(locs, spots, box_size, executor, manager,
                                 n_workers, detect, progress_callback)
 
+                            time.sleep(1)
+
                         fitted = True
                         show_info(f"Fitted {len(locs)} spots")
 
@@ -926,8 +932,6 @@ class _picasso_detect_utils:
 
                     else:
                         channel_list = [channel_name]
-
-
 
                     self.worker = Worker(self._picasso_wrapper,
                         detect=detect, fit=fit,
