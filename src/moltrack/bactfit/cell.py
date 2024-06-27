@@ -374,7 +374,7 @@ class CellList(object):
             n_jobs = len(compute_jobs)
             completed_jobs = 0
 
-            with ThreadPoolExecutor() as executor:
+            with ProcessPoolExecutor() as executor:
 
                 futures = [executor.submit(CellList.compute_task, job) for job in compute_jobs]
 
