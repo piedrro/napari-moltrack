@@ -180,7 +180,7 @@ class _cell_heatmap_utils:
             if hasattr(self, "cellLayer") == False:
                 return
 
-            # self.update_ui(init=True)
+            self.update_ui(init=True)
 
             celllist = self.populate_celllist()
             n_cells = len(celllist.data)
