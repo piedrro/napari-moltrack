@@ -11,6 +11,7 @@ from functools import partial
 import tifffile
 import concurrent.futures
 from astropy.io import fits
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from napari.utils.notifications import show_info
 
 
@@ -231,20 +232,30 @@ class _import_utils:
         return import_jobs
 
     def process_compute_jobs(self, compute_jobs, progress_callback=None):
+
         results = []
 
         if self.verbose:
             print(f"Processing {len(compute_jobs)} compute jobs.")
 
         cpu_count = int(multiprocessing.cpu_count() * 0.75)
-        timeout_duration = 10  # Timeout in seconds
+
+        if len(compute_jobs) == 1:
+            executor = ThreadPoolExecutor(max_workers=cpu_count)
+        else:
+            if len(compute_jobs) < cpu_count:
+                cpu_count = len(compute_jobs)
+            executor = ProcessPoolExecutor(max_workers=cpu_count)
+
+        show_info(f"Importing {len(compute_jobs)} images")
 
         with Manager() as manager:
             progress_dict = manager.dict()
 
-            with concurrent.futures.ProcessPoolExecutor(max_workers=cpu_count) as executor:
+            with executor:
                 # Submit all jobs and store the future objects
-                futures = [executor.submit(import_image_data, job, progress_dict, i) for i, job in enumerate(compute_jobs)]
+                futures = [executor.submit(import_image_data, job,
+                    progress_dict, i) for i, job in enumerate(compute_jobs)]
 
                 while any(not future.done() for future in futures):
                     # Calculate and emit progress

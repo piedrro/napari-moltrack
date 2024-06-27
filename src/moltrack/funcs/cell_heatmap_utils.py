@@ -191,8 +191,6 @@ class _cell_heatmap_utils:
                 progress_bar=self.gui.heatmap_progressbar, ))
             self.threadpool.start(worker)
 
-            self.update_ui()
-
         except:
             print(traceback.format_exc())
             self.update_ui()
@@ -222,13 +220,13 @@ class _cell_heatmap_utils:
             if self.celllist is None:
                 return
 
-            celllist = self.celllist.filter_by_length(min_length, max_length)
+            celllist = self.celllist
+            celllist = celllist.filter_by_length(min_length, max_length)
 
             if len(celllist.data) == 0:
                 return
 
             celllocs = celllist.get_locs(symmetry=symmetry)
-
             celllocs = pd.DataFrame(celllocs)
 
             polygon = celllist.data[0].cell_polygon

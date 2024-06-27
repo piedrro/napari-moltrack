@@ -124,6 +124,10 @@ class Cell(object):
         if locs is not None:
             self.locs = locs
 
+        if len(self.locs) == 0:
+            self.locs = None
+            return None
+
         filtered_locs = []
 
         coords = np.stack([self.locs["x"], self.locs["y"]], axis=1)
@@ -159,6 +163,7 @@ class Cell(object):
             self.locs = filtered_locs
         else:
             self.locs = None
+
 
     def transform_locs(self, target_cell=None, locs=None, remove_outside_locs=True):
 
@@ -320,9 +325,18 @@ class CellList(object):
             for cell in self.data:
                 cell.locs = locs
 
-    def remove_locs_outside_polygons(self, locs):
+    def remove_locs_outside_polygons(self, locs=None):
 
         polygon_list = [cell.cell_polygon for cell in self.data]
+        locs = []
+
+        if locs is None:
+            locs = [pd.DataFrame(cell.locs) for cell in self.data]
+            locs = pd.concat(locs)
+            locs = locs.to_records(index=False)
+
+        if len(locs) == 0:
+            return None
 
         coords = np.stack([locs["x"], locs["y"]], axis=1)
         points = [Point(coord) for coord in coords]
@@ -407,18 +421,29 @@ class CellList(object):
                         progress_callback.emit(progress)
 
 
-    def get_locs(self, symmetry=True):
+    def get_locs(self, symmetry=True, remove_outside=False):
 
         locs = []
 
         for cell in self.data:
-            cell_locs = cell.locs
-            if cell_locs is None:
-                continue
-            if len(cell_locs) == 0:
+            try:
+
+                if remove_outside:
+                    cell.remove_locs_outside_polygon()
+
+                cell_locs = cell.locs
+
+                if cell_locs is None:
+                    continue
+                if len(cell_locs) == 0:
+                    continue
+
+                locs.append(cell_locs)
+
+            except:
                 continue
 
-            locs.append(cell_locs)
+
 
         if len(locs) > 0:
 
