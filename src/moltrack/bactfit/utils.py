@@ -197,19 +197,19 @@ def manual_fit(cell_coords, midline_coords, width = None):
         cell_width = width
 
     cell_midline = LineString(medial_axis_fit)
-    cell_fit = cell_midline.buffer(cell_width)
+    cell_polygon = cell_midline.buffer(cell_width)
 
     if vertical:
-        cell_fit = rotate_polygon(cell_fit, angle=-90)
+        cell_polygon = rotate_polygon(cell_polygon, angle=-90)
         cell_midline = rotate_linestring(cell_midline, angle=-90)
 
-    cell_fit_coords = np.array(cell_fit.exterior.coords)
-    cell_fit_coords = cell_fit_coords[:-1]
+    polygon_coords = np.array(cell_polygon.exterior.coords)
+    polygon_coords = polygon_coords[:-1]
 
     cell_midline = resize_line(cell_midline, n_medial_points)
     midline_coords = np.array(cell_midline.coords)
 
-    return cell_fit_coords, midline_coords, poly_params, cell_width
+    return polygon_coords, midline_coords, poly_params, cell_width
 
 def resize_polygon(self, polygon, n_points):
 

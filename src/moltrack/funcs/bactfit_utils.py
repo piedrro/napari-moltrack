@@ -19,10 +19,10 @@ class _bactfit_utils:
         if cell_list is None:
             return
 
-        data = cell_list.get_cell_fits()
+        data = cell_list.get_cell_polygons()
 
         cell_names = data["names"]
-        cell_fits = data["fits"]
+        cell_polygons = data["polygons"]
         cell_widths = data["widths"]
         cell_params = data["poly_params"]
         cell_poles = data["cell_poles"]
@@ -37,7 +37,7 @@ class _bactfit_utils:
         shape_types = []
         properties = {"name": [], "cell": []}
 
-        for name, fit, width, midline, params, poles in zip(cell_names, cell_fits,
+        for name, polygon, width, midline, params, poles in zip(cell_names, cell_polygons,
                 cell_widths, cell_midlines, cell_params, cell_poles):
 
             try:
@@ -45,7 +45,7 @@ class _bactfit_utils:
                 fit_params = {"name": name, "width": width,
                               "poly_params": params, "cell_poles": poles}
 
-                shapes.append(fit)
+                shapes.append(polygon)
                 shape_types.append("polygon")
                 properties["name"].append(name)
                 properties["cell"].append(fit_params)

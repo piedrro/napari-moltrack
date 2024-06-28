@@ -18,9 +18,10 @@ import pyqtgraph as pg
 import warnings
 
 from moltrack.bactfit.fit import BactFit
-from moltrack.bactfit.postprocess import cell_coordinate_transformation, reflect_loc_horizontally, reflect_loc_vertically
+from moltrack.bactfit.postprocess import (cell_coordinate_transformation,
+    reflect_loc_horizontally, reflect_loc_vertically)
 from moltrack.bactfit.utils import resize_line, get_vertical
-
+import h5py
 
 class ModelCell(object):
 
@@ -72,7 +73,6 @@ class Cell(object):
         self.locs = []
 
         #fit data
-        self.cell_fit = None
         self.cell_midline = None
         self.cell_centerline = None
         self.cell_poles = None
@@ -80,6 +80,8 @@ class Cell(object):
         self.polynomial_params = None
         self.fit_error = None
         self.pixel_size = None
+
+
 
         if cell_data is not None:
 
@@ -196,9 +198,7 @@ class Cell(object):
 
     def plot(self):
 
-        if self.cell_fit is not None:
-            ploygon = self.cell_fit
-        elif self.cell_polygon is not None:
+        if self.cell_polygon is not None:
             polygon = self.cell_polygon
         else:
             polygon = None
@@ -293,9 +293,9 @@ class CellList(object):
 
         return self
 
-    def get_cell_fits(self, n_points = 100):
+    def get_cell_polygons(self, n_points = 100):
 
-        fits = []
+        polygons = []
         poly_params = []
         cell_poles = []
         midlines = []
@@ -303,28 +303,28 @@ class CellList(object):
         names = []
 
         for cell in self.data:
-            if hasattr(cell, "cell_fit"):
+            if hasattr(cell, "cell_polygon"):
 
                 try:
 
-                    cell_fit = cell.cell_fit
+                    cell_polygon = cell.cell_polygon
                     cell_width = cell.cell_width
                     cell_midline = cell.cell_midline
                     params = cell.polynomial_params
                     poles = cell.cell_poles
 
-                    if cell_fit is not None:
+                    if cell_polygon is not None:
 
                         name = cell.name
-                        cell_fit = cell_fit.simplify(0.2)
-                        seg = np.array(cell_fit.exterior.coords)
+                        cell_polygon = cell_polygon.simplify(0.2)
+                        seg = np.array(cell_polygon.exterior.coords)
 
                         midline = resize_line(cell_midline, 6)
                         midline = np.array(midline.coords)
 
                         seg = seg[1:]
 
-                        fits.append(seg)
+                        polygons.append(seg)
                         names.append(name)
                         midlines.append(midline)
                         cell_widths.append(cell_width)
@@ -334,7 +334,7 @@ class CellList(object):
                 except:
                     pass
 
-        data = {"fits": fits,
+        data = {"polygons": polygons,
                 "midlines": midlines,
                 "widths": cell_widths,
                 "names": names,
@@ -547,6 +547,27 @@ class CellList(object):
             #
             # plt.imshow(image)
             # plt.show()
+
+    def save(self, file_path=""):
+
+        file_path = os.path.abspath(file_path)
+        file_path = os.path.normpath(file_path)
+        file, ext = os.path.splitext(file_path)
+        file_path = file + ".h5"
+
+        with h5py.File(file_path, 'w') as f:
+            n_cells = len(self.data)
+            for cell_index, cell in enumerate(self.data):
+                file_index = str(cell_index).zfill(int(np.ceil(np.log10(n_cells))))
+                save_name = f"cell_{file_index}"
+                cell_group = f.create_group(save_name)
+                write_cell(cell_group, cell)
+
+        print(f"Saved {n_cells} cells to {file_path}")
+
+
+
+
 
 
 

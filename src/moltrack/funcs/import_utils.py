@@ -565,6 +565,12 @@ class _import_utils:
 
                             self.update_pixmap_options()
 
+                            if len(locs) > 0:
+                                self.gui.locs_export_data.clear()
+                                self.gui.locs_export_data.addItems(["Localisations"])
+                                self.gui.heatmap_data.clear()
+                                self.gui.heatmap_data.addItems(["Localisations"])
+
                         else:
                             show_info("Missing required columns for localisation data import")
 
@@ -591,6 +597,12 @@ class _import_utils:
                             self.update_track_criterion_ranges()
                             self.update_traces_export_options()
                             self.update_pixmap_options()
+
+                            if len(locs) > 0:
+                                self.gui.locs_export_data.clear()
+                                self.gui.locs_export_data.addItems(["Localisations", "Tracks"])
+                                self.gui.heatmap_data.clear()
+                                self.gui.heatmap_data.addItems(["Localisations", "Tracks"])
 
                         else:
                             show_info("Missing required columns for tracking data import")

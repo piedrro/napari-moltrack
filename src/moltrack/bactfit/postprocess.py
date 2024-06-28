@@ -383,7 +383,7 @@ def angular_coordinate_transformation(cell, target_cell,
         if len(locs) == 0:
             return cell
 
-        source_polygon = cell.cell_fit
+        source_polygon = cell.cell_polygon
         source_midline = cell.cell_midline
 
         source_width = cell.cell_width

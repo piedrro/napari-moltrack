@@ -93,14 +93,16 @@ class QWidget(QWidget, gui, *subclasses):
         manager = Manager()
         self.stop_event = manager.Event()
 
-        # self.import_dev_data()
+        self.import_dev_data()
 
     def import_dev_data(self):
 
         moltrack_root = os.path.dirname(os.path.abspath(__file__))
         package_dir = os.path.dirname(os.path.dirname(moltrack_root))
-
         dev_data_path = os.path.join(package_dir, "dev_data")
+
+        if os.path.exists(dev_data_path) is False:
+            return
 
         image_path = os.path.join(dev_data_path, "image.fits")
         localisation_path = os.path.join(dev_data_path, "moltrack_localisations.csv")
@@ -281,7 +283,8 @@ class QWidget(QWidget, gui, *subclasses):
         # self.update_render_length_range()
         # self.update_render_msd_range()
         self.update_ui()
-        self.draw_localisations()
+        # self.draw_localisations()
+        self.export_celllist()
 
         # self.update_traces_export_options()
 
@@ -301,7 +304,26 @@ class QWidget(QWidget, gui, *subclasses):
         # self.create_shared_image_chunks()
         # self.restore_shared_image_chunks()
         # self.update_traces_export_options()
-        self.gui.track_filter_channel.currentIndexChanged.connect(self.update_track_filter_criterion)
+        # self.gui.track_filter_channel.currentIndexChanged.connect(self.update_track_filter_criterion)
+
+
+
+    def export_celllist(self):
+
+        try:
+
+            from moltrack.bactfit.fileIO import load, save
+
+            celllist = self.populate_celllist()
+
+            cell = celllist.data[0]
+
+            save("celllist.h5", cell)
+            load("celllist.h5")
+
+        except:
+            print(traceback.format_exc())
+            pass
 
     def initialise_keybindings(self):
 
