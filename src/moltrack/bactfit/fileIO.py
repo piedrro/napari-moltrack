@@ -63,7 +63,7 @@ def write_cell(cell_group, cell):
                       "cell_midline", "cell_polygon",
                       "cell_poles", "polynomial_params",
                       "fit_error", "pixel_size", "locs",
-                      "cell_index", "vertical"]
+                      "cell_index", "vertical",'crop_bounds']
 
     for attr in attribute_list:
         if hasattr(cell, attr):
@@ -82,6 +82,13 @@ def write_cell(cell_group, cell):
                         attr_grp.create_dataset(attr, data=attr_data)
                 except Exception as e:
                     print(f'Could not save attribute {attr}: {e}')
+
+    data_grp = cell_group.create_group('data')
+    for channel, image in cell.data.items():
+        if type(image) == np.ndarray:
+            grp = data_grp.create_group(channel)
+            grp.create_dataset(channel, data=image)
+            grp.attrs.create('dclass', np.string_(image.dtype))
 
 def load(file_path):
 
@@ -106,6 +113,8 @@ def load(file_path):
 def load_cell(cell_group):
 
     attr_grp = cell_group['attributes']
+
+
     attr_dict = {}
 
     for attr in list(attr_grp.keys()):
@@ -119,8 +128,27 @@ def load_cell(cell_group):
             attr_data = attr_data.decode('utf-8')
 
         attr_dict[attr] = attr_data
-
+        
     cell = Cell(attr_dict)
+    
+    data_grp = cell_group['data']
+    
+    data_dict = {}
+    
+    for channel in list(data_grp.keys()):
+        try:
+            grp = data_grp[channel]
+            data_arr = grp[channel]
+            dclass = grp.attrs.get('dclass').decode('UTF-8')
+            image = np.array(data_arr, dtype=dclass)
+            
+            if channel not in data_dict.keys():
+                data_dict[channel] = image
+            
+        except:
+            print(traceback.format_exc())
+            
+    cell.data = data_dict
 
     return cell
 

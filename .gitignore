@@ -82,10 +82,12 @@ venv/
 
 # written by setuptools_scm
 **/_version.py
-/src/moltrack/bactfit/bactfit_dev.py
-/src/moltrack/bactfit/mask.tif
+/src/moltrack/dev/bactfit_dev.py
+/src/moltrack/dev/mask.tif
 /src/moltrack/dev/
-/src/moltrack/bactfit/bactfit_dev2.py
-/src/moltrack/bactfit/segmentations.pkl
-/src/moltrack/bactfit/transform_dev.py
+/src/moltrack/dev/bactfit_dev2.py
+/src/moltrack/dev/segmentations.pkl
+/src/moltrack/dev/transform_dev.py
 /dev_data/
+/src/moltrack/dev/
+/src/moltrack/dev/

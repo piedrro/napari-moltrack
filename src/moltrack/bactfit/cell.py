@@ -16,12 +16,14 @@ import matplotlib.pyplot as plt
 from picasso.render import render
 import pyqtgraph as pg
 import warnings
+from shapely.affinity import translate
 
 from moltrack.bactfit.fit import BactFit
 from moltrack.bactfit.postprocess import (cell_coordinate_transformation,
     reflect_loc_horizontally, reflect_loc_vertically)
 from moltrack.bactfit.utils import resize_line, get_vertical
 import h5py
+import cv2
 
 class ModelCell(object):
 
@@ -68,6 +70,7 @@ class Cell(object):
         self.height = None
         self.cell_width = None
         self.vertical = None
+        self.name = None
 
         self.data = {}
         self.locs = []
@@ -81,22 +84,35 @@ class Cell(object):
         self.fit_error = None
         self.pixel_size = None
 
-
-
         if cell_data is not None:
 
-            for key in cell_data.keys():
-                if key == "width":
-                    setattr(self, "cell_width", cell_data[key])
-                elif key == "length":
-                    setattr(self, "cell_length", cell_data[key])
-                else:
-                    setattr(self, key, cell_data[key])
+            if type(cell_data) == dict:
 
-        if "name" not in cell_data.keys():
-            #create random alphanumeric name
-            self.name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+                for key in cell_data.keys():
+                    if key == "width":
+                        setattr(self, "cell_width", cell_data[key])
+                    elif key == "length":
+                        setattr(self, "cell_length", cell_data[key])
+                    else:
+                        setattr(self, key, cell_data[key])
 
+            elif type(cell_data) == np.ndarray:
+
+                cell_mask = cell_data
+
+                if len(cell_mask.shape) != 2:
+                    print("Cell data must be a 2D numpy array")
+                unique_ids = np.unique(cell_mask)
+                if len(unique_ids) != 2:
+                    print("Cell data must be a binary mask")
+                self.import_mask(cell_mask)
+
+            else:
+                print("Cell initialisation must be a dictionary or a 2D numpy array")
+
+        if self.name == None:
+            self.generate_name()
+            
         if hasattr(self, "midline_coords") and self.cell_midline is None:
             self.cell_midline = LineString(self.midline_coords)
             self.cell_poles = [self.cell_midline.coords[0], self.cell_midline.coords[-1]]
@@ -116,6 +132,48 @@ class Cell(object):
         # Remove attributes that cannot be pickled
         # state.pop('non_picklable_attribute', None)
         return state
+
+    def generate_name(self):
+        self.name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+        
+    def import_mask(self, cell_mask):
+
+        try:
+            contours, _ = cv2.findContours(cell_mask.astype(np.uint8),
+                cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+            if len(contours) > 0:
+                contour = contours[0]
+                contour = contour.squeeze()
+
+                cell_polygon = Polygon(contour)
+
+                centroid = cell_polygon.centroid
+                cell_centre = [centroid.x, centroid.y]
+
+                minx, miny, maxx, maxy = cell_polygon.bounds
+
+                bbox = [minx, miny, maxx, maxy]
+
+                h = maxy - miny
+                w = maxx - minx
+
+                if h > w:
+                    vertical = True
+                else:
+                    vertical = False
+
+                self.cell_polygon = cell_polygon
+                self.cell_centre = cell_centre
+                self.bbox = bbox
+                self.height = h
+                self.width = w
+                self.vertical = vertical
+                self.frame_index = 0
+
+        except:
+            print(traceback.format_exc())
+            return None
 
     def __setstate__(self, state):
         # Restore the state
@@ -222,6 +280,105 @@ class Cell(object):
         if locs is not None:
             plt.scatter(locs["x"], locs["y"], color="blue")
         plt.show()
+
+    def add_image(self, image, image_name):
+
+        try:
+
+            if type(image) != np.ndarray:
+                print("Image is not a numpy array")
+                return None
+            if len(image.shape) != 2:
+                print("Image is not 2D")
+                return None
+
+            if self.cell_polygon is not None:
+
+                cropped_image = self.crop_image(image)
+
+                if cropped_image is None:
+                    return None
+
+                self.data[image_name] = cropped_image
+        except:
+            print(traceback.format_exc())
+
+    def crop_image(self, image, buffer=10):
+
+        cropped_image = None
+
+        try:
+            image_shape = image.shape
+
+            minx, miny, maxx, maxy = self.cell_polygon.bounds
+
+            minx = int(minx) - buffer
+            miny = int(miny) - buffer
+            maxx = int(maxx) + buffer
+            maxy = int(maxy) + buffer
+
+            if minx < 0:
+                minx = 0
+            if miny < 0:
+                miny = 0
+            if maxx > image_shape[1]:
+                maxx = image_shape[1]
+            if maxy > image_shape[0]:
+                maxy = image_shape[0]
+
+            cropped_image = image[miny:maxy, minx:maxx]
+
+            self.crop_bounds = [minx, miny, maxx, maxy]
+
+        except:
+            print(traceback.format_exc())
+
+        return cropped_image
+
+    def get_image(self, image_name):
+
+        if image_name not in self.data.keys():
+            return None
+
+        image = self.data[image_name]
+
+        return image
+
+    def get_image_polygon(self):
+
+        if self.cell_polygon is None:
+            return None
+        if self.crop_bounds is None:
+            return None
+
+        minx, miny, maxx, maxy = self.crop_bounds
+
+        polygon = self.cell_polygon
+
+        polygon = translate(polygon, xoff=-minx, yoff=-miny)
+
+        return polygon
+
+    def get_image_mask(self):
+
+        if self.cell_polygon is None:
+            return None
+        if self.crop_bounds is None:
+            return None
+
+        minx, miny, maxx, maxy = self.crop_bounds
+
+        polygon = self.cell_polygon
+
+        polygon = translate(polygon, xoff=-minx, yoff=-miny)
+
+        polygon_coords = np.array(polygon.exterior.coords)
+        mask = np.zeros((maxy-miny, maxx-minx))
+        mask = cv2.fillPoly(mask, [polygon_coords.astype(int)], 255)
+        mask = mask.astype(bool)
+
+        return mask
+
 
 
     
@@ -548,23 +705,10 @@ class CellList(object):
             # plt.imshow(image)
             # plt.show()
 
-    def save(self, file_path=""):
+    def add_image(self, image, image_name):
 
-        file_path = os.path.abspath(file_path)
-        file_path = os.path.normpath(file_path)
-        file, ext = os.path.splitext(file_path)
-        file_path = file + ".h5"
-
-        with h5py.File(file_path, 'w') as f:
-            n_cells = len(self.data)
-            for cell_index, cell in enumerate(self.data):
-                file_index = str(cell_index).zfill(int(np.ceil(np.log10(n_cells))))
-                save_name = f"cell_{file_index}"
-                cell_group = f.create_group(save_name)
-                write_cell(cell_group, cell)
-
-        print(f"Saved {n_cells} cells to {file_path}")
-
+        for cell in self.data:
+            cell.add_image(image, image_name)
 
 
 
