@@ -188,6 +188,7 @@ class _cell_heatmap_utils:
             if len(locs) == 0:
                 return
             if hasattr(self, "cellLayer") == False:
+                show_info("Cells must be fitted with BactFit before computing cell heatmap")
                 return
 
             self.update_ui(init=True)
@@ -525,19 +526,18 @@ class _cell_heatmap_utils:
             return None
 
 
-
-
-
     def export_heatmap_locs(self):
 
         try:
 
             if hasattr(self, "heatmap_locs") == False:
+                show_info("No heatmap localisations to export")
                 return
 
             locs = self.heatmap_locs
 
             if len(locs) == 0:
+                show_info("No heatmap localisations to export")
                 return
 
             dataset_list = list(self.dataset_dict.keys())

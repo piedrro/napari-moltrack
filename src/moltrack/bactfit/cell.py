@@ -544,6 +544,20 @@ class CellList(object):
         cell = cell_coordinate_transformation(cell, target_cell, method)
         return cell
 
+
+    def is_optimised(self, max_error = 5):
+
+        optimised = True
+
+        for cell in self.data:
+            if cell.fit_error is None:
+                optimised = False
+            if cell.fit_error > max_error:
+                optimised = False
+
+        return optimised
+
+
     def transform_locs(self, target_cell=None, method = "angular",
             progress_callback=None):
 
