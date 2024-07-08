@@ -258,6 +258,7 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.compute_heatmap.clicked.connect(self.compute_cell_heatmap)
         self.gui.export_heatmap.clicked.connect(self.export_cell_heatmap)
+        self.gui.export_heatmap_locs.clicked.connect(self.export_heatmap_locs)
         self.gui.heatmap_mode.currentIndexChanged.connect(self.update_heatmap_options)
         self.gui.generate_heatmap.clicked.connect(self.plot_heatmap)
         self.gui.heatmap_length_reset.clicked.connect(self.update_render_length_range)

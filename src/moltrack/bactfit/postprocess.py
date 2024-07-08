@@ -2,10 +2,11 @@ import numpy as np
 import traceback
 from shapely.geometry import Point, LineString, Polygon
 from shapely.strtree import STRtree
-from moltrack.bactfit.utils import resize_line, rotate_linestring, fit_poly, get_vertical
+from moltrack.bactfit.utils import resize_line, rotate_linestring, fit_poly, get_vertical, get_polygon_midline
 import matplotlib.pyplot as plt
 import math
 from shapely.affinity import rotate, translate
+import cv2
 
 def find_centerline(midline, width, smooth=True):
 
@@ -101,6 +102,48 @@ def find_centerline(midline, width, smooth=True):
 def split_linestring(linestring, num_segments):
     points = [linestring.interpolate(float(i) / num_segments, normalized=True) for i in range(num_segments + 1)]
     return [LineString([points[i], points[i + 1]]) for i in range(num_segments)]
+
+
+def calculate_angle2(segment: LineString, point: Point, centroid: Point) -> float:
+    """
+    Calculate the angle between the point and the center of the segment, using the center of the source midline.
+    """
+    
+    line_start = segment.coords[0]
+    line_end = segment.coords[1]
+    
+    dx = line_end[0] - line_start[0]
+    dy = line_end[1] - line_start[1]
+    segment_angle = math.atan2(dy, dx)
+    point_angle = math.atan2(point.y - line_start[1], point.x - line_start[0])
+    angle = point_angle - segment_angle
+    
+    return math.degrees(angle)
+
+def calculate_new_point2(segment: LineString, centroid: Point,
+                         distance: float, angle: float):
+    """
+    Calculate new point coordinates in the target segment given the distance and angle.
+    """
+
+    line_start = segment.coords[0]
+    line_end = segment.coords[1]
+    
+    dx = line_end[0] - line_start[0]
+    dy = line_end[1] - line_start[1]
+    segment_angle = math.atan2(dy, dx)
+    
+    angle_rad = math.radians(angle + math.degrees(segment_angle))
+    dx = distance * np.cos(angle_rad)
+    dy = distance * np.sin(angle_rad)
+    
+    new_x = line_start[0] + dx
+    new_y = line_start[1] + dy
+    
+    return new_x, new_y
+
+
+
 
 def calculate_angle(segment, point):
     # Calculate the angle between the segment and the point
@@ -364,8 +407,170 @@ def perpendicular_coordinate_transformation(cell, target_cell,
 
 
 
+def get_pixel_values(image, points, upscale=1):
+    
+    image = cv2.resize(image, None, fx=upscale, fy=upscale, 
+                        interpolation=cv2.INTER_LINEAR)
+    
+    points = [(point.x, point.y) for point in points]
+    
+    pixel_values = []
+    
+    for point in points:
+        x, y = point
+        # Get the pixel value at the given point
+        pixel_values.append(image[int(y), int(x)])
+        
+    return pixel_values
 
 
+def scale_polygon(polygon, scale):
+    scaled_coords = [(x * scale, y * scale) for x, y in polygon.exterior.coords]
+    return Polygon(scaled_coords)
+
+def scale_midline(midline, scale):
+    scaled_coords = [(x * scale, y * scale) for x, y in midline.coords]
+    return LineString(scaled_coords)
+
+def angular_pixel_transformation(cell, target_cell, upscale = 2, n_segments=1000):
+    
+    try:
+        
+        
+        if cell.data == {}:
+            return None
+        
+        if cell.cell_polygon == None:
+            return None
+        
+        if cell.cell_midline == None:
+            midline, width = get_polygon_midline(cell.cell_polygon)
+            cell.cell_midline = midline
+            cell.cell_width = width
+            
+        if cell.cell_midline == None:
+            return None
+            
+        source_polygon = cell.get_image_polygon()
+        source_midline = cell.get_image_midline()
+        source_polygon = scale_polygon(source_polygon, upscale)
+        source_midline = scale_midline(source_midline, upscale)
+        source_centroid = source_midline.centroid
+        
+        source_width = cell.cell_width
+        target_width = target_cell.cell_width
+        target_image = target_cell.get_image()
+
+
+        target_midline = target_cell.cell_midline
+        target_polygon = target_cell.cell_polygon
+        target_centroid = target_polygon.centroid
+        
+        source_segments = split_linestring(source_midline, n_segments)
+        target_segments = split_linestring(target_midline, n_segments)
+        
+        # Create STRtree for segments
+        tree = STRtree(source_segments)
+        
+        # Calculate the centroid of the midline
+        centroid = source_polygon.centroid
+        cx, cy = int(centroid.x), int(centroid.y)
+        
+        # Get the bounding box of the polygon
+        minx, miny, maxx, maxy = map(int, source_polygon.bounds)
+        
+        # Generate all integer points within the bounding box
+        points = [Point((x, y)) for x in range(minx, maxx + 1) for y in range(miny, maxy + 1)]
+        
+        # Filter points that are inside the polygon
+        points = [point for point in points if source_polygon.contains(point) or 
+                  source_polygon.touches(point)]
+        
+        # points_coords = np.array([point.coords for point in points])
+        # plt.scatter(*points_coords.T)
+        # plt.show()
+        
+        # image = cell.data["NR"]
+        # image = cv2.resize(image, None, fx=upscale, fy=upscale, 
+        #                     interpolation=cv2.INTER_LINEAR)
+        
+        pixel_dict = {channel: get_pixel_values(image, points, upscale) for channel, image in cell.data.items()}
+        
+        transformed_data = {channel:target_image.copy() for channel in cell.data.keys()}
+        
+        n_transformed = 0
+        
+        polygon_coords = np.array(target_polygon.exterior.coords)
+        midline_coords = np.array(target_midline.coords)
+        
+        for point_index, point in enumerate(points):
+
+            try:
+                
+                if point_index <= 10000:
+
+                    closest_segment_index = tree.nearest(point)
+                    nearest_segment = source_segments[closest_segment_index]
+    
+                    source_distance = point.distance(nearest_segment)
+                    angle = calculate_angle2(nearest_segment, point, source_centroid)
+                    
+                    if source_distance > source_width:
+                        source_distance = source_width
+                        
+                    target_distance = target_width * (source_distance / source_width)
+                    
+                    # Use the corresponding target segment
+                    target_segment = target_segments[closest_segment_index]
+    
+                    # Calculate the new point in the target segment
+                    new_point_coords = calculate_new_point2(target_segment, target_centroid, target_distance, angle)
+                    new_point = Point(new_point_coords)
+                    
+                if target_polygon.contains(new_point) or target_polygon.touches(new_point):
+                    
+                    n_transformed +=1
+                    
+                    plt.scatter(new_point_coords[0], new_point_coords[1])
+                
+                    for channel, image in transformed_data.items():
+                        
+                        pixel_value = pixel_dict[channel][point_index]
+                        iX, iY = new_point_coords
+                        
+                        image[int(iY),int(iX)] = pixel_value
+                        transformed_data[channel] = image
+                        
+            except:
+                print(traceback.format_exc())
+                
+        plt.show()
+                
+
+
+        # if transformed_data != {}:
+        #     target_cell.data = transformed_data
+
+    except:
+        print(traceback.format_exc())
+        
+    return target_cell
+
+
+def check_point_inside_polygon(polygon, point):
+    
+    if isinstance(polygon, np.ndarray):
+        polygon = Polygon(polygon)
+
+    if type(point) in [np.ndarray, list, tuple]:
+        point = Point(point)
+        
+    if polygon.contains(point) or polygon.touches(point):
+        return True
+    else:
+        return False
+
+        
 def angular_coordinate_transformation(cell, target_cell,
         n_segments=1000, progress_list = []):
     
@@ -385,12 +590,14 @@ def angular_coordinate_transformation(cell, target_cell,
 
         source_polygon = cell.cell_polygon
         source_midline = cell.cell_midline
+        source_centroid = source_midline.centroid
 
         source_width = cell.cell_width
-        target_width = target_cell.cell_length
+        target_width = target_cell.cell_width
 
         target_midline = target_cell.cell_midline
         target_polygon = target_cell.cell_polygon
+        target_centroid = target_polygon.centroid
 
         source_segments = split_linestring(source_midline, n_segments)
         target_segments = split_linestring(target_midline, n_segments)
@@ -410,20 +617,21 @@ def angular_coordinate_transformation(cell, target_cell,
                 nearest_segment = source_segments[closest_segment_index]
 
                 source_distance = point.distance(nearest_segment)
-                angle = calculate_angle(nearest_segment, point)
+                angle2 = calculate_angle2(nearest_segment, point, source_centroid)
 
                 target_distance = target_width * (source_distance / source_width)
-
+                
                 # Use the corresponding target segment
                 target_segment = target_segments[closest_segment_index]
 
                 # Calculate the new point in the target segment
-                new_point_coords = calculate_new_point(target_segment, target_distance, angle)
+                new_point_coords = calculate_new_point2(target_segment, target_centroid, 
+                                                        target_distance, angle2)
 
-                if target_polygon.contains(Point(new_point_coords)):
+                if len(new_point_coords) == 0:
+                    continue
 
-                    if len(new_point_coords) == 0:
-                        continue
+                if check_point_inside_polygon(target_polygon, new_point_coords):
 
                     tloc = loc.copy()
                     tloc["x"] = new_point_coords[0]

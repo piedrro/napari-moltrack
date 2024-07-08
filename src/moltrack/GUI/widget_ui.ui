@@ -3416,11 +3416,22 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="export_heatmap">
-             <property name="text">
-              <string>Export Heatmap</string>
-             </property>
-            </widget>
+            <layout class="QGridLayout" name="gridLayout_10">
+             <item row="0" column="0">
+              <widget class="QPushButton" name="export_heatmap">
+               <property name="text">
+                <string>Export Heatmap Image</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QPushButton" name="export_heatmap_locs">
+               <property name="text">
+                <string>Export Heatmap Localisations</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </widget>

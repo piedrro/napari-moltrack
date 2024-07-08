@@ -20,6 +20,8 @@ from matplotlib.colors import ListedColormap
 from napari.utils.notifications import show_info
 from moltrack.funcs.compute_utils import Worker
 from napari.utils.notifications import show_info
+import h5py
+import yaml
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -202,6 +204,7 @@ class _cell_heatmap_utils:
             worker.signals.finished.connect(self.cell_heatmap_compute_finished)
             worker.signals.progress.connect(partial(self.moltrack_progress,
                 progress_bar=self.gui.heatmap_progressbar, ))
+            worker.signals.error.connect(self.update_ui)
             self.threadpool.start(worker)
 
         except:
@@ -265,6 +268,8 @@ class _cell_heatmap_utils:
             n_locs = len(celllocs)
             if symmetry:
                 n_locs = int(n_locs/4)
+
+            self.heatmap_locs = celllocs
 
             show_info(f"Generating Cell {heatmap_mode.lower()} with {n_locs} localisations from {n_cells} cells")
 
@@ -469,3 +474,155 @@ class _cell_heatmap_utils:
         except:
             print(traceback.format_exc())
 
+
+
+    def get_heatmap_locs(self):
+
+        try:
+
+            heatmap_datset = self.gui.heatmap_dataset.currentText()
+            heatmap_channel = self.gui.heatmap_channel.currentText()
+            min_length = self.gui.heatmap_min_length.value()
+            max_length = self.gui.heatmap_max_length.value()
+            min_msd = self.gui.heatmap_min_msd.value()
+            max_msd = self.gui.heatmap_max_msd.value()
+
+            if hasattr(self, "celllist") == False:
+                return
+
+            if self.celllist is None:
+                return
+
+            celllist = self.celllist
+            celllist = celllist.filter_by_length(min_length, max_length)
+
+            if len(celllist.data) == 0:
+                return
+
+            celllocs = celllist.get_locs()
+            celllocs = pd.DataFrame(celllocs)
+
+            if "dataset" in celllocs.columns:
+                if heatmap_datset != "All Datasets":
+                    celllocs = celllocs[celllocs["dataset"] == heatmap_datset]
+            if "channel" in celllocs.columns:
+                if heatmap_channel != "All Channels":
+                    celllocs = celllocs[celllocs["channel"] == heatmap_channel]
+
+            celllocs = celllocs.to_records(index=False)
+
+            if len(celllocs) == 0:
+                return
+
+            if "msd" in celllocs.dtype.names:
+                celllocs = celllocs[celllocs["msd"] > min_msd]
+                celllocs = celllocs[celllocs["msd"] < max_msd]
+
+            return celllocs
+
+        except:
+            print(traceback.format_exc())
+            return None
+
+
+
+
+
+    def export_heatmap_locs(self):
+
+        try:
+
+            if hasattr(self, "heatmap_locs") == False:
+                return
+
+            locs = self.heatmap_locs
+
+            if len(locs) == 0:
+                return
+
+            dataset_list = list(self.dataset_dict.keys())
+            path = self.dataset_dict[dataset_list[0]]["path"]
+
+            if type(path) == list:
+                path = path[0]
+
+            directory = os.path.dirname(path)
+            file_name = os.path.basename(path)
+            base, ext = os.path.splitext(file_name)
+            path = os.path.join(directory, base + "_heatmap_locs.csv")
+            options = QFileDialog.Options()
+            file_filter = "CSV (*.csv);;Picasso HDF5 (*.hdf5);; POS.OUT (*.pos.out)"
+            path, filter = QFileDialog.getSaveFileName(self, "Save Image", path, file_filter, options=options)
+
+            if path == "":
+                return None
+
+            if filter == "CSV (*.csv)":
+
+                locs = pd.DataFrame(locs)
+                locs.to_csv(path, index=False)
+
+                show_info(f"Exported heatmap CSV localisations")
+
+            elif filter == "Picasso HDF5 (*.hdf5)":
+
+                locs = pd.DataFrame(locs)
+
+                dataset_name = locs["dataset"].unique()[0]
+                channel_name = locs["channel"].unique()[0]
+
+                picasso_columns = ["frame", "y", "x", "photons",
+                                   "sx", "sy", "bg", "lpx", "lpy",
+                                   "ellipticity", "net_gradient", "group", "iterations", ]
+
+                for column in locs.columns:
+                    if column not in picasso_columns:
+                        locs.drop(column, axis=1, inplace=True)
+
+                locs = locs.to_records(index=False)
+
+                import_path = self.dataset_dict[dataset_name]["path"]
+                image_dict = self.dataset_dict[dataset_name]["images"]
+                image_shape = image_dict[channel_name].shape
+
+                box_size = int(self.gui.picasso_box_size.value())
+                picasso_info = self.get_picasso_info(import_path, image_shape, box_size)
+
+                info_path = path.replace(".hdf5", ".yaml")
+
+                with h5py.File(path, "w") as hdf_file:
+                    hdf_file.create_dataset("locs", data=locs)
+
+                # Save to temporary YAML file
+                with open(info_path, "w") as file:
+                    yaml.dump_all(picasso_info, file, default_flow_style=False)
+
+                show_info(f"Exported heatmap HDF5 localisations")
+
+            elif filter == "POS.OUT (*.pos.out)":
+
+                localisation_data = pd.DataFrame(locs)
+
+                pos_locs = localisation_data[["frame", "x", "y", "photons", "bg", "sx", "sy", ]].copy()
+
+                pos_locs.dropna(axis=0, inplace=True)
+
+                pos_locs.columns = ["FRAME", "XCENTER", "YCENTER", "BRIGHTNESS", "BG", "S_X", "S_Y", ]
+
+                pos_locs.loc[:, "I0"] = 0
+                pos_locs.loc[:, "THETA"] = 0
+                pos_locs.loc[:, "ECC"] = pos_locs["S_X"] / pos_locs["S_Y"]
+                pos_locs.loc[:, "FRAME"] = pos_locs["FRAME"] + 1
+
+                pos_locs = pos_locs[["FRAME", "XCENTER", "YCENTER", "BRIGHTNESS", "BG", "I0", "S_X", "S_Y", "THETA", "ECC", ]]
+
+                pos_locs.to_csv(path, sep="\t", index=False)
+
+                show_info(f"Exported heatmap POS.OUT localisations")
+
+            else:
+                print("File format not supported")
+
+        except:
+            print(traceback.format_exc())
+            pass

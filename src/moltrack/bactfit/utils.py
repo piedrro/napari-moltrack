@@ -226,3 +226,67 @@ def resize_polygon(self, polygon, n_points):
     polygon = Polygon(outline)
 
     return polygon
+
+
+
+
+def get_polygon_midline(outline, refine=True):
+    
+    try:
+
+        if type(outline) == LineString:
+            polygon_outline = outline
+            polygon = Polygon(outline.coords)
+        elif type(outline) == Polygon:
+            polygon = outline
+            polygon_outline = LineString(polygon.exterior.coords)
+        else:
+            return None, None
+    
+        if len(polygon_outline.coords) < 200:
+            polygon_outline = resize_line(polygon_outline, 200)
+            polygon = Polygon(polygon_outline.coords)
+    
+        # Extract the exterior coordinates of the polygon
+        exterior_coords = np.array(polygon.exterior.coords)
+    
+        exterior_coords = moving_average(exterior_coords, padding=10, iterations=2)
+    
+        # Compute the Voronoi diagram of the exterior coordinates
+        vor = Voronoi(exterior_coords)
+    
+        # Function to check if a point is inside the polygon
+        def point_in_polygon(point, polygon):
+            return polygon.contains(Point(point))
+    
+        # Extract the medial axis points from the Voronoi vertices
+    
+        coords = []
+    
+        for i, region in enumerate(vor.regions):
+            if -1 not in region:
+                try:
+                    coords.append(vor.vertices[i].tolist())
+                except:
+                    pass
+    
+        coords = [point for point in coords if point_in_polygon(point, polygon)]
+    
+        centroid = polygon.centroid
+        cell_radius = polygon_outline.distance(centroid)
+    
+        if refine:
+            coords = [p for p in coords if polygon_outline.distance(Point(p)) > cell_radius * 0.8]
+            coords = np.array(coords)
+            
+        midline_coords, poly_params = fit_poly(coords,
+            degree=[1, 2, 3], maxiter=100, minimise_curvature=False)
+        
+        midline = LineString(midline_coords)
+    
+    except:
+        midline = None
+        buffer = None
+
+    return midline, cell_radius
+

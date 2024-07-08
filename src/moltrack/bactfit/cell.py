@@ -59,6 +59,18 @@ class ModelCell(object):
         self.cell_centerline = LineString(centerline_coords)
         self.cell_centerline = resize_line(self.cell_centerline, 100)
 
+    def get_image(self, dtype = np.uint16):
+        
+        width = self.cell_length + ((self.cell_width+ self.margin) * 2)
+        height = self.cell_width*2 + (self.margin * 2)
+        
+        image = np.zeros((height,width), dtype=np.uint16)
+        
+        return image
+        
+
+        
+
 
 class Cell(object):
 
@@ -358,7 +370,22 @@ class Cell(object):
         polygon = translate(polygon, xoff=-minx, yoff=-miny)
 
         return polygon
+    
+    def get_image_midline(self):
+        
+        if self.cell_midline is None:
+            return None
+        if self.crop_bounds is None:
+            return None
 
+        minx, miny, maxx, maxy = self.crop_bounds
+
+        midline = self.cell_midline
+
+        midline = translate(midline, xoff=-minx, yoff=-miny)
+
+        return midline
+        
     def get_image_mask(self):
 
         if self.cell_polygon is None:
