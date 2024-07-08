@@ -119,11 +119,11 @@ class QWidget(QWidget, gui, *subclasses):
             path=shapes_path,
         )
 
-        # self.import_shapes(
-        #     import_data="Cells",
-        #     import_mode="JSON",
-        #     path=shapes_path,
-        # )
+        self.import_shapes(
+            import_data="Cells",
+            import_mode="JSON",
+            path=shapes_path,
+        )
 
         #wait for control to be enabled
         while self.gui.import_images.isEnabled() is False:
