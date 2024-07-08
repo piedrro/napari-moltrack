@@ -599,9 +599,6 @@ class _cell_heatmap_utils:
 
                 info_path = path.replace(".hdf5", ".yaml")
 
-                print(picasso_info)
-                print(info_path)
-
                 with h5py.File(path, "w") as hdf_file:
                     hdf_file.create_dataset("locs", data=locs)
 
