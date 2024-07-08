@@ -22,7 +22,7 @@ class _events_utils:
                                  "remove_seglocs_dataset", "adc_dataset",
                                  "heatmap_dataset","track_filter_dataset",
                                  "segtracks_dataset","traces_export_dataset",
-                                 "locs_import_dataset"]
+                                 "locs_import_dataset", "tform_compute_dataset",]
 
             for selector_name in dataset_selectors:
                 dataset_names = list(self.dataset_dict.keys())
@@ -53,7 +53,7 @@ class _events_utils:
                                  "remove_seglocs_channel", "adc_channel",
                                  "heatmap_channel","track_filter_channel",
                                  "segtracks_channel", "traces_export_channel",
-                                 "locs_import_channel",]
+                                 "locs_import_channel","tform_compute_channel",]
 
             for channel_selector in channel_selectors:
                 dataset_selector = channel_selector.replace("channel", "dataset")
@@ -71,7 +71,7 @@ class _events_utils:
 
     def update_channel_selector(self, channel_selector, dataset_selector):
         try:
-            single_channel_selectors = ["moltrack_channel_selector", "cellpose_channel", ]
+            single_channel_selectors = ["moltrack_channel_selector", "cellpose_channel", "tform_compute_channel"]
 
             dataset_name = dataset_selector.currentText()
             channel_names = []
@@ -315,13 +315,14 @@ class _events_utils:
                         "remove_segtracks", "generate_heatmap",
                         "export_traces","compute_track_stats",
                         "compute_pixmap","import_localisations",
-                        "export_heatmap_locs"]
+                        "export_heatmap_locs", "import_tform",
+                        "compute_tform","apply_tform",]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
                             "picasso_progressbar", "export_progressbar",
                             "bactfit_progressbar","track_stats_progressbar",
                             "heatmap_progressbar","tracking_progressbar",
-                            "compute_pixmap_progressbar"]
+                            "compute_pixmap_progressbar","tform_progressbar"]
 
             for progressbar in progressbars:
                 if hasattr(self.gui, progressbar):

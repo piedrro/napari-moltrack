@@ -37,6 +37,7 @@ from moltrack.funcs.oufti_utils import oufti
 from moltrack.funcs.diffusion_utils import _diffusion_utils
 from moltrack.funcs.cell_heatmap_utils import _cell_heatmap_utils
 from moltrack.funcs.traces_utils import _traces_utils
+from moltrack.funcs.transform_utils import _transform_utils
 
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
@@ -47,7 +48,8 @@ subclasses = [_import_utils, _compute_utils,
               _export_utils, _segmentation_events,
               _bactfit_utils, _cell_events,
               oufti, _diffusion_utils, _cell_heatmap_utils,
-              _track_filter_utils, _traces_utils]
+              _track_filter_utils, _traces_utils,
+              _transform_utils]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -93,7 +95,7 @@ class QWidget(QWidget, gui, *subclasses):
         manager = Manager()
         self.stop_event = manager.Event()
 
-        self.import_dev_data()
+        # self.import_dev_data()
 
     def import_dev_data(self):
 
@@ -172,6 +174,8 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.active_dataset = None
         self.active_channel = None
+
+        self.transform_matrix = None
 
         self.verbose = False
 
@@ -278,6 +282,11 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.import_shapes.clicked.connect(self.import_shapes)
         self.gui.shapes_import_data.currentIndexChanged.connect(self.update_shapes_import_options)
+
+        self.gui.import_tform.clicked.connect(self.import_transform_matrix)
+        self.gui.compute_tform.clicked.connect(self.compute_transform_matrix)
+        self.gui.apply_tform.clicked.connect(self.apply_transform_matrix)
+        self.gui.tform_compute_channel.currentTextChanged.connect(self.update_target_channel)
 
     def devfunc(self, viewer=None):
 
