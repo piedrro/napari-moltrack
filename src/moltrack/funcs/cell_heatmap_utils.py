@@ -530,6 +530,8 @@ class _cell_heatmap_utils:
 
         try:
 
+            self.update_ui(init=True)
+
             if hasattr(self, "heatmap_locs") == False:
                 show_info("No heatmap localisations to export")
                 return
@@ -625,4 +627,7 @@ class _cell_heatmap_utils:
 
         except:
             print(traceback.format_exc())
+            self.update_ui()
             pass
+
+        self.update_ui()
