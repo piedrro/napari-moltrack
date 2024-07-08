@@ -271,6 +271,7 @@ class _cell_heatmap_utils:
                 n_locs = int(n_locs/4)
 
             self.heatmap_locs = celllocs
+            self.heatmap_polygon = polygon_coords
 
             show_info(f"Generating Cell {heatmap_mode.lower()} with {n_locs} localisations from {n_cells} cells")
 
@@ -537,6 +538,7 @@ class _cell_heatmap_utils:
                 return
 
             locs = self.heatmap_locs
+            polygon_coords = self.heatmap_polygon
 
             if len(locs) == 0:
                 show_info("No heatmap localisations to export")
@@ -568,6 +570,13 @@ class _cell_heatmap_utils:
 
             elif filter == "Picasso HDF5 (*.hdf5)":
 
+                xmin, xmax = polygon_coords[:, 0].min(), polygon_coords[:, 0].max()
+                ymin, ymax = polygon_coords[:, 1].min(), polygon_coords[:, 1].max()
+
+                h,w = int(ymax-ymin)+3, int(xmax-xmin)+3
+
+                image_shape = (0,h,w)
+
                 locs = pd.DataFrame(locs)
 
                 dataset_name = locs["dataset"].unique()[0]
@@ -584,13 +593,14 @@ class _cell_heatmap_utils:
                 locs = locs.to_records(index=False)
 
                 import_path = self.dataset_dict[dataset_name]["path"]
-                image_dict = self.dataset_dict[dataset_name]["images"]
-                image_shape = image_dict[channel_name].shape
 
                 box_size = int(self.gui.picasso_box_size.value())
                 picasso_info = self.get_picasso_info(import_path, image_shape, box_size)
 
                 info_path = path.replace(".hdf5", ".yaml")
+
+                print(picasso_info)
+                print(info_path)
 
                 with h5py.File(path, "w") as hdf_file:
                     hdf_file.create_dataset("locs", data=locs)
