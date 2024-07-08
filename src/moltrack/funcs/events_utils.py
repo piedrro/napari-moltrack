@@ -314,7 +314,8 @@ class _events_utils:
                         "compute_heatmap","filter_tracks",
                         "remove_segtracks", "generate_heatmap",
                         "export_traces","compute_track_stats",
-                        "compute_pixmap","import_localisations"]
+                        "compute_pixmap","import_localisations",
+                        "export_heatmap_locs"]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
                             "picasso_progressbar", "export_progressbar",
