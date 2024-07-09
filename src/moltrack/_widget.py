@@ -283,10 +283,10 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.import_shapes.clicked.connect(self.import_shapes)
         self.gui.shapes_import_data.currentIndexChanged.connect(self.update_shapes_import_options)
 
-        self.gui.import_tform.clicked.connect(self.import_transform_matrix)
-        self.gui.compute_tform.clicked.connect(self.compute_transform_matrix)
-        self.gui.apply_tform.clicked.connect(self.apply_transform_matrix)
-        self.gui.tform_compute_channel.currentTextChanged.connect(self.update_target_channel)
+        self.gui.import_tform.clicked.connect(self.import_fret_transform_matrix)
+        self.gui.compute_tform.clicked.connect(self.compute_fret_transform_matrix)
+        self.gui.apply_tform.clicked.connect(self.apply_fret_transform_matrix)
+        self.gui.tform_compute_channel.currentTextChanged.connect(self.update_fret_transform_target_channel)
 
     def devfunc(self, viewer=None):
 

@@ -65,6 +65,8 @@ class _events_utils:
                     dataset_selector.currentTextChanged.connect(partial(self.update_channel_selector,
                         dataset_selector=dataset_selector, channel_selector=channel_selector, ))
 
+
+
         except:
             print(traceback.format_exc())
             pass

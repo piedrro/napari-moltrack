@@ -366,6 +366,7 @@ class _import_utils:
         self.populate_dataset_selectors()
         self.update_active_image()
         self.draw_segmentation_image()
+        self.update_fret_transform_target_channel()
         self.reset_slider()
         self.update_ui()
 

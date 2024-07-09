@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>519</width>
+    <width>569</width>
     <height>654</height>
    </rect>
   </property>
@@ -528,7 +528,7 @@
          </property>
          <widget class="QWidget" name="tab_22">
           <attribute name="title">
-           <string>Transform</string>
+           <string>Transform (FRET)</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_22">
            <item>
@@ -540,7 +540,7 @@
               </font>
              </property>
              <property name="text">
-              <string>Import Transform Matrix</string>
+              <string>Import FRET Transform Matrix</string>
              </property>
             </widget>
            </item>
@@ -561,7 +561,7 @@
              </property>
              <property name="sizeHint" stdset="0">
               <size>
-               <width>450</width>
+               <width>500</width>
                <height>44</height>
               </size>
              </property>
@@ -576,7 +576,17 @@
               </font>
              </property>
              <property name="text">
-              <string>Compute Transform Matrix (with Localisations)</string>
+              <string>Compute FRET Transform Matrix</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_5">
+             <property name="text">
+              <string>A transform matrix will be computed such that it will align transform channel(s) to a reference channel</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
@@ -595,7 +605,7 @@
              <item row="1" column="0">
               <widget class="QLabel" name="label_69">
                <property name="text">
-                <string>Reference Donor Channel</string>
+                <string>Reference Channel</string>
                </property>
               </widget>
              </item>
@@ -605,7 +615,7 @@
              <item row="2" column="0">
               <widget class="QLabel" name="label_70">
                <property name="text">
-                <string>Target Acceptor Channel</string>
+                <string>Transfrom Channel</string>
                </property>
               </widget>
              </item>
@@ -641,7 +651,7 @@
              </property>
              <property name="sizeHint" stdset="0">
               <size>
-               <width>450</width>
+               <width>500</width>
                <height>44</height>
               </size>
              </property>
@@ -656,7 +666,14 @@
               </font>
              </property>
              <property name="text">
-              <string>Apply Transform Matrix (all datasets)</string>
+              <string>Apply FRET Transform Matrix (all datasets)</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_2">
+             <property name="text">
+              <string>The transform matrix will be applied to the transform channels and localisations/tracks</string>
              </property>
             </widget>
            </item>
@@ -665,7 +682,7 @@
              <item row="0" column="0">
               <widget class="QLabel" name="label_67">
                <property name="text">
-                <string>Target Channel(s)</string>
+                <string>Transform Channel(s)</string>
                </property>
               </widget>
              </item>
@@ -693,7 +710,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QProgressBar" name="tform_progressbar">
+            <widget class="QProgressBar" name="fret_tform_progressbar">
              <property name="maximumSize">
               <size>
                <width>16777215</width>
