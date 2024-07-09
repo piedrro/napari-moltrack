@@ -663,12 +663,15 @@ class _tracking_utils:
             if remove_tracks:
                 try:
                     if "Tracks" in layer_names:
-                        self.viewer.layers["Tracks"].data = []
+                        self.track_layer.selected_data = []
+                        self.viewer.layers.remove(self.track_layer)
+                        self.track_layer = self.viewer.add_tracks(np.array([[0,0,0,0]]), name="Tracks")
                 except:
+                    print(traceback.format_exc())
                     pass
 
-            for layer in layer_names:
-                self.viewer.layers[layer].refresh()
+            if hasattr(self, "track_layer"):
+                self.track_layer.refresh()
 
         except:
             print(traceback.format_exc())

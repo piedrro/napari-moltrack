@@ -22,12 +22,16 @@ class _events_utils:
                                  "remove_seglocs_dataset", "adc_dataset",
                                  "heatmap_dataset","track_filter_dataset",
                                  "segtracks_dataset","traces_export_dataset",
-                                 "locs_import_dataset", "tform_compute_dataset",]
+                                 "locs_import_dataset", "tform_compute_dataset",
+                                 "copy_locs_dataset", "copy_tracks_dataset",
+                                 "delete_locs_dataset", "delete_tracks_dataset",
+                                 ]
 
             for selector_name in dataset_selectors:
                 dataset_names = list(self.dataset_dict.keys())
 
-                single_dataset_selectors = ["moltrack_dataset_selector", "cellpose_dataset", ]
+                single_dataset_selectors = ["moltrack_dataset_selector", "cellpose_dataset",
+                                            "copy_locs_dataset", "copy_tracks_dataset",]
 
                 if (selector_name not in single_dataset_selectors and len(dataset_names) > 1):
                     dataset_names.append("All Datasets")
@@ -53,7 +57,10 @@ class _events_utils:
                                  "remove_seglocs_channel", "adc_channel",
                                  "heatmap_channel","track_filter_channel",
                                  "segtracks_channel", "traces_export_channel",
-                                 "locs_import_channel","tform_compute_channel",]
+                                 "locs_import_channel","tform_compute_channel",
+                                 "copy_locs_channel", "copy_tracks_channel",
+                                 "delete_locs_channel", "delete_tracks_channel",
+                                 ]
 
             for channel_selector in channel_selectors:
                 dataset_selector = channel_selector.replace("channel", "dataset")
@@ -73,7 +80,8 @@ class _events_utils:
 
     def update_channel_selector(self, channel_selector, dataset_selector):
         try:
-            single_channel_selectors = ["moltrack_channel_selector", "cellpose_channel", "tform_compute_channel"]
+            single_channel_selectors = ["moltrack_channel_selector", "cellpose_channel", "tform_compute_channel",
+                                        "copy_locs_channel", "copy_tracks_channel",]
 
             dataset_name = dataset_selector.currentText()
             channel_names = []
@@ -318,7 +326,10 @@ class _events_utils:
                         "export_traces","compute_track_stats",
                         "compute_pixmap","import_localisations",
                         "export_heatmap_locs", "import_tform",
-                        "compute_tform","apply_tform",]
+                        "compute_tform","apply_tform",
+                        "copy_locs", "copy_tracks",
+                        "delete_locs", "delete_tracks",
+                        ]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
                             "picasso_progressbar", "export_progressbar",

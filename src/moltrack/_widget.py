@@ -38,6 +38,7 @@ from moltrack.funcs.diffusion_utils import _diffusion_utils
 from moltrack.funcs.cell_heatmap_utils import _cell_heatmap_utils
 from moltrack.funcs.traces_utils import _traces_utils
 from moltrack.funcs.transform_utils import _transform_utils
+from moltrack.funcs.management_utils import _management_utils
 
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
@@ -49,7 +50,7 @@ subclasses = [_import_utils, _compute_utils,
               _bactfit_utils, _cell_events,
               oufti, _diffusion_utils, _cell_heatmap_utils,
               _track_filter_utils, _traces_utils,
-              _transform_utils]
+              _transform_utils, _management_utils]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -288,13 +289,19 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.apply_tform.clicked.connect(self.apply_fret_transform_matrix)
         self.gui.tform_compute_channel.currentTextChanged.connect(self.update_fret_transform_target_channel)
 
+        self.gui.copy_locs.clicked.connect(partial(self.copy_data, mode="locs"))
+        self.gui.copy_tracks.clicked.connect(partial(self.copy_data, mode="tracks"))
+
+        self.gui.delete_locs.clicked.connect(partial(self.delete_data, mode="locs"))
+        self.gui.delete_tracks.clicked.connect(partial(self.delete_data, mode="tracks"))
+
     def devfunc(self, viewer=None):
 
         # self.update_render_length_range()
         # self.update_render_msd_range()
         self.update_ui()
         # self.draw_localisations()
-        self.export_celllist()
+        # self.export_celllist()
 
         # self.update_traces_export_options()
 
