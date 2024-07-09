@@ -435,8 +435,6 @@ class _picasso_detect_utils:
             self.update_filter_criterion()
             self.update_criterion_ranges()
 
-            self.update_pixmap_options()
-
             self.update_ui()
 
         except:

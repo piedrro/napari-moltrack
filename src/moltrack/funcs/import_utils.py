@@ -564,8 +564,6 @@ class _import_utils:
                             self.update_filter_criterion()
                             self.update_criterion_ranges()
 
-                            self.update_pixmap_options()
-
                             if len(locs) > 0:
                                 self.gui.locs_export_data.clear()
                                 self.gui.locs_export_data.addItems(["Localisations"])
@@ -597,7 +595,6 @@ class _import_utils:
                             self.update_track_filter_criterion()
                             self.update_track_criterion_ranges()
                             self.update_traces_export_options()
-                            self.update_pixmap_options()
 
                             if len(locs) > 0:
                                 self.gui.locs_export_data.clear()

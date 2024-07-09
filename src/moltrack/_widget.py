@@ -39,6 +39,7 @@ from moltrack.funcs.cell_heatmap_utils import _cell_heatmap_utils
 from moltrack.funcs.traces_utils import _traces_utils
 from moltrack.funcs.transform_utils import _transform_utils
 from moltrack.funcs.management_utils import _management_utils
+from moltrack.funcs.pixstats_utils import _pixstats_utils
 
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
@@ -50,7 +51,8 @@ subclasses = [_import_utils, _compute_utils,
               _bactfit_utils, _cell_events,
               oufti, _diffusion_utils, _cell_heatmap_utils,
               _track_filter_utils, _traces_utils,
-              _transform_utils, _management_utils]
+              _transform_utils, _management_utils,
+              _pixstats_utils]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -167,6 +169,20 @@ class QWidget(QWidget, gui, *subclasses):
         self.heatmap_canvas.ui.roiBtn.hide()
         self.heatmap_canvas.ui.menuBtn.hide()
 
+        self.locs_pixstats_canvas = ImageView()
+        self.gui.locs_pixstats_graph_container.setLayout(QVBoxLayout())
+        self.gui.locs_pixstats_graph_container.layout().addWidget(self.locs_pixstats_canvas)
+        self.locs_pixstats_canvas.ui.histogram.hide()
+        self.locs_pixstats_canvas.ui.roiBtn.hide()
+        self.locs_pixstats_canvas.ui.menuBtn.hide()
+
+        self.tracks_pixstats_canvas = ImageView()
+        self.gui.tracks_pixstats_graph_container.setLayout(QVBoxLayout())
+        self.gui.tracks_pixstats_graph_container.layout().addWidget(self.tracks_pixstats_canvas)
+        self.tracks_pixstats_canvas.ui.histogram.hide()
+        self.tracks_pixstats_canvas.ui.roiBtn.hide()
+        self.tracks_pixstats_canvas.ui.menuBtn.hide()
+
         self.dataset_dict = {}
         self.localisation_dict = {}
         self.tracking_dict = {}
@@ -205,6 +221,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.picasso_detectfit.clicked.connect(partial(self.init_picasso, detect=True, fit=True))
 
         self.gui.picasso_filter_dataset.currentIndexChanged.connect(self.update_filter_criterion)
+        self.gui.picasso_filter_channel.currentIndexChanged.connect(self.update_filter_criterion)
         self.gui.filter_criterion.currentIndexChanged.connect(self.update_criterion_ranges)
         self.gui.filter_subtract_bg.stateChanged.connect(self.update_criterion_ranges)
         self.gui.filter_localisations.clicked.connect(self.pixseq_filter_localisations)
@@ -217,7 +234,8 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.filter_tracks.clicked.connect(self.filter_tracks)
         self.gui.compute_track_stats.clicked.connect(self.initialise_track_stats)
 
-        self.gui.compute_pixmap.clicked.connect(self.initialise_pixmap)
+        self.gui.locs_pixstats_compute.clicked.connect(partial(self.initialise_pixstats, mode="locs"))
+        self.gui.tracks_pixstats_compute.clicked.connect(partial(self.initialise_pixstats, mode="tracks"))
 
         self.gui.picasso_segmentation_layer.currentIndexChanged.connect(self.update_picasso_segmentation_filter)
 
@@ -299,13 +317,17 @@ class QWidget(QWidget, gui, *subclasses):
 
         # self.update_render_length_range()
         # self.update_render_msd_range()
+
         self.update_ui()
+        self.update_filter_criterion()
+        self.update_criterion_ranges()
+
+
         # self.draw_localisations()
         # self.export_celllist()
 
         # self.update_traces_export_options()
 
-        # self.update_pixmap_options()
         # self.compute_pixmap_finished()
         # self.celllist.get_cell_lengths()
         # self.update_render_length_range()

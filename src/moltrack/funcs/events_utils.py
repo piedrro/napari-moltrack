@@ -324,11 +324,12 @@ class _events_utils:
                         "compute_heatmap","filter_tracks",
                         "remove_segtracks", "generate_heatmap",
                         "export_traces","compute_track_stats",
-                        "compute_pixmap","import_localisations",
+                        "import_localisations",
                         "export_heatmap_locs", "import_tform",
                         "compute_tform","apply_tform",
                         "copy_locs", "copy_tracks",
                         "delete_locs", "delete_tracks",
+                        "locs_pixstats_compute", "tracks_pixstats_compute",
                         ]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
