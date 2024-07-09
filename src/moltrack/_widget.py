@@ -93,6 +93,9 @@ class QWidget(QWidget, gui, *subclasses):
         self.update_locs_import_options()
         self.update_shapes_import_options()
 
+        self.draw_pixstats_mask(mode="locs")
+        self.draw_pixstats_mask(mode="tracks")
+
         # create threadpool and stop event
         self.threadpool = QThreadPool()
         manager = Manager()
@@ -226,6 +229,16 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.filter_subtract_bg.stateChanged.connect(self.update_criterion_ranges)
         self.gui.filter_localisations.clicked.connect(self.pixseq_filter_localisations)
 
+        self.gui.tracks_pixstats_spot_size.currentIndexChanged.connect(partial(self.draw_pixstats_mask, mode="tracks"))
+        self.gui.tracks_pixstats_spot_shape.currentIndexChanged.connect(partial(self.draw_pixstats_mask, mode="tracks"))
+        self.gui.tracks_pixstats_bg_width.currentIndexChanged.connect(partial(self.draw_pixstats_mask, mode="tracks"))
+        self.gui.tracks_pixstats_bg_buffer.currentIndexChanged.connect(partial(self.draw_pixstats_mask, mode="tracks"))
+
+        self.gui.locs_pixstats_spot_size.currentIndexChanged.connect(partial(self.draw_pixstats_mask, mode="locs"))
+        self.gui.locs_pixstats_spot_shape.currentIndexChanged.connect(partial(self.draw_pixstats_mask, mode="locs"))
+        self.gui.locs_pixstats_bg_width.currentIndexChanged.connect(partial(self.draw_pixstats_mask, mode="locs"))
+        self.gui.locs_pixstats_bg_buffer.currentIndexChanged.connect(partial(self.draw_pixstats_mask, mode="locs"))
+
         self.gui.track_filter_dataset.currentIndexChanged.connect(self.update_track_filter_criterion)
         self.gui.track_filter_channel.currentIndexChanged.connect(self.update_track_filter_criterion)
         self.gui.track_filter_criterion.currentIndexChanged.connect(self.update_track_filter_metric)
@@ -319,9 +332,10 @@ class QWidget(QWidget, gui, *subclasses):
         # self.update_render_msd_range()
 
         self.update_ui()
-        self.update_filter_criterion()
-        self.update_criterion_ranges()
+        # self.update_filter_criterion()
+        # self.update_criterion_ranges()
 
+        self.draw_pixstats_mask()
 
         # self.draw_localisations()
         # self.export_celllist()

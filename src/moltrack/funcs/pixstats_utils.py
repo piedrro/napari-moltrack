@@ -9,9 +9,76 @@ import pandas as pd
 from napari.utils.notifications import show_info
 import traceback
 import numpy as np
+import matplotlib.patches as mpatches
+from io import BytesIO
 
 class _pixstats_utils:
 
+    def draw_pixstats_mask(self, mode = "tracks"):
+
+        try:
+
+            if mode == "tracks":
+
+                spot_size = int(self.gui.tracks_pixstats_spot_size.currentText())
+                spot_shape = self.gui.tracks_pixstats_spot_shape.currentText()
+                background_buffer = int(self.gui.tracks_pixstats_bg_buffer.currentText())
+                background_width = int(self.gui.tracks_pixstats_bg_width.currentText())
+
+                canvas = self.tracks_pixstats_canvas
+
+            else:
+
+                spot_size = int(self.gui.locs_pixstats_spot_size.currentText())
+                spot_shape = self.gui.locs_pixstats_spot_shape.currentText()
+                background_buffer = int(self.gui.locs_pixstats_bg_buffer.currentText())
+                background_width = int(self.gui.locs_pixstats_bg_width.currentText())
+
+                canvas = self.locs_pixstats_canvas
+
+            mask, buffer_mask, background_mask = _pixstats_utils.generate_localisation_mask(
+                spot_size, spot_shape, background_buffer, background_width)
+
+
+            rgb_mask = np.zeros((mask.shape[0], mask.shape[1], 3), dtype=np.uint8)
+
+            rgb_mask[:,:,0] = mask * 255
+            rgb_mask[:,:,2] = background_mask * 255
+
+            ticks = np.arange(-0.5, mask.shape[1], 1)
+
+            fig, ax = plt.subplots(figsize=(6, 6))
+
+            plt.imshow(rgb_mask, interpolation='none')
+            plt.xticks(ticks, [])
+            plt.yticks(ticks, [])
+            plt.grid(color='black', linestyle='-', linewidth=2)
+
+            plt.tick_params(axis='x', which='both', bottom=False, top=False)
+            plt.tick_params(axis='y', which='both', left=False, right=False)
+
+            red_patch = mpatches.Patch(color='red', label='Mask')
+            black_patch = mpatches.Patch(color='black', label='Buffer Mask')
+            blue_patch = mpatches.Patch(color='blue', label='Background Mask')
+            plt.legend(handles=[red_patch, black_patch, blue_patch],
+                loc='lower center', bbox_to_anchor=(0.5, -0.1), ncol=3)
+
+            buf = BytesIO()
+            plt.savefig(buf, format='png',
+                facecolor='black', dpi=300)
+            buf.seek(0)
+            image = plt.imread(buf)
+            plt.close(fig)
+
+            image = np.rot90(image, k=3)
+            image = np.fliplr(image)
+
+            canvas.clear()
+            canvas.setImage(image)
+
+        except:
+            print(traceback.format_exc())
+            pass
 
     def initialise_pixstats(self, mode="tracks"):
 
