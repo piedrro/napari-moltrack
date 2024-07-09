@@ -65,7 +65,7 @@ class _pixstats_utils:
 
             buf = BytesIO()
             plt.savefig(buf, format='png',
-                facecolor='black', dpi=300)
+                bbox_inches='tight', facecolor='black', dpi=300)
             buf.seek(0)
             image = plt.imread(buf)
             plt.close(fig)
@@ -75,6 +75,8 @@ class _pixstats_utils:
 
             canvas.clear()
             canvas.setImage(image)
+            canvas.view.autoRange()
+            canvas.view.setMouseEnabled(x=False, y=False)
 
         except:
             print(traceback.format_exc())
