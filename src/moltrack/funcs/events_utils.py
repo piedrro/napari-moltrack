@@ -25,13 +25,14 @@ class _events_utils:
                                  "locs_import_dataset", "tform_compute_dataset",
                                  "copy_locs_dataset", "copy_tracks_dataset",
                                  "delete_locs_dataset", "delete_tracks_dataset",
+                                 "trackplot_dataset",
                                  ]
 
             for selector_name in dataset_selectors:
                 dataset_names = list(self.dataset_dict.keys())
 
                 single_dataset_selectors = ["moltrack_dataset_selector", "cellpose_dataset",
-                                            "copy_locs_dataset", "copy_tracks_dataset",]
+                                            "copy_locs_dataset", "copy_tracks_dataset","trackplot_dataset"]
 
                 if (selector_name not in single_dataset_selectors and len(dataset_names) > 1):
                     dataset_names.append("All Datasets")
@@ -60,6 +61,7 @@ class _events_utils:
                                  "locs_import_channel","tform_compute_channel",
                                  "copy_locs_channel", "copy_tracks_channel",
                                  "delete_locs_channel", "delete_tracks_channel",
+                                 "trackplot_channel",
                                  ]
 
             for channel_selector in channel_selectors:
@@ -81,7 +83,7 @@ class _events_utils:
     def update_channel_selector(self, channel_selector, dataset_selector):
         try:
             single_channel_selectors = ["moltrack_channel_selector", "cellpose_channel", "tform_compute_channel",
-                                        "copy_locs_channel", "copy_tracks_channel",]
+                                        "copy_locs_channel", "copy_tracks_channel", "trackplot_channel"]
 
             dataset_name = dataset_selector.currentText()
             channel_names = []

@@ -3397,6 +3397,108 @@
            </item>
           </layout>
          </widget>
+         <widget class="QWidget" name="tab_28">
+          <attribute name="title">
+           <string>Track Plots</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_29">
+           <item>
+            <layout class="QFormLayout" name="formLayout_36">
+             <item row="0" column="0">
+              <widget class="QLabel" name="picasso_filter_dataset_label_7">
+               <property name="text">
+                <string>Dataset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="trackplot_dataset"/>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="picasso_filter_dataset_label_8">
+               <property name="text">
+                <string>Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="trackplot_channel"/>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_140">
+               <property name="text">
+                <string>Metric(s)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <layout class="QGridLayout" name="gridLayout_15">
+               <item row="0" column="0">
+                <widget class="QComboBox" name="trackplot_metric1"/>
+               </item>
+               <item row="0" column="1">
+                <widget class="QComboBox" name="trackplot_metric2"/>
+               </item>
+               <item row="0" column="2">
+                <widget class="QComboBox" name="trackplot_metric3"/>
+               </item>
+               <item row="0" column="3">
+                <widget class="QComboBox" name="trackplot_metric4"/>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="trackplot_subtrack_background">
+             <property name="text">
+              <string>Subtract Background</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QWidget" name="trackplot_graph_container" native="true">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QGridLayout" name="gridLayout_13">
+             <item row="0" column="1">
+              <widget class="QSlider" name="trackplot_slider">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_57">
+               <property name="text">
+                <string>Track</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="2">
+              <widget class="QLabel" name="trackplot_slider_label">
+               <property name="minimumSize">
+                <size>
+                 <width>28</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>0</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
         </widget>
        </item>
       </layout>
@@ -4208,7 +4310,7 @@
              </property>
              <property name="sizeHint" stdset="0">
               <size>
-               <width>500</width>
+               <width>538</width>
                <height>44</height>
               </size>
              </property>
@@ -4298,7 +4400,7 @@
              </property>
              <property name="sizeHint" stdset="0">
               <size>
-               <width>500</width>
+               <width>538</width>
                <height>44</height>
               </size>
              </property>

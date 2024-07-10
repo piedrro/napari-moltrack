@@ -40,6 +40,7 @@ from moltrack.funcs.traces_utils import _traces_utils
 from moltrack.funcs.transform_utils import _transform_utils
 from moltrack.funcs.management_utils import _management_utils
 from moltrack.funcs.pixstats_utils import _pixstats_utils
+from moltrack.funcs.trackplot_utils import _trackplot_utils
 
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
@@ -52,7 +53,7 @@ subclasses = [_import_utils, _compute_utils,
               oufti, _diffusion_utils, _cell_heatmap_utils,
               _track_filter_utils, _traces_utils,
               _transform_utils, _management_utils,
-              _pixstats_utils]
+              _pixstats_utils, _trackplot_utils]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -165,6 +166,10 @@ class QWidget(QWidget, gui, *subclasses):
         self.adc_graph_canvas = CustomPyQTGraphWidget(self)
         self.gui.adc_graph_container.layout().addWidget(self.adc_graph_canvas)
 
+        self.gui.trackplot_graph_container.setLayout(QVBoxLayout())
+        self.trackplot_canvas = CustomPyQTGraphWidget(self)
+        self.gui.trackplot_graph_container.layout().addWidget(self.trackplot_canvas)
+
         self.heatmap_canvas = ImageView()
         self.gui.heatmap_graph_container.setLayout(QVBoxLayout())
         self.gui.heatmap_graph_container.layout().addWidget(self.heatmap_canvas)
@@ -201,6 +206,27 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.segmentation_mode = "panzoom"
         self.interface_mode = "segment"
+
+        self.trackplot_tracks = None
+
+        self.moltrack_metrics = {"Mean Squared Displacement": "msd",
+                                 "Speed": "speed",
+                                 "Apparent Diffusion Coefficient": "D*",
+                                 "Pixel Mean": "pixel_mean",
+                                 "Pixel Standard Deviation": "pixel_std",
+                                 "Pixel Median": "pixel_median",
+                                 "Pixel Min": "pixel_min",
+                                 "Pixel Max": "pixel_max",
+                                 "Pixel Sum": "pixel_sum",
+                                 "X": "x",
+                                 "Y": "y",
+                                 "Photons": "photons",
+                                 "Background": "bg",
+                                 "PSF width X": "sx",
+                                 "PSF width Y": "sy",
+                                 "Localisation Precision X": "lpx",
+                                 "Localisation Precision Y": "lpy",
+                                 "Ellipticity": "ellipticity", }
 
 
     def initialise_events(self):
@@ -326,6 +352,16 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.delete_locs.clicked.connect(partial(self.delete_data, mode="locs"))
         self.gui.delete_tracks.clicked.connect(partial(self.delete_data, mode="tracks"))
 
+        self.gui.trackplot_dataset.currentIndexChanged.connect(self.update_trackplot_options)
+        self.gui.trackplot_channel.currentIndexChanged.connect(self.update_trackplot_options)
+        self.gui.trackplot_slider.valueChanged.connect(self.update_trackplot_slider)
+        self.gui.trackplot_metric1.currentIndexChanged.connect(self.plot_tracks)
+        self.gui.trackplot_metric2.currentIndexChanged.connect(self.plot_tracks)
+        self.gui.trackplot_metric3.currentIndexChanged.connect(self.plot_tracks)
+        self.gui.trackplot_metric4.currentIndexChanged.connect(self.plot_tracks)
+        self.gui.trackplot_slider.valueChanged.connect(self.plot_tracks)
+        self.gui.trackplot_subtrack_background.stateChanged.connect(self.plot_tracks)
+
     def devfunc(self, viewer=None):
 
         # self.update_render_length_range()
@@ -335,7 +371,7 @@ class QWidget(QWidget, gui, *subclasses):
         # self.update_filter_criterion()
         # self.update_criterion_ranges()
 
-        self.draw_pixstats_mask()
+        self.update_trackplot_options()
 
         # self.draw_localisations()
         # self.export_celllist()
