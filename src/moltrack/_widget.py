@@ -228,6 +228,9 @@ class QWidget(QWidget, gui, *subclasses):
                                  "Localisation Precision Y": "lpy",
                                  "Ellipticity": "ellipticity", }
 
+        self.gui.tracks_pixstats_fret.hide()
+        self.gui.locs_pixstats_fret.hide()
+
 
     def initialise_events(self):
 
@@ -371,7 +374,7 @@ class QWidget(QWidget, gui, *subclasses):
         # self.update_filter_criterion()
         # self.update_criterion_ranges()
 
-        self.update_trackplot_options()
+        self.get_trackplot_metrics()
 
         # self.draw_localisations()
         # self.export_celllist()

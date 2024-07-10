@@ -484,6 +484,9 @@ class _tracking_utils:
         self.update_track_criterion_ranges()
         self.update_traces_export_options()
 
+        self.update_trackplot_options()
+        self.plot_tracks()
+
         self.update_ui()
 
     def initialise_tracking(self):
@@ -518,6 +521,10 @@ class _tracking_utils:
         self.update_track_filter_criterion()
         self.update_track_criterion_ranges()
         self.update_traces_export_options()
+
+        self.update_trackplot_options()
+        self.plot_tracks()
+
         self.update_ui()
 
     def process_track_stats_result(self, track_data):

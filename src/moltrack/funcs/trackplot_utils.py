@@ -2,6 +2,7 @@ import traceback
 import pandas as pd
 import numpy as np
 import pyqtgraph as pg
+import matplotlib.pyplot as plt
 
 class _trackplot_utils:
 
@@ -173,9 +174,14 @@ class _trackplot_utils:
 
             trackplot_metrics = {}
 
-            for metric in self.moltrack_metrics.keys():
-                if self.moltrack_metrics[metric] in track_cols:
-                    trackplot_metrics[metric] = self.moltrack_metrics[metric]
+            for metric_name in list(self.moltrack_metrics.keys()):
+                metric = self.moltrack_metrics[metric_name]
+
+                if metric in track_cols:
+                    trackplot_metrics[metric_name] = metric
+                if metric + "_fret" in track_cols:
+                    trackplot_metrics[metric_name + " FRET"] = metric + "_fret"
+                    self.moltrack_metrics[metric_name + " FRET"] = metric + "_fret"
 
         return trackplot_metrics
 

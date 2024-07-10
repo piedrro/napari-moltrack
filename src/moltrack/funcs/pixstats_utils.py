@@ -106,6 +106,8 @@ class _pixstats_utils:
             background_buffer = int(self.gui.tracks_pixstats_bg_buffer.currentText())
             background_width = int(self.gui.tracks_pixstats_bg_width.currentText())
 
+            calculate_fret = self.gui.tracks_pixstats_fret.isChecked()
+
         if mode == "locs":
 
             if hasattr(self, "localisation_dict") == False:
@@ -125,6 +127,8 @@ class _pixstats_utils:
             background_buffer = int(self.gui.locs_pixstats_bg_buffer.currentText())
             background_width = int(self.gui.locs_pixstats_bg_width.currentText())
 
+            calculate_fret = self.gui.locs_pixstats_fret.isChecked()
+
         if len(pixstats_data) == 0:
             show_info("No data found")
             return None
@@ -133,7 +137,7 @@ class _pixstats_utils:
 
         pixstats_data = pd.DataFrame(pixstats_data)
 
-        worker = Worker(self.compute_pixstats, mode,pixstats_data,
+        worker = Worker(self.compute_pixstats, pixstats_data, mode, calculate_fret,
             spot_size, spot_shape,background_buffer, background_width)
         worker.signals.progress.connect(progressbar)
         worker.signals.result.connect(self.process_pixstats_result)
@@ -154,6 +158,9 @@ class _pixstats_utils:
         self.update_track_filter_criterion()
         self.update_track_criterion_ranges()
 
+        self.update_trackplot_options()
+        self.plot_tracks()
+
         self.update_traces_export_options()
 
 
@@ -168,17 +175,128 @@ class _pixstats_utils:
 
         for (dataset, channel), data in pixstats_data.groupby(["dataset", "channel"]):
 
-            data = data.dropna(axis=1, how="all")
-
             if "index" in data.columns:
                 data = data.drop("index", axis=1)
 
             data = data.to_records(index=False)
 
             if mode == "tracks":
-                self.tracking_dict[dataset][channel] = {"tracks": data}
+                self.tracking_dict[dataset][channel]["tracks"] = data
             else:
                 self.localisation_dict[dataset][channel]["localisations"] = data
+
+    def pixstats_calculate_fret(self, data):
+
+        try:
+
+            data = pd.DataFrame(data)
+
+            fret_dataset = []
+
+            for dataset, dataset_data in data.groupby("dataset"):
+
+                channel_list = dataset_data["channel"].unique()
+                channel_list = [chan.lower() for chan in channel_list]
+
+                if set(["donor", "acceptor"]).issubset(channel_list):
+                    fret_data = self.pixstats_compute_fret(dataset_data)
+                elif set(["dd", "da"]).issubset(channel_list):
+                    fret_data = self.pixstats_compute_alex_fret(dataset_data)
+                else:
+                    fret_data = dataset_data
+
+                fret_dataset.append(fret_data)
+
+            if len(fret_dataset) > 0:
+
+                fret_dataset = pd.concat(fret_dataset, ignore_index=True)
+                fret_dataset.reset_index(drop=True, inplace=True)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+        return fret_dataset
+
+    def pixstats_compute_fret(self, data):
+
+        for metric in data.columns:
+            try:
+                if metric in self.moltrack_metrics.values():
+                    if "pixel" in metric:
+                        metric_name = metric
+                        bg_name = metric + "_bg"
+                    elif "photons" in metric:
+                        metric_name = metric
+                        bg_name = "bg"
+                    else:
+                        continue
+
+                    donor_data = data[data["channel"].str.lower() == "donor"][metric_name]
+                    acceptor_data = data[data["channel"].str.lower() == "acceptor"][metric_name]
+
+                    donor_bg = data[data["channel"].str.lower() == "donor"][bg_name]
+                    acceptor_bg = data[data["channel"].str.lower() == "acceptor"][bg_name]
+
+                    fret = (acceptor_data - donor_data) / acceptor_data
+                    fret_bg = (acceptor_bg - donor_bg) / acceptor_bg
+
+                    fret_metric = metric + "_fret"
+
+                    data[fret_metric] = fret
+                    data[fret_metric + "_bg"] = fret_bg
+
+            except:
+                print(traceback.format_exc())
+                pass
+
+        return data
+
+    def pixstats_compute_alex_fret(self, data):
+
+        for metric in list(data.columns):
+            try:
+                if metric in self.moltrack_metrics.values():
+                    if "fret" in metric:
+                        continue
+                    elif "pixel" in metric:
+                        metric_name = metric
+                        bg_name = metric + "_bg"
+                    elif "photons" in metric:
+                        metric_name = metric
+                        bg_name = "bg"
+                    else:
+                        continue
+
+                    dd_data = data[data["channel"].str.lower() == "dd"][metric_name].copy()
+                    da_data = data[data["channel"].str.lower() == "da"][metric_name].copy()
+
+                    dd_bg = data[data["channel"].str.lower() == "dd"][bg_name].copy()
+                    da_bg = data[data["channel"].str.lower() == "da"][bg_name].copy()
+
+                    dd_data = np.array(dd_data)
+                    da_data = np.array(da_data)
+                    dd_bg = np.array(dd_bg)
+                    da_bg = np.array(da_bg)
+
+                    dd_data = dd_data - dd_bg
+                    da_data = da_data - da_bg
+
+                    fret = da_data / (da_data + dd_data)
+                    fret = np.clip(fret, 0, 1)
+
+                    fret_metric = metric + "_fret"
+
+                    for channel in data["channel"].unique():
+                        data.loc[data["channel"] == channel, fret_metric] = fret
+
+            except:
+                print(traceback.format_exc())
+                pass
+
+        return data
+
+
 
     @staticmethod
     def generate_localisation_mask(spot_size, spot_shape="square", buffer_size=0, bg_width=1):
@@ -434,7 +552,7 @@ class _pixstats_utils:
 
 
 
-    def compute_pixstats(self, mode, pixmap_data, spot_size, spot_shape,
+    def compute_pixstats(self, pixmap_data, mode, calculate_fret, spot_size, spot_shape,
             background_buffer, background_width, progress_callback=None):
 
         try:
@@ -468,11 +586,17 @@ class _pixstats_utils:
 
                 results = [future.result() for future in futures if future.result() is not None]
 
-                if len(results) > 0:
+                self.results = results
+            results = self.results
 
-                    results = [pd.DataFrame(result) for result in results]
-                    results = pd.concat(results, ignore_index=True)
-                    results = results.to_records(index=False)
+            if len(results) > 0:
+
+                results = [pd.DataFrame(result) for result in results]
+                results = pd.concat(results, ignore_index=True)
+                results = results.to_records(index=False)
+
+                if calculate_fret:
+                    results = self.pixstats_calculate_fret(results)
 
             self.restore_shared_image_chunks()
 
@@ -484,14 +608,12 @@ class _pixstats_utils:
 
         return results, mode
 
-
     def get_pixstats_compute_jobs(self, pixstats_data, spot_size, spot_shape,
             background_buffer, background_width):
 
         compute_jobs = []
 
         try:
-
 
             for image_chunk in self.shared_chunks:
 
@@ -505,8 +627,8 @@ class _pixstats_utils:
 
                     pixstats_chunks = pixstats_data.copy()
 
-                    pixstats_chunks["dataset"] = dataset
-                    pixstats_chunks["channel"] = channel
+                    pixstats_chunks = pixstats_chunks[(pixstats_chunks["dataset"] == dataset) &
+                                                      (pixstats_chunks["channel"] == channel)]
 
                     pixstats_chunks = pixstats_chunks.to_records(index=False)
 
@@ -528,7 +650,6 @@ class _pixstats_utils:
                                "dtype": image_chunk["dtype"],}
 
                         compute_jobs.append(job)
-
         except:
             pass
 
