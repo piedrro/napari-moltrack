@@ -58,10 +58,11 @@ class _pixstats_utils:
             plt.tick_params(axis='y', which='both', left=False, right=False)
 
             red_patch = mpatches.Patch(color='red', label='Mask')
-            black_patch = mpatches.Patch(color='black', label='Buffer Mask')
-            blue_patch = mpatches.Patch(color='blue', label='Background Mask')
+            black_patch = mpatches.Patch(color='black', label='Buffer')
+            blue_patch = mpatches.Patch(color='blue', label='Background')
             plt.legend(handles=[red_patch, black_patch, blue_patch],
-                loc='lower center', bbox_to_anchor=(0.5, -0.1), ncol=3)
+                loc='lower center', bbox_to_anchor=(0.5, -0.15), ncol=3,
+                fontsize=18, columnspacing=0.5)
 
             buf = BytesIO()
             plt.savefig(buf, format='png',
