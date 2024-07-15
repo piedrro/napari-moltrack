@@ -421,11 +421,11 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.viewer.bind_key("F1", self.devfunc, overwrite=True,)
 
-        self.viewer.bind_key(key="Control-Right", func=lambda event: self.moltract_translation(direction="right"), overwrite=True, )
-        self.viewer.bind_key(key="Control-Left", func=lambda event: self.moltract_translation(direction="left"), overwrite=True, )
-        self.viewer.bind_key(key="Control-Up", func=lambda event: self.moltract_translation(direction="up"), overwrite=True, )
-        self.viewer.bind_key(key="Control-Down", func=lambda event: self.moltract_translation(direction="down"), overwrite=True, )
-        self.viewer.bind_key(key="Control-Z", func=self.moltrack_undo, overwrite=True, )
+        self.viewer.bind_key("Control-Right", func=lambda event: self.moltract_translation(direction="right"), overwrite=True, )
+        self.viewer.bind_key("Control-Left", func=lambda event: self.moltract_translation(direction="left"), overwrite=True, )
+        self.viewer.bind_key("Control-Up", func=lambda event: self.moltract_translation(direction="up"), overwrite=True, )
+        self.viewer.bind_key("Control-Down", func=lambda event: self.moltract_translation(direction="down"), overwrite=True, )
+        self.viewer.bind_key("Control-Z", func=self.moltrack_undo, overwrite=True, )
 
         self.register_shape_layer_keybinds(self.viewer)
 
@@ -433,11 +433,11 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.viewer.bind_key("F1", None)
 
-        self.viewer.bind_key(key="Control-Right", func=None)
-        self.viewer.bind_key(key="Control-Left", func=None)
-        self.viewer.bind_key(key="Control-Up", func=None)
-        self.viewer.bind_key(key="Control-Down", func=None)
-        self.viewer.bind_key(key="Control-Z", func=None)
+        self.viewer.bind_key("Control-Right", func=None)
+        self.viewer.bind_key("Control-Left", func=None)
+        self.viewer.bind_key("Control-Up", func=None)
+        self.viewer.bind_key("Control-Down", func=None)
+        self.viewer.bind_key("Control-Z", func=None)
 
         self.remove_shape_layer_keybinds(self.viewer)
 

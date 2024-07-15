@@ -20,12 +20,10 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Image Processing",
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "configparser",
     "napari[all]",
     "numpy",
     "magicgui",
@@ -34,7 +32,7 @@ dependencies = [
     "pyqtgraph",
     "picassosr",
     "pandas",
-    "matplotlib",
+    "matplotlib >= 3.7.0",
     "scipy",
     "opencv-python",
     "tqdm",
@@ -86,7 +84,7 @@ where = ["src"]
 
 [tool.black]
 line-length = 79
-target-version = ['py39', 'py310', 'py311', 'py312']
+target-version = ['py39', 'py310', 'py311']
 
 [tool.ruff]
 line-length = 79
