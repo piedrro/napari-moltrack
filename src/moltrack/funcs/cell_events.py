@@ -55,16 +55,16 @@ class _cell_events:
             scale = [1, 1]
 
         face_color = [1, 1, 1, 0]
-        border_color = [1, 1, 1, 0.5]
-        border_width = 1
+        edge_color = [1, 1, 1, 0.5]
+        edge_width = 1
 
         if shapes is not None:
             self.cellLayer = self.viewer.add_shapes(shapes, properties=properties,
                 shape_type=shape_types, name="Cells", face_color=face_color,
-                border_color=border_color, border_width=border_width, )
+                edge_color=edge_color, edge_width=edge_width, )
         else:
             self.cellLayer = self.viewer.add_shapes(name="Cells", shape_type="polygon",
-                face_color=face_color, border_color=border_color, border_width=border_width, )
+                face_color=face_color, edge_color=edge_color, edge_width=edge_width, )
 
         if self.gui.show_shapes.isChecked() == False:
             if self.cellLayer in self.viewer.layers:

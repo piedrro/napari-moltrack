@@ -123,8 +123,8 @@ class _segmentation_events:
                 shape_type="polygon",
                 opacity=0.5,
                 face_color="red",
-                border_color="black",
-                border_width=1,
+                edge_color="black",
+                edge_width=1,
                 data=shapes,
             )
         else:
@@ -133,8 +133,8 @@ class _segmentation_events:
                 shape_type="polygon",
                 opacity=0.5,
                 face_color="red",
-                border_color="black",
-                border_width=1,
+                edge_color="black",
+                edge_width=1,
             )
 
         if self.gui.show_shapes.isChecked() == False:
