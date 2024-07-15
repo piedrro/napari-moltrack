@@ -419,7 +419,7 @@ class QWidget(QWidget, gui, *subclasses):
 
     def initialise_keybindings(self):
 
-        self.viewer.bind_key("F1", self.devfunc)
+        self.viewer.bind_key("F1", self.devfunc, overwrite=True,)
 
         self.viewer.bind_key(key="Control-Right", func=lambda event: self.moltract_translation(direction="right"), overwrite=True, )
         self.viewer.bind_key(key="Control-Left", func=lambda event: self.moltract_translation(direction="left"), overwrite=True, )

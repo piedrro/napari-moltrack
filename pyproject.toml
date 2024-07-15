@@ -1,6 +1,6 @@
 [project]
 name = "napari-moltrack"
-dynamic = ["version"]
+version = "0.0.36"
 description = "Single molecule tracking package for Napari"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -25,6 +25,7 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
+    "configparser",
     "napari[all]",
     "numpy",
     "magicgui",
@@ -73,9 +74,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 include-package-data = true
-
-[tool.setuptools.dynamic]
-version = {attr = "moltrack.__init__.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
