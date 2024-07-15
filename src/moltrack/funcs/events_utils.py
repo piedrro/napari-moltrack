@@ -622,10 +622,8 @@ class _events_utils:
 
                                 vis_mode = (self.gui.picasso_vis_mode.currentText())
                                 vis_opacity = float(self.gui.picasso_vis_opacity.currentText())
-                                vis_edge_width = float(self.gui.picasso_vis_edge_width.currentText())
+                                vis_border_width = float(self.gui.picasso_vis_edge_width.currentText())
                                 vis_size = float(self.gui.picasso_vis_size.currentText())
-
-                                vis_size = vis_size / pixel_size
 
                                 if vis_mode.lower() == "square":
                                     symbol = "square"
@@ -641,8 +639,8 @@ class _events_utils:
                                         print("Drawing localisations")
 
                                     self.loc_layer = self.viewer.add_points(render_locs, ndim=2,
-                                        edge_color="red", face_color=[0, 0, 0, 0], opacity=vis_opacity,
-                                        name="localisations", symbol=symbol, size=vis_size, edge_width=vis_edge_width,
+                                        border_color="red", face_color=[0, 0, 0, 0], opacity=vis_opacity,
+                                        name="localisations", symbol=symbol, size=vis_size, border_width=vis_border_width,
                                         scale=scale, )
 
                                     update_vis = True
@@ -671,8 +669,8 @@ class _events_utils:
                                     self.loc_layer.opacity = vis_opacity
                                     self.loc_layer.symbol = symbol
                                     self.loc_layer.size = vis_size
-                                    self.loc_layer.edge_width = vis_edge_width
-                                    self.loc_layer.edge_color = "red"
+                                    self.loc_layer.border_width = vis_border_width
+                                    self.loc_layer.border_color = "red"
                                     self.loc_layer.selected_data = []
 
                                     self.loc_layer.refresh()
