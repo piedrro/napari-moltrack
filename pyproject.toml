@@ -1,6 +1,6 @@
 [project]
 name = "napari-moltrack"
-version = "0.0.36"
+dynamic = ["version"]
 description = "Single molecule tracking package for Napari"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -75,6 +75,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 include-package-data = true
 
+[tool.setuptools.dynamic]
+version = {attr = "moltrack.__init__.__version__"}
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
@@ -83,7 +86,7 @@ where = ["src"]
 
 [tool.black]
 line-length = 79
-target-version = ['py39', 'py310']
+target-version = ['py39', 'py310', 'py311', 'py312']
 
 [tool.ruff]
 line-length = 79

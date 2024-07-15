@@ -5,3 +5,5 @@ from ._widget import (
 __all__ = (
     "QWidget",
 )
+
+__version__ = "0.0.36"
