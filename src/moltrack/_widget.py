@@ -212,12 +212,6 @@ class QWidget(QWidget, gui, *subclasses):
         self.moltrack_metrics = {"Mean Squared Displacement": "msd",
                                  "Speed": "speed",
                                  "Apparent Diffusion Coefficient": "D*",
-                                 "Pixel Mean": "pixel_mean",
-                                 "Pixel Standard Deviation": "pixel_std",
-                                 "Pixel Median": "pixel_median",
-                                 "Pixel Min": "pixel_min",
-                                 "Pixel Max": "pixel_max",
-                                 "Pixel Sum": "pixel_sum",
                                  "X": "x",
                                  "Y": "y",
                                  "Photons": "photons",
@@ -226,10 +220,25 @@ class QWidget(QWidget, gui, *subclasses):
                                  "PSF width Y": "sy",
                                  "Localisation Precision X": "lpx",
                                  "Localisation Precision Y": "lpy",
-                                 "Ellipticity": "ellipticity", }
+                                 "Ellipticity": "ellipticity",
+                                 "Pixel Mean": "pixel_mean",
+                                 "Pixel StdDev": "pixel_std",
+                                 "Pixel Median": "pixel_median",
+                                 "Pixel Min": "pixel_min",
+                                 "Pixel Max": "pixel_max",
+                                 "Pixel Sum": "pixel_sum",
+                                 "Pixel Mean FRET": "pixel_mean_fret",
+                                 "Pixel StdDev FRET": "pixel_std_fret",
+                                 "Pixel Median FRET": "pixel_median_fret",
+                                 "Pixel Min FRET": "pixel_min_fret",
+                                 "Pixel Max FRET": "pixel_max_fret",
+                                 "Pixel Sum FRET": "pixel_sum_fret",
+                                 }
 
-        self.gui.tracks_pixstats_fret.hide()
-        self.gui.locs_pixstats_fret.hide()
+        # self.gui.tracks_pixstats_fret.hide()
+        # self.gui.locs_pixstats_fret.hide()
+
+        np.seterr(all='ignore')
 
 
     def initialise_events(self):

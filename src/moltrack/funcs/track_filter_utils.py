@@ -48,26 +48,9 @@ class _track_filter_utils:
 
                     tracks = pd.DataFrame(tracks)
 
-                    if "time" in tracks.columns:
-                        critertion_options.append("Track Duration")
-                    if "msd" in tracks.columns:
-                        critertion_options.append("Mean Squared Displacement")
-                    if "speed" in tracks.columns:
-                        critertion_options.append("Speed")
-                    if "D*" in tracks.columns:
-                        critertion_options.append("Apparent Diffusion Coefficient")
-                    if "pixel_mean" in tracks.columns:
-                        critertion_options.append("Pixel Mean")
-                    if "pixel_std" in tracks.columns:
-                        critertion_options.append("Pixel Standard Deviation")
-                    if "pixel_median" in tracks.columns:
-                        critertion_options.append("Pixel Median")
-                    if "pixel_min" in tracks.columns:
-                        critertion_options.append("Pixel Min")
-                    if "pixel_max" in tracks.columns:
-                        critertion_options.append("Pixel Max")
-                    if "pixel_sum" in tracks.columns:
-                        critertion_options.append("Pixel Sum")
+                    for metrix_name, metric in self.moltrack_metrics.items():
+                        if metric in tracks.columns:
+                            critertion_options.append(metrix_name)
 
                 self.gui.track_filter_criterion.clear()
                 self.gui.track_filter_criterion.addItems(critertion_options)
@@ -160,24 +143,13 @@ class _track_filter_utils:
                         stat = duration
 
                     else:
-                        if criterion == "Mean Squared Displacement":
-                            data = track['msd']
-                        elif criterion == "Speed":
-                            data = track['speed']
-                        elif criterion == "Apparent Diffusion Coefficient":
-                            data = track['D*']
-                        elif criterion == "Pixel Mean":
-                            data = track['pixel_mean']
-                        elif criterion == "Pixel Standard Deviation":
-                            data = track['pixel_std']
-                        elif criterion == "Pixel Median":
-                            data = track['pixel_median']
-                        elif criterion == "Pixel Min":
-                            data = track['pixel_min']
-                        elif criterion == "Pixel Max":
-                            data = track['pixel_max']
-                        elif criterion == "Pixel Sum":
-                            data = track['pixel_sum']
+                        if criterion in self.moltrack_metrics:
+                            data = track[self.moltrack_metrics[criterion]]
+                        else:
+                            data = []
+
+                        if len(data) == 0:
+                            continue
 
                         if subtract_background:
                             data_name = data.name
@@ -246,16 +218,14 @@ class _track_filter_utils:
                         xlabel = "Track Length (frames)"
                     elif criterion == "Track Duration":
                         xlabel = "Track Duration (s)"
-                    elif criterion in ["Pixel Mean", "Pixel Standard Deviation",
-                                       "Pixel Median", "Pixel Min", "Pixel Max", "Pixel Sum"]:
-                        xlabel = criterion
+                    elif criterion == "Mean Squared Displacement":
+                        xlabel = f"{metric} MSD (µm²)"
+                    elif criterion == "Speed":
+                        xlabel = f"{metric} Speed (µm/s)"
+                    elif criterion == "Apparent Diffusion Coefficient":
+                        xlabel = f"{metric} Apparent Diffusion Coefficient (µm²/s)"
                     else:
-                        if criterion == "Mean Squared Displacement":
-                            xlabel = f"{metric} MSD (µm²)"
-                        if criterion == "Speed":
-                            xlabel = f"{metric} Speed (µm/s)"
-                        if criterion == "Apparent Diffusion Coefficient":
-                            xlabel = f"{metric} Apparent Diffusion Coefficient (µm²/s)"
+                        xlabel = criterion
 
                     ax = self.track_graph_canvas.addPlot()
 

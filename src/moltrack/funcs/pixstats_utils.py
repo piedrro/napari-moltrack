@@ -137,8 +137,24 @@ class _pixstats_utils:
 
         pixstats_data = pd.DataFrame(pixstats_data)
 
+        channels = pixstats_data["channel"].unique()
+        channels = [chan.lower() for chan in channels]
+
+        if calculate_fret:
+            if set(["donor", "acceptor"]).issubset(channels):
+                calculate_fret = True
+                show_info("PixStats FRET calculation enabled")
+            elif set(["dd", "da"]).issubset(channels):
+                calculate_fret = True
+                show_info("PixStats ALEX FRET calculation enabled")
+            else:
+                show_info("FRET calculation requires Donor+Acceptor or DD+DA channels")
+                calculate_fret = False
+                self.gui.tracks_pixstats_fret.setChecked(False)
+
         worker = Worker(self.compute_pixstats, pixstats_data, mode, calculate_fret,
             spot_size, spot_shape,background_buffer, background_width)
+
         worker.signals.progress.connect(progressbar)
         worker.signals.result.connect(self.process_pixstats_result)
         worker.signals.finished.connect(self.compute_pixstats_finished)
@@ -188,6 +204,7 @@ class _pixstats_utils:
     def pixstats_calculate_fret(self, data):
 
         try:
+            np.seterr(all='ignore')
 
             data = pd.DataFrame(data)
 
@@ -586,17 +603,19 @@ class _pixstats_utils:
 
                 results = [future.result() for future in futures if future.result() is not None]
 
-                self.results = results
-            results = self.results
-
             if len(results) > 0:
 
                 results = [pd.DataFrame(result) for result in results]
                 results = pd.concat(results, ignore_index=True)
-                results = results.to_records(index=False)
 
                 if calculate_fret:
                     results = self.pixstats_calculate_fret(results)
+                else:
+                    columns = results.columns
+                    fret_columns = [col for col in columns if "_fret" in col]
+                    results = results.drop(fret_columns, axis=1)
+
+                results = results.to_records(index=False)
 
             self.restore_shared_image_chunks()
 
