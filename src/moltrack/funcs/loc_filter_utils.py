@@ -364,10 +364,9 @@ class _loc_filter_utils:
 
             if len(locs) > 0:
 
-                columns = list(locs.dtype.names)
-
-                columns = [col for col in columns if col not in ["dataset","channel"]]
-                columns = [col for col in columns if "_bg" not in col]
+                for metric_name, metric in self.moltrack_metrics.items():
+                    if metric in list(locs.dtype.names):
+                        columns.append(metric_name)
 
             selector.clear()
 
@@ -386,8 +385,13 @@ class _loc_filter_utils:
 
             dataset = self.gui.picasso_filter_dataset.currentText()
             channel = self.gui.picasso_filter_channel.currentText()
-            criterion = self.gui.filter_criterion.currentText()
+            criterion_name = self.gui.filter_criterion.currentText()
             subtract_background = self.gui.filter_subtract_bg.isChecked()
+
+            if criterion_name not in self.moltrack_metrics.keys():
+                return
+
+            criterion = self.moltrack_metrics[criterion_name]
 
             if "pixel" not in criterion.lower():
                 subtract_background = False
