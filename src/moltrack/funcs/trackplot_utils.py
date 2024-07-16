@@ -59,9 +59,12 @@ class _trackplot_utils:
         if len(trackplot_data["data"]) > 0:
 
             user_label = trackplot_data["data"][0]["user_label"]
+            track_center = trackplot_data["track_center"]
             track_id = trackplot_data["track_id"]
             dataset = trackplot_data["data"][0]["dataset"]
             channel = trackplot_data["data"][0]["channel"]
+
+            track_center = f"[{track_center[0]:.2f}, {track_center[1]:.2f}]"
 
             self.trackplot_canvas.clear()
 
@@ -69,9 +72,11 @@ class _trackplot_utils:
             layout = pg.GraphicsLayout()
             self.trackplot_canvas.setCentralItem(layout)
 
-            title = f"Track ID: {trackplot_data['track_id']}"
+            title = f"Track ID: {trackplot_data['track_id']} | Track Center: {track_center}"
             if user_label is not None:
                 title += f" | User Label: {user_label}"
+
+            plot0 = None
 
             for i in range(len(trackplot_data["data"])):
                 metric = trackplot_data["data"][i]["metric"]
@@ -79,7 +84,12 @@ class _trackplot_utils:
 
                 # Add a new plot row to the layout
                 p = layout.addPlot(row=i, col=0)
+
+                if plot0 is not None:
+                    p.setXLink(plot0)
+
                 curve = p.plot(values, pen=(i, len(trackplot_data)), name=metric)
+                p.getAxis('left').setWidth(50)
 
                 # Add legend
                 legend = pg.LegendItem(offset=(-10, 10))  # Adjust the offset to position legend at the top right
@@ -89,6 +99,9 @@ class _trackplot_utils:
 
                 if i == 0:
                     p.setTitle(title)
+                    plot0 = p
+
+
 
     def get_trackplot_data(self):
 
