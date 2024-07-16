@@ -58,11 +58,20 @@ class _trackplot_utils:
 
         if len(trackplot_data["data"]) > 0:
 
+            user_label = trackplot_data["data"][0]["user_label"]
+            track_id = trackplot_data["track_id"]
+            dataset = trackplot_data["data"][0]["dataset"]
+            channel = trackplot_data["data"][0]["channel"]
+
             self.trackplot_canvas.clear()
 
             # Create a vertical layout
             layout = pg.GraphicsLayout()
             self.trackplot_canvas.setCentralItem(layout)
+
+            title = f"Track ID: {trackplot_data['track_id']}"
+            if user_label is not None:
+                title += f" | User Label: {user_label}"
 
             for i in range(len(trackplot_data["data"])):
                 metric = trackplot_data["data"][i]["metric"]
@@ -77,6 +86,9 @@ class _trackplot_utils:
                 legend.setParentItem(p.graphicsItem())
                 legend.addItem(curve, metric)
                 legend.setBrush('w')  # White background for the legend
+
+                if i == 0:
+                    p.setTitle(title)
 
     def get_trackplot_data(self):
 
@@ -119,6 +131,13 @@ class _trackplot_utils:
                             if metric_name in track_data.columns:
 
                                 metric_values = track_data[metric_name].values.tolist()
+                                dataset = track_data["dataset"].values[0]
+                                channel = track_data["channel"].values[0]
+
+                                if "user_label" in track_data.columns:
+                                    user_label = track_data["user_label"].values[0]
+                                else:
+                                    user_label = None
 
                                 if subtract_bg:
                                     bg_name = f"{metric_name}_bg"
@@ -127,8 +146,11 @@ class _trackplot_utils:
                                         metric_values = np.array(metric_values) - np.array(bg_values)
                                         metric_values = metric_values.tolist()
 
-                                trackplot_data["data"].append({"metric": metric_label, "values": metric_values})
-
+                                trackplot_data["data"].append({"metric": metric_label,
+                                                               "dataset": dataset,
+                                                               "channel": channel,
+                                                               "values": metric_values,
+                                                               "user_label": user_label})
         except:
             print(traceback.format_exc())
             pass
