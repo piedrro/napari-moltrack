@@ -19,7 +19,7 @@ import cv2
 import json
 from moltrack.funcs.compute_utils import Worker
 from napari.utils.notifications import show_info
-
+import pickle
 
 def format_picasso_path(path):
     if "%" in str(path):
@@ -276,6 +276,7 @@ class _export_utils:
             self.export_mesh(path)
 
     def get_export_polygons(self):
+
         export_data = self.gui.shapes_export_data.currentText()
         export_mode = self.gui.shapes_export_mode.currentText()
 
@@ -548,3 +549,123 @@ class _export_utils:
         except:
             self.update_ui()
             pass
+
+    def export_moltrack_project(self, viewer = None, path=None):
+
+        try:
+
+            self.update_ui(init=True)
+
+            if path is None:
+
+                dataset_list = list(self.dataset_dict.keys())
+
+                if len(dataset_list) > 0:
+                    path = self.dataset_dict[dataset_list[0]]["path"]
+
+                    if type(path) == list:
+                        path = path[0]
+
+                    directory = os.path.dirname(path)
+                    file_name = os.path.basename(path)
+                    base, ext = os.path.splitext(file_name)
+                    file_name = base + ".moltrack"
+                    export_path = os.path.join(directory, file_name)
+
+                else:
+                    desktop_dir = os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop")
+                    file_name = "moltrack_project.moltrack"
+                    export_path = os.path.join(desktop_dir, file_name)
+
+                path = QFileDialog.getSaveFileName(self, "Export Moltrack Project", export_path, "(*.moltrack)")[0]
+
+            if path == "":
+                return
+
+            moltrack_project = {}
+
+            if hasattr(self, "dataset_dict"):
+
+                export_project_images = self.gui.export_project_images.isChecked()
+
+                moltrack_project["dataset_dict"] = {}
+
+                for dataset_name in self.dataset_dict.keys():
+
+                    dataset_dict = {}
+
+                    for key, value in self.dataset_dict[dataset_name].items():
+                        if key != "images" or export_project_images:
+                            if key == "images":
+                                print("Exporting images")
+
+                            dataset_dict[key] = value
+
+                    moltrack_project["dataset_dict"][dataset_name] = dataset_dict
+
+                print("image data added to moltrack project")
+
+            if hasattr(self, "segmentation_layer"):
+
+                segmentation_image = self.segmentation_layer.data.copy()
+                scale = self.segmentation_layer.scale
+                pixel_size = scale[0]
+
+                moltrack_project["segmentation_image"] = {"data": segmentation_image,
+                                                          "pixel_size": pixel_size}
+
+                print("segmentation image added to moltrack project")
+
+            if hasattr(self, "localisation_dict"):
+
+                moltrack_project["localisation_dict"] = self.localisation_dict
+
+                print("localisation data added to moltrack project")
+
+            if hasattr(self,"tracking_dict"):
+
+                moltrack_project["tracking_dict"] = self.tracking_dict
+
+                print("tracking data added to moltrack project")
+
+            if hasattr(self, "segLayer"):
+
+                shapes = self.segLayer.data.copy()
+                shape_types = self.segLayer.shape_type.copy()
+                scale = self.segLayer.scale
+                pixel_size = scale[0]
+
+                moltrack_project["segmentations"] = {"shapes": shapes,
+                                                    "shape_types": shape_types,
+                                                    "scale": scale,
+                                                    "pixel_size": pixel_size}
+
+                print("segmentation data added to moltrack project")
+
+            if hasattr(self, "cellLayer"):
+
+                shapes = self.cellLayer.data.copy()
+                shape_types = self.cellLayer.shape_type.copy()
+                properties = self.cellLayer.properties.copy()
+                scale = self.cellLayer.scale
+
+                moltrack_project["cells"] = {"shapes": shapes,
+                                             "shape_types": shape_types,
+                                             "properties": properties,
+                                             "scale": scale,
+                                             "pixel_size": scale[0],}
+
+                print("cell data added to moltrack project")
+
+            with open(path, "wb") as file:
+                pickle.dump(moltrack_project, file)
+
+            show_info("Moltrack project exported")
+
+            self.update_ui()
+
+        except:
+            print(traceback.format_exc())
+            self.update_ui()
+            pass
+

@@ -245,6 +245,9 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.import_images.clicked.connect(self.init_import_data)
 
+        self.gui.import_project.clicked.connect(self.import_moltrack_project)
+        self.gui.export_project.clicked.connect(self.export_moltrack_project)
+
         self.gui.import_mode.currentIndexChanged.connect(self.update_import_options)
         self.gui.import_multichannel_mode.currentIndexChanged.connect(self.update_import_options)
 
@@ -387,7 +390,7 @@ class QWidget(QWidget, gui, *subclasses):
         # self.update_filter_criterion()
         # self.update_criterion_ranges()
 
-        self.get_trackplot_metrics()
+        self.draw_localisations()
 
         # self.draw_localisations()
         # self.export_celllist()

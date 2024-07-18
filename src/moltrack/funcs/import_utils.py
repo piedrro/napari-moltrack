@@ -4,7 +4,7 @@ import os
 
 import pandas as pd
 from PIL import Image
-from qtpy.QtWidgets import QFileDialog
+from qtpy.QtWidgets import QFileDialog, QApplication
 from moltrack.funcs.compute_utils import Worker
 import time
 import multiprocessing
@@ -19,6 +19,7 @@ import h5py
 import json
 import mat4py
 from shapely.geometry import Polygon
+import pickle
 
 def crop_frame(image, crop_mode):
     try:
@@ -196,18 +197,34 @@ class _import_utils:
 
         return path
 
-    def populate_import_jobs(self, progress_callback=None, paths=[]):
+    def populate_import_jobs(self, progress_callback=None, paths=[],
+            import_crop_mode=None, import_limit=None, frame_averaging=None,
+            multichannel_mode=None, channel_name=None, import_mode=None,
+            pixel_size=None, exposure_time=None, **kwargs):
+
         import_jobs = []
 
         try:
-            import_crop_mode = self.gui.import_crop_mode.currentText()
-            import_limit = self.gui.import_limit.currentText()
-            frame_averaging = self.gui.frame_averaging.isChecked()
-            multichannel_mode = self.gui.import_multichannel_mode.currentText()
-            channel_name = self.gui.import_channel_name.text()
-            import_mode = self.gui.import_mode.currentText()
-            pixel_size = float(self.gui.import_pixel_size.value())
-            exposure_time = float(self.gui.import_exposure_time.value())
+
+            if import_crop_mode is None:
+                import_crop_mode = self.gui.import_crop_mode.currentText()
+            if import_limit is None:
+                import_limit = self.gui.import_limit.currentText()
+            if frame_averaging is None:
+                frame_averaging = self.gui.frame_averaging.isChecked()
+            if multichannel_mode is None:
+                multichannel_mode = self.gui.import_multichannel_mode.currentText()
+            if channel_name is None:
+                channel_name = self.gui.import_channel_name.text()
+            if import_mode is None:
+                import_mode = self.gui.import_mode.currentText()
+            if pixel_size is None:
+                pixel_size = float(self.gui.import_pixel_size.value())
+            if exposure_time is None:
+                exposure_time = float(self.gui.import_exposure_time.value())
+
+            if isinstance(paths, str):
+                paths = [paths]
 
             for path_index, path in enumerate(paths):
 
@@ -348,8 +365,10 @@ class _import_utils:
             print(traceback.format_exc())
             pass
 
-    def import_data(self, progress_callback=None, paths=[], import_mode="data"):
-        import_jobs = self.populate_import_jobs(paths=paths)
+    def import_data(self, progress_callback=None, paths=[], import_mode="data", import_jobs = None):
+
+        if import_jobs is None:
+            import_jobs = self.populate_import_jobs(paths=paths)
 
         results = self.process_compute_jobs(import_jobs, progress_callback=progress_callback)
 
@@ -760,4 +779,149 @@ class _import_utils:
             print(traceback.format_exc())
 
 
+    def import_moltrack_project(self, viewer=None, path = None):
 
+        try:
+
+            if path is None:
+                path = os.path.expanduser("~/Desktop")
+                path = QFileDialog.getOpenFileName(self, "Open file", path, "*.moltrack")[0]
+
+            if path == "":
+                return None
+
+            with open(path, 'rb') as f:
+                moltrack_project = pickle.load(f)
+
+            if "dataset_dict" in moltrack_project.keys():
+
+                import_images = self.gui.import_project_images.isChecked()
+
+                import_jobs = []
+
+                dataset_dict = moltrack_project["dataset_dict"]
+
+                for dataset_name, dataset_data in dataset_dict.items():
+
+                    if import_images == True:
+
+                        if "images" in dataset_data.keys():
+                            self.dataset_dict[dataset_name] = dataset_data
+                        else:
+                            path = dataset_data["path"]
+                            if os.path.exists(path):
+                                job = self.populate_import_jobs(paths = [path], **dataset_data)
+                                import_jobs.extend(job)
+                            else:
+                                print(f"Image not found: {path}")
+                    else:
+
+                        if "images" in dataset_data.keys():
+                            dataset_data.pop("images")
+
+                        if dataset_name not in self.dataset_dict.keys():
+                            self.dataset_dict[dataset_name] = dataset_data
+
+                if len(import_jobs) > 0:
+
+                    self.update_ui(init=True)
+
+                    self.worker = Worker(self.import_data,
+                        import_jobs=import_jobs, import_mode="data")
+                    self.worker.signals.progress.connect(partial(self.moltrack_progress,
+                        progress_bar=self.gui.import_progressbar, ))
+                    self.worker.signals.finished.connect(self.import_data_finished)
+                    self.worker.signals.error.connect(self.update_ui)
+                    self.threadpool.start(self.worker)
+
+                if import_images:
+                    self.import_data_finished()
+
+            # wait for import to finish
+            while self.gui.import_images.isEnabled() is False:
+                QApplication.processEvents()
+
+            for key, value in moltrack_project.items():
+
+                if key == "localisation_dict":
+
+                    try:
+
+                        self.localisation_dict = value
+
+                        dataset_list = list(self.localisation_dict.keys())
+                        channel_list = list(self.localisation_dict[dataset_list[0]].keys())
+
+                        self.draw_localisations()
+
+                        if len(channel_list) > 0:
+
+                            active_dataset = dataset_list[0]
+                            active_channel = channel_list[0]
+
+                            self.gui.moltrack_dataset_selector.setCurrentText(active_dataset)
+                            self.gui.moltrack_channel_selector.setCurrentText(active_channel)
+
+                    except:
+                        print(traceback.format_exc())
+                        pass
+
+                if key == "tracking_dict":
+
+                    try:
+
+                        self.tracking_dict = value
+
+                        dataset_list = list(self.tracking_dict.keys())
+                        channel_list = list(self.tracking_dict[dataset_list[0]].keys())
+
+                        self.draw_tracks()
+
+                        if len(channel_list) > 0:
+
+                            active_dataset = dataset_list[0]
+                            active_channel = channel_list[0]
+
+                            self.gui.moltrack_dataset_selector.setCurrentText(active_dataset)
+                            self.gui.moltrack_channel_selector.setCurrentText(active_channel)
+
+                    except:
+                        print(traceback.format_exc())
+                        pass
+
+                if key == "segmentations":
+
+                    try:
+
+                        shapes = value["shapes"]
+                        pixel_size = value["pixel_size"]
+
+                        self.initialise_segLayer(shapes=shapes,
+                            pixel_size=pixel_size)
+
+                    except:
+                        print(traceback.format_exc())
+                        pass
+
+                if key == "cells":
+
+                    try:
+
+                        shapes = value["shapes"]
+                        shape_types = value["shape_types"]
+                        properties = value["properties"]
+                        pixel_size = value["pixel_size"]
+                        self.segmentation_image_pixel_size = pixel_size
+
+                        self.initialise_cellLayer(shapes=shapes,
+                            shape_types=shape_types,
+                            properties=properties)
+
+                    except:
+                        print(traceback.format_exc())
+                        pass
+
+
+        except:
+            print(traceback.format_exc())
+            pass

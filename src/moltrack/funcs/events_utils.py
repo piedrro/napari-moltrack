@@ -332,6 +332,7 @@ class _events_utils:
                         "copy_locs", "copy_tracks",
                         "delete_locs", "delete_tracks",
                         "locs_pixstats_compute", "tracks_pixstats_compute",
+                        "import_project_images", "export_project_images",
                         ]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
