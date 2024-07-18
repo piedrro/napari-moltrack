@@ -432,6 +432,19 @@ class _picasso_detect_utils:
 
             self.draw_localisations()
 
+            if channel_name != "All Channels":
+                self.gui.picasso_filter_channel.blockSignals(True)
+                self.gui.picasso_filter_channel.setCurrentText(channel_name)
+                self.gui.picasso_filter_channel.blockSignals(False)
+
+                self.gui.picasso_render_channel.blockSignals(True)
+                self.gui.picasso_render_channel.setCurrentText(channel_name)
+                self.gui.picasso_render_channel.blockSignals(False)
+
+                self.gui.tracking_channel.blockSignals(True)
+                self.gui.tracking_channel.setCurrentText(channel_name)
+                self.gui.tracking_channel.blockSignals(False)
+
             self.update_filter_criterion()
             self.update_criterion_ranges()
 

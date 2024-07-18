@@ -480,12 +480,24 @@ class _tracking_utils:
         self.draw_localisations()
         self.draw_tracks()
 
+        channel = self.gui.tracking_channel.currentText()
+
+        if channel != "All Channels":
+            self.gui.track_filter_channel.blockSignals(True)
+            self.gui.trackplot_channel.blockSignals(True)
+            self.gui.track_filter_channel.setCurrentText(channel)
+            self.gui.trackplot_channel.setCurrentText(channel)
+            self.gui.track_filter_channel.blockSignals(False)
+            self.gui.trackplot_channel.blockSignals(False)
+
         self.update_track_filter_criterion()
         self.update_track_criterion_ranges()
         self.update_traces_export_options()
 
         self.update_trackplot_options()
         self.plot_tracks(reset=True)
+
+
 
         self.update_ui()
 
