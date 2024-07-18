@@ -499,6 +499,14 @@ class _tracking_utils:
             if len(loc_data) > 0:
                 self.update_ui(init=True)
 
+                self.gui.trackplot_highlight.blockSignals(True)
+                self.gui.trackplot_highlight.setChecked(False)
+                self.gui.trackplot_highlight.blockSignals(False)
+
+                self.gui.trackplot_focus.blockSignals(True)
+                self.gui.trackplot_focus.setChecked(False)
+                self.gui.trackplot_focus.blockSignals(False)
+
                 worker = Worker(self.track_particles, loc_data)
                 worker.signals.result.connect(self.process_tracking_results)
                 worker.signals.finished.connect(self.tracking_finished)
@@ -592,7 +600,7 @@ class _tracking_utils:
             self.update_ui()
 
 
-    def draw_tracks(self, dataset=None, channel=None):
+    def draw_tracks(self, track_id=None):
         try:
 
             remove_tracks = True
@@ -629,6 +637,10 @@ class _tracking_utils:
                         speed = None
 
                     render_tracks = render_tracks[["particle", "frame", "y", "x"]]
+
+                    if track_id in render_tracks["particle"].values:
+                        render_tracks = render_tracks[render_tracks["particle"] == track_id]
+
                     render_tracks = render_tracks.to_records(index=False)
                     render_tracks = [list(track) for track in render_tracks]
                     render_tracks = np.array(render_tracks).copy()

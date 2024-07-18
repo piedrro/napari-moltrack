@@ -50,11 +50,50 @@ class _trackplot_utils:
             print(traceback.format_exc())
             pass
 
+    def highlight_track(self, track_id):
+
+        try:
+
+            if hasattr(self, "track_layer") == False:
+                return
+
+            self.draw_tracks(track_id=track_id)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+    def focus_on_track(self, track_id):
+
+        try:
+            if hasattr(self, "track_layer") == False:
+                return
+
+            tracks = self.track_layer.data
+            scale = self.track_layer.scale
+            track = tracks[tracks[:,0] == track_id]
+
+            track_y = track[:, -2]
+            track_x = track[:, -1]
+
+            center_x = track_x.mean() * scale[-2]
+            center_y = track_y.mean() * scale[-1]
+
+            center = (center_y, center_x)
+
+            self.viewer.camera.center = center
+
+        except:
+            print(traceback.format_exc())
+            pass
+
 
 
     def plot_tracks(self):
 
         trackplot_data = self.get_trackplot_data()
+        track_highlight = self.gui.trackplot_highlight.isChecked()
+        track_focus = self.gui.trackplot_focus.isChecked()
 
         if len(trackplot_data["data"]) > 0:
 
@@ -63,6 +102,12 @@ class _trackplot_utils:
             track_id = trackplot_data["track_id"]
             dataset = trackplot_data["data"][0]["dataset"]
             channel = trackplot_data["data"][0]["channel"]
+
+            if track_highlight:
+                self.highlight_track(track_id)
+
+            if track_focus:
+                self.focus_on_track(track_id)
 
             track_center = f"[{track_center[0]:.2f}, {track_center[1]:.2f}]"
 
@@ -100,7 +145,6 @@ class _trackplot_utils:
                 if i == 0:
                     p.setTitle(title)
                     plot0 = p
-
 
 
     def get_trackplot_data(self):

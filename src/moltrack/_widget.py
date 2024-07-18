@@ -371,8 +371,12 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.trackplot_metric2.currentIndexChanged.connect(self.plot_tracks)
         self.gui.trackplot_metric3.currentIndexChanged.connect(self.plot_tracks)
         self.gui.trackplot_metric4.currentIndexChanged.connect(self.plot_tracks)
+        self.gui.trackplot_focus.stateChanged.connect(self.plot_tracks)
+        self.gui.trackplot_highlight.stateChanged.connect(self.plot_tracks)
         self.gui.trackplot_slider.valueChanged.connect(self.plot_tracks)
         self.gui.trackplot_subtrack_background.stateChanged.connect(self.plot_tracks)
+
+        self.gui.trackplot_highlight.stateChanged.connect(self.draw_tracks)
 
     def devfunc(self, viewer=None):
 
