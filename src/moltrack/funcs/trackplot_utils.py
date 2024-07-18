@@ -7,6 +7,36 @@ import matplotlib.pyplot as plt
 class _trackplot_utils:
 
 
+    def select_track(self, viewer, event):
+
+        try:
+
+            if hasattr(self, "trackplot_tracks") == False:
+                return
+
+            tracks = self.trackplot_tracks
+
+            click_coords = self.track_layer.world_to_data(event.position)
+            click_coords = [click_coords[-1], click_coords[-2]]
+            track_coords = tracks[["x", "y"]].values
+
+            track_distances = np.linalg.norm(track_coords - click_coords, axis=1)
+            closest_distance = np.min(track_distances)
+            loc_index = np.argmin(track_distances)
+            track_id = tracks.loc[loc_index].particle
+
+            particle_list = tracks.particle.unique().tolist()
+            slider_value = particle_list.index(track_id)
+
+            self.gui.trackplot_slider.setValue(slider_value)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+        pass
+
+
     def initialise_trackplot_slider(self):
 
         try:
@@ -41,10 +71,18 @@ class _trackplot_utils:
 
         try:
 
+            if hasattr(self, "trackplot_tracks") == False:
+                return
+
             slider = self.gui.trackplot_slider
             slider_label = self.gui.trackplot_slider_label
 
-            slider_label.setText(str(slider.value()))
+            tracks = self.trackplot_tracks
+
+            particle_list = tracks.particle.unique().tolist()
+            track_id = particle_list[slider.value()]
+
+            slider_label.setText(str(track_id))
 
         except:
             print(traceback.format_exc())

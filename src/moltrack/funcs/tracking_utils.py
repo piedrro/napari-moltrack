@@ -652,6 +652,9 @@ class _tracking_utils:
                         self.track_layer = self.viewer.add_tracks(render_tracks, name="Tracks",
                             scale=scale, colormap="plasma", properties=properties, color_by="track_id",)
                         self.viewer.reset_view()
+
+                        self.track_layer.mouse_double_click_callbacks.append(self.select_track)
+
                     else:
 
                         self.track_layer.color_by = "track_id"
