@@ -15,12 +15,14 @@ Multiple datasets can be loaded and processed in parallel.
 
 Single molecule localisations can be filtered by their properties (e.g. photons, width, etc.) and can be rendered as a super resolution image.
 
-Segmentations can be used to exclude regions froHm single molecule localisation and tracking.
+Napari-moltrack is also compatible with **FRET** and **ALEX FRET** image data, can be used to calculate FRET efficiencies of single molecules/tracks.
+
+Segmentations can be used to exclude regions from single molecule localisation and tracking.
 Segmentations can be added automatically using Cellpose or can be added manually. Includes tools for editing/modifying segmentations at a sub-pixel resolution.
 
 Compatible with both single and multi channel .tif and .fits files.
 
-napari-moltrack was written by Piers Turner, Kapanidis Group, University of Oxford....
+napari-moltrack was written by Piers Turner, Kapanidis Group, University of Oxford.
 
 https://www.physics.ox.ac.uk/research/group/gene-machines
 
@@ -42,6 +44,9 @@ You can install `napari-moltrack` via [pip]:
 
     pip install napari-moltrack
 
+To update `napari-moltrack` to the latest version, use:
+
+    pip install napari-moltrack --upgrade
 
 To install latest development version :
 
