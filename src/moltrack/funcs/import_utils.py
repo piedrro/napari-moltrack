@@ -854,6 +854,11 @@ class _import_utils:
 
                         self.draw_localisations()
 
+                        self.update_filter_criterion()
+                        self.update_criterion_ranges()
+
+                        self.update_ui()
+
                         if len(channel_list) > 0:
 
                             active_dataset = dataset_list[0]
@@ -877,6 +882,13 @@ class _import_utils:
 
                         self.draw_tracks()
 
+                        self.update_track_filter_criterion()
+                        self.update_track_criterion_ranges()
+                        self.update_traces_export_options()
+
+                        self.update_trackplot_options()
+                        self.plot_tracks(reset=True)
+
                         if len(channel_list) > 0:
 
                             active_dataset = dataset_list[0]
@@ -884,6 +896,7 @@ class _import_utils:
 
                             self.gui.moltrack_dataset_selector.setCurrentText(active_dataset)
                             self.gui.moltrack_channel_selector.setCurrentText(active_channel)
+
 
                     except:
                         print(traceback.format_exc())

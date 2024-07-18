@@ -497,8 +497,6 @@ class _tracking_utils:
         self.update_trackplot_options()
         self.plot_tracks(reset=True)
 
-
-
         self.update_ui()
 
     def initialise_tracking(self):

@@ -3507,7 +3507,7 @@
              <item row="2" column="0">
               <widget class="QLabel" name="label_140">
                <property name="text">
-                <string>Metric(s)</string>
+                <string>Y Axis</string>
                </property>
               </widget>
              </item>
@@ -3526,6 +3526,37 @@
                 <widget class="QComboBox" name="trackplot_metric4"/>
                </item>
               </layout>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_146">
+               <property name="text">
+                <string>X Axis</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QComboBox" name="trackplot_xaxis">
+               <item>
+                <property name="text">
+                 <string>Segment Index</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Frame Index</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Time (s)</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Time (ms)</string>
+                </property>
+               </item>
+              </widget>
              </item>
             </layout>
            </item>

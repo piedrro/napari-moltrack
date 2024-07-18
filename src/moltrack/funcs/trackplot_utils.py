@@ -260,6 +260,7 @@ class _trackplot_utils:
     def get_trackplot_data(self):
 
         subtract_bg = self.gui.trackplot_subtrack_background.isChecked()
+        trackplot_xaxis = self.gui.trackplot_xaxis.currentText()
 
         trackplot_data = {"track_id": None, "track_center": [], "data": []}
 
@@ -280,6 +281,7 @@ class _trackplot_utils:
 
                     track_data = tracks[tracks.particle == track_id]
 
+                    track_frames = track_data["frame"].values
                     track_center = track_data[["x", "y"]].mean().values
 
                     trackplot_data["track_id"] = track_id
@@ -317,8 +319,18 @@ class _trackplot_utils:
                                         metric_values = np.array(metric_values) - np.array(bg_values)
                                         metric_values = metric_values.tolist()
 
-                                x_axis = [i * exposure_time_s for i in range(len(metric_values))]
-                                x_axis_label = "Time (s)"
+                                if trackplot_xaxis == "Frame Index":
+                                    x_axis = list(track_frames)
+                                    x_axis_label = "Frame Index"
+                                elif trackplot_xaxis == "Time (s)":
+                                    x_axis = [i * exposure_time_s for i in range(len(metric_values))]
+                                    x_axis_label = "Time (s)"
+                                elif trackplot_xaxis == "Time (ms)":
+                                    x_axis = [i * exposure_time_ms for i in range(len(metric_values))]
+                                    x_axis_label = "Time (ms)"
+                                else:
+                                    x_axis = [i for i in range(len(metric_values))]
+                                    x_axis_label = "Segment Index"
 
                                 trackplot_data["data"].append({"metric": metric_label,
                                                                "dataset": dataset,
