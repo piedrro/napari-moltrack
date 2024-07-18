@@ -779,6 +779,10 @@ class _import_utils:
             print(traceback.format_exc())
 
 
+    def toggle_moltrack_images_imported(self):
+
+        self.moltrack_images_imported = True
+
     def import_moltrack_project(self, viewer=None, path = None):
 
         try:
@@ -795,6 +799,7 @@ class _import_utils:
 
             if "dataset_dict" in moltrack_project.keys():
 
+                self.moltrack_images_imported = False
                 import_images = self.gui.import_project_images.isChecked()
 
                 import_jobs = []
@@ -830,16 +835,18 @@ class _import_utils:
                         import_jobs=import_jobs, import_mode="data")
                     self.worker.signals.progress.connect(partial(self.moltrack_progress,
                         progress_bar=self.gui.import_progressbar, ))
-                    self.worker.signals.finished.connect(self.import_data_finished)
+                    self.worker.signals.finished.connect(self.toggle_moltrack_images_imported)
                     self.worker.signals.error.connect(self.update_ui)
                     self.threadpool.start(self.worker)
 
-                if import_images:
-                    self.import_data_finished()
+                else:
+                    self.moltrack_images_imported = True
 
             # wait for import to finish
-            while self.gui.import_images.isEnabled() is False:
+            while self.moltrack_images_imported is False:
                 QApplication.processEvents()
+
+            self.import_data_finished()
 
             for key, value in moltrack_project.items():
 
