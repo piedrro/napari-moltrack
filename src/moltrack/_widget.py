@@ -376,7 +376,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.trackplot_slider.valueChanged.connect(self.plot_tracks)
         self.gui.trackplot_subtrack_background.stateChanged.connect(self.plot_tracks)
 
-        self.gui.trackplot_highlight.stateChanged.connect(self.draw_tracks)
+        self.gui.trackplot_highlight.stateChanged.connect(self.reset_tracks)
 
     def devfunc(self, viewer=None):
 

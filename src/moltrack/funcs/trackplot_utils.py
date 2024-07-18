@@ -101,6 +101,19 @@ class _trackplot_utils:
             print(traceback.format_exc())
             pass
 
+    def reset_tracks(self):
+
+        try:
+            if hasattr(self, "track_layer"):
+
+                if self.gui.trackplot_highlight.isChecked() == False:
+                    self.draw_tracks()
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+
     def focus_on_track(self, track_id):
 
         try:
