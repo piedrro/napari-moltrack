@@ -485,7 +485,7 @@ class _tracking_utils:
         self.update_traces_export_options()
 
         self.update_trackplot_options()
-        self.plot_tracks()
+        self.plot_tracks(reset=True)
 
         self.update_ui()
 
