@@ -4314,7 +4314,7 @@
            <item>
             <widget class="QLabel" name="label_54">
              <property name="text">
-              <string>Export univariate time traces for downstream analysis</string>
+              <string>Export time traces for downstream analysis</string>
              </property>
             </widget>
            </item>
@@ -4355,16 +4355,6 @@
              </item>
              <item row="2" column="1">
               <widget class="QComboBox" name="traces_export_channel"/>
-             </item>
-             <item row="3" column="0">
-              <widget class="QLabel" name="label_53">
-               <property name="text">
-                <string>Metric</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="1">
-              <widget class="QComboBox" name="traces_export_metric"/>
              </item>
             </layout>
            </item>

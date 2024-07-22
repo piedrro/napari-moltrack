@@ -216,8 +216,8 @@ class QWidget(QWidget, gui, *subclasses):
                                  "Y": "y",
                                  "Photons": "photons",
                                  "Background": "bg",
-                                 "PSF width X": "sx",
-                                 "PSF width Y": "sy",
+                                 "PSF Width X": "sx",
+                                 "PSF Width Y": "sy",
                                  "Localisation Precision X": "lpx",
                                  "Localisation Precision Y": "lpy",
                                  "Ellipticity": "ellipticity",
@@ -347,9 +347,6 @@ class QWidget(QWidget, gui, *subclasses):
         self.viewer.layers.events.removed.connect(self.update_layer_combos)
         self.viewer.dims.events.current_step.connect(self.slider_event)
 
-        self.gui.traces_export_dataset.currentIndexChanged.connect(self.update_traces_export_options)
-        self.gui.traces_export_channel.currentIndexChanged.connect(self.update_traces_export_options)
-
         self.gui.import_localisations.clicked.connect(self.import_localisations)
         self.gui.locs_import_data.currentIndexChanged.connect(self.update_locs_import_options)
 
@@ -396,8 +393,6 @@ class QWidget(QWidget, gui, *subclasses):
         # self.draw_localisations()
         # self.export_celllist()
 
-        # self.update_traces_export_options()
-
         # self.compute_pixmap_finished()
         # self.celllist.get_cell_lengths()
         # self.update_render_length_range()
@@ -412,7 +407,6 @@ class QWidget(QWidget, gui, *subclasses):
 
         # self.create_shared_image_chunks()
         # self.restore_shared_image_chunks()
-        # self.update_traces_export_options()
         # self.gui.track_filter_channel.currentIndexChanged.connect(self.update_track_filter_criterion)
 
 

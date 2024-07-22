@@ -177,8 +177,6 @@ class _pixstats_utils:
         self.update_trackplot_options()
         self.plot_tracks()
 
-        self.update_traces_export_options()
-
 
     def process_pixstats_result(self, result):
 
