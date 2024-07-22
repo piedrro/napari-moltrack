@@ -25,7 +25,7 @@ class _events_utils:
                                  "locs_import_dataset", "tform_compute_dataset",
                                  "copy_locs_dataset", "copy_tracks_dataset",
                                  "delete_locs_dataset", "delete_tracks_dataset",
-                                 "trackplot_dataset",
+                                 "trackplot_dataset", "merge_locs_dataset",
                                  ]
 
             for selector_name in dataset_selectors:
@@ -338,7 +338,7 @@ class _events_utils:
                         "delete_locs", "delete_tracks",
                         "locs_pixstats_compute", "tracks_pixstats_compute",
                         "import_project_images", "export_project_images",
-                        ]
+                        "merge_locs",]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
                             "picasso_progressbar", "export_progressbar",

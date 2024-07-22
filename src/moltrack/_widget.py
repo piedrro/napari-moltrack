@@ -386,6 +386,8 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.trackplot_highlight.stateChanged.connect(self.reset_tracks)
 
+        self.gui.merge_locs.clicked.connect(self.merge_localisations)
+
     def devfunc(self, viewer=None):
 
         # self.update_render_length_range()

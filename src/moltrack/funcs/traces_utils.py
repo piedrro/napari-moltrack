@@ -117,6 +117,9 @@ class _traces_utils:
                             if column_name not in channel_data:
                                 continue
 
+                            if "fret" in column_name:
+                                continue
+
                             data = channel_data[column_name]
 
                             if metric_name not in channel_dict["trace_dict"]:

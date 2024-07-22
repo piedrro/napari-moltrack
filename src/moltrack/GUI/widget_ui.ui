@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>597</width>
-    <height>764</height>
+    <width>681</width>
+    <height>876</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -2001,6 +2001,67 @@
             </spacer>
            </item>
            <item>
+            <widget class="QLabel" name="label_149">
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Merge Localisations in Dataset</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_152">
+             <property name="text">
+              <string>Merges localisations across multiple channels within a dataset. Uses DBSCAN to remove duplicates. Useful for tracking particles that appear/transition between channels.</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QFormLayout" name="formLayout_18">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_150">
+               <property name="text">
+                <string>Dataset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="merge_locs_dataset"/>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_151">
+               <property name="text">
+                <string>Min Distance (Pixels)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QDoubleSpinBox" name="merge_locs_min_distance"/>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QPushButton" name="merge_locs">
+             <property name="text">
+              <string>Merge Localisations</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="tab_31">
+          <attribute name="title">
+           <string>Visualisations</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_33">
+           <item>
             <widget class="QLabel" name="label_27">
              <property name="font">
               <font>
@@ -2232,6 +2293,19 @@
               </widget>
              </item>
             </layout>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_30">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
            </item>
           </layout>
          </widget>
@@ -4138,7 +4212,7 @@
        <item>
         <widget class="QTabWidget" name="tabWidget_2">
          <property name="currentIndex">
-          <number>0</number>
+          <number>2</number>
          </property>
          <widget class="QWidget" name="tab_5">
           <attribute name="title">

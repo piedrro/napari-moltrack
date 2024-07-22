@@ -5,6 +5,8 @@ from shapely.geometry import Polygon, Point, MultiPolygon, MultiPoint
 from shapely.strtree import STRtree
 import matplotlib.pyplot as plt
 from napari.utils.notifications import show_info
+from sklearn.cluster import DBSCAN
+from moltrack.funcs.compute_utils import Worker
 
 class _loc_filter_utils:
 
@@ -531,4 +533,104 @@ class _loc_filter_utils:
             print(traceback.format_exc())
 
 
+    def merge_localisations_finished(self):
+
+        self.update_ui()
+        self.draw_localisations()
+
+
+    def compute_merge_localisations(self, dataset, locs, min_distance=1,
+            progress_callback=None):
+
+        merged_locs = []
+
+        try:
+            locs = pd.DataFrame(locs)
+
+            locs_channels = locs["channel"].unique()
+            n_channels = len(locs_channels)
+
+            if n_channels > 1:
+                for frame, frame_locs in locs.groupby("frame"):
+
+                    try:
+
+                        if len(frame_locs) == 0:
+                            continue
+
+                        cluster_dataset = np.vstack((frame_locs.x, frame_locs.y)).T
+
+                        # Apply DBSCAN
+                        dbscan = DBSCAN(eps=min_distance, min_samples=2, n_jobs=-1)
+                        dbscan.fit(cluster_dataset)
+
+                        # Get the labels assigned by DBSCAN
+                        labels = dbscan.labels_
+
+                        # Add the labels to the original dataframe
+                        frame_locs['cluster_label'] = labels
+
+                        # Separate the clustered data from the noise
+                        clustered_data = frame_locs[labels != -1]
+                        non_clustered_data = frame_locs[labels == -1]
+
+                        # Keep only the first instance of each cluster
+                        clustered_data = clustered_data.drop_duplicates(subset='cluster_label', keep='first')
+
+                        merged_frame_locs = pd.concat([clustered_data, non_clustered_data])
+
+                        merged_locs.append(merged_frame_locs)
+
+                    except:
+                        print(traceback.format_exc())
+                        pass
+
+                merged_locs = pd.concat(merged_locs)
+
+                if len(merged_locs) > 0:
+
+                    dataset_channels = list(self.dataset_dict[dataset]["images"].keys())
+
+                    for channel in dataset_channels:
+
+                        merged_locs["channel"] = channel
+
+                        mlocs = merged_locs.to_records(index=False)
+
+                        if channel not in self.localisation_dict[dataset].keys():
+                            self.localisation_dict[dataset][channel] = self.localisation_dict[dataset][locs_channels[0]].copy()
+
+                        loc_dict = self.localisation_dict[dataset][channel]
+                        loc_dict["localisations"] = mlocs
+                        self.localisation_dict[dataset][channel] = loc_dict
+
+        except:
+            print(traceback.format_exc())
+            pass
+
+        return merged_locs
+
+    def merge_localisations(self):
+
+        try:
+
+
+            dataset = self.gui.merge_locs_dataset.currentText()
+            min_distance = self.gui.merge_locs_min_distance.value()
+
+            locs = self.get_locs(dataset, "All Channels")
+
+            if len(locs) == 0:
+                return
+
+            self.update_ui(init=True)
+
+            worker = Worker(self.compute_merge_localisations, dataset, locs, min_distance)
+            worker.signals.finished.connect(self.merge_localisations_finished)
+            self.threadpool.start(worker)
+
+        except:
+            print(traceback.format_exc())
+            self.update_ui()
+            pass
 
