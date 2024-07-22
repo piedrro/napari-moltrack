@@ -305,6 +305,7 @@ class _tracking_utils:
                     locdf[segcol] = 0
 
                 n_segmentations = len(locdf[segcol].unique())
+                tp.quiet()
 
                 if n_segmentations == 1:
 
@@ -320,7 +321,6 @@ class _tracking_utils:
 
                     for seg_index, group in locdf.groupby(segcol):
 
-                        tp.quiet()
                         seg_track = self.link_locs(group.copy(), search_range=search_range,
                             memory=memory)
 
@@ -531,6 +531,8 @@ class _tracking_utils:
         self.update_track_filter_criterion()
         self.update_track_criterion_ranges()
 
+        self.update_traces_export_options()
+
         self.update_trackplot_options()
         self.plot_tracks(reset=True)
 
@@ -575,6 +577,8 @@ class _tracking_utils:
 
         self.update_track_filter_criterion()
         self.update_track_criterion_ranges()
+
+        self.update_traces_export_options()
 
         self.update_trackplot_options()
         self.plot_tracks()

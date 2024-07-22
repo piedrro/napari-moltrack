@@ -235,6 +235,10 @@ class QWidget(QWidget, gui, *subclasses):
                                  "Pixel Sum FRET": "pixel_sum_fret",
                                  }
 
+        self.intensity_columns = ["pixel_mean", "pixel_std",
+                                  "pixel_median", "pixel_min",
+                                  "pixel_max", "pixel_sum"]
+
         # self.gui.tracks_pixstats_fret.hide()
         # self.gui.locs_pixstats_fret.hide()
 
@@ -377,6 +381,9 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.trackplot_subtrack_background.stateChanged.connect(self.plot_tracks)
         self.gui.trackplot_xaxis.currentIndexChanged.connect(partial(self.plot_tracks, reset=True))
 
+        self.gui.traces_export_dataset.currentIndexChanged.connect(self.update_traces_export_options)
+        self.gui.traces_export_channel.currentIndexChanged.connect(self.update_traces_export_options)
+
         self.gui.trackplot_highlight.stateChanged.connect(self.reset_tracks)
 
     def devfunc(self, viewer=None):
@@ -385,10 +392,12 @@ class QWidget(QWidget, gui, *subclasses):
         # self.update_render_msd_range()
 
         self.update_ui()
+        self.update_traces_export_options()
+
         # self.update_filter_criterion()
         # self.update_criterion_ranges()
 
-        self.draw_localisations()
+        # self.draw_localisations()
 
         # self.draw_localisations()
         # self.export_celllist()

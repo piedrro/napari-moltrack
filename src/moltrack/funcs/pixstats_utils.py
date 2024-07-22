@@ -174,6 +174,8 @@ class _pixstats_utils:
         self.update_track_filter_criterion()
         self.update_track_criterion_ranges()
 
+        self.update_traces_export_options()
+
         self.update_trackplot_options()
         self.plot_tracks()
 
