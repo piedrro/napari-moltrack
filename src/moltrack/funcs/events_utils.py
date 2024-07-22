@@ -291,6 +291,11 @@ class _events_utils:
             self.gui.picasso_segmentation_layer.clear()
             self.gui.picasso_segmentation_layer.addItems(shapes_layers)
 
+            shapes_layers.insert(0,"")
+
+            self.gui.tracking_segmentations.clear()
+            self.gui.tracking_segmentations.addItems(shapes_layers)
+
         except:
             print(traceback.format_exc())
             pass

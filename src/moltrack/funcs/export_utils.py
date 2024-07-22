@@ -494,7 +494,9 @@ class _export_utils:
             pass
 
     def sort_export_cols(self, data):
-        order = ["dataset", "channel", "group", "particle", "frame", "cell_index", "segmentation_index", "x", "y", "photons", "bg", "sx", "sy", "lpx", "lpy", "ellipticity", "net_gradient", "iterations", ]
+        order = ["dataset", "channel", "group", "particle", "frame", "cell_index",
+                 "segmentation_index", "x", "y", "photons", "bg", "sx", "sy", "lpx", "lpy",
+                 "ellipticity", "net_gradient", "iterations", ]
 
         mask = []
 
@@ -603,8 +605,6 @@ class _export_utils:
 
                     moltrack_project["dataset_dict"][dataset_name] = dataset_dict
 
-                print("image data added to moltrack project")
-
             if hasattr(self, "segmentation_layer"):
 
                 segmentation_image = self.segmentation_layer.data.copy()
@@ -613,8 +613,6 @@ class _export_utils:
 
                 moltrack_project["segmentation_image"] = {"data": segmentation_image,
                                                           "pixel_size": pixel_size}
-
-                print("segmentation image added to moltrack project")
 
             if hasattr(self, "localisation_dict"):
 
@@ -625,8 +623,6 @@ class _export_utils:
             if hasattr(self,"tracking_dict"):
 
                 moltrack_project["tracking_dict"] = self.tracking_dict
-
-                print("tracking data added to moltrack project")
 
             if hasattr(self, "segLayer"):
 
@@ -640,8 +636,6 @@ class _export_utils:
                                                     "scale": scale,
                                                     "pixel_size": pixel_size}
 
-                print("segmentation data added to moltrack project")
-
             if hasattr(self, "cellLayer"):
 
                 shapes = self.cellLayer.data.copy()
@@ -654,8 +648,6 @@ class _export_utils:
                                              "properties": properties,
                                              "scale": scale,
                                              "pixel_size": scale[0],}
-
-                print("cell data added to moltrack project")
 
             with open(path, "wb") as file:
                 pickle.dump(moltrack_project, file)

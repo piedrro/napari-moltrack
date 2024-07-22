@@ -275,6 +275,7 @@ class _tracking_utils:
 
     def detect_tracks(self, loc_data, progress_callback=None):
 
+        segchannel = self.gui.tracking_segmentations.currentText()
         search_range = float(self.gui.trackpy_search_range.value())
         memory = int(self.gui.trackpy_memory.value())
         min_track_length = int(self.gui.min_track_length.value())
@@ -289,19 +290,55 @@ class _tracking_utils:
                 exposure_time_ms = float(self.dataset_dict[dataset]["exposure_time"])
                 locs = dat["localisations"]
 
+
                 pixel_size_um = pixel_size_nm * 1e-3
                 exposure_time_s = exposure_time_ms * 1e-3
 
-                columns = list(locs.dtype.names)
+                if segchannel in ["Segmentations", "Cells"]:
+                    locs, segcol = self.detect_seglocs(dataset, channel, segchannel)
+                    columns = list(locs.dtype.names)
+                    locdf = pd.DataFrame(locs, columns=columns)
+                else:
+                    columns = list(locs.dtype.names)
+                    locdf = pd.DataFrame(locs, columns=columns)
+                    segcol ="segmentation_index"
+                    locdf[segcol] = 0
 
-                locdf = pd.DataFrame(locs, columns=columns)
+                n_segmentations = len(locdf[segcol].unique())
 
-                tp.quiet()
-                tracks_df = self.link_locs(locdf, search_range=search_range,
-                    memory=memory, progress_callback=progress_callback)
+                if n_segmentations == 1:
+
+                    tracks_df = self.link_locs(locdf, search_range=search_range,
+                        memory=memory, progress_callback=progress_callback)
+                    tracks_df = tracks_df.sort_values(by=[segcol, "particle", "frame"])
+                    tracks_df.drop(columns=[segcol], inplace=True)
+
+                else:
+
+                    seg_tracks = []
+                    track_index = 1
+
+                    for seg_index, group in locdf.groupby(segcol):
+
+                        tp.quiet()
+                        seg_track = self.link_locs(group.copy(), search_range=search_range,
+                            memory=memory)
+
+                        particle_array = seg_track["particle"].values
+                        particle_array = particle_array + track_index
+                        seg_track["particle"] = particle_array
+                        track_index = np.max(particle_array) + 1
+
+                        seg_tracks.append(seg_track.copy())
+
+                        if progress_callback is not None:
+                            progress = int(len(seg_tracks) / n_segmentations * 100)
+                            progress_callback.emit(progress)
+
+                    tracks_df = pd.concat(seg_tracks, ignore_index=True)
+                    tracks_df = tracks_df.sort_values(by=[segcol,"particle", "frame"])
 
                 tracks_df.reset_index(drop=True, inplace=True)
-
                 tracks_df = tp.filter_stubs(tracks_df, min_track_length).reset_index(drop=True)
 
                 self.tracks = tracks_df
@@ -317,6 +354,7 @@ class _tracking_utils:
                 tracks_df["exposure_time (s)"] = exposure_time_s
 
                 track_data.append(tracks_df)
+
 
             except:
                 print(traceback.format_exc())

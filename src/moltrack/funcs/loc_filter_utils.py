@@ -47,6 +47,72 @@ class _loc_filter_utils:
 
 
 
+    def detect_seglocs(self, dataset, channel, segchannel):
+
+        seglocs = []
+
+        try:
+
+            polygons = self.get_shapes(segchannel, flipxy=True, polygon=True)
+
+            if len(polygons) == 0:
+                return
+
+            locs = self.get_locs(dataset, channel, return_dict=False)
+            n_locs = len(locs)
+
+            if n_locs == 0:
+                return
+
+            coords = np.stack([locs["x"], locs["y"]], axis=1)
+            points = [Point(coord) for coord in coords]
+
+            spatial_index = STRtree(points)
+
+            polygon_point_indices = []
+            polygon_indices = []
+
+            for polygon_index, polygon in enumerate(polygons):
+
+                possible_points = spatial_index.query(polygon)
+
+                for point_index in possible_points:
+
+                    point = points[point_index]
+
+                    if polygon.contains(point):
+
+                        polygon_point_indices.append(point_index)
+                        polygon_indices.append(polygon_index)
+
+            if len(polygon_point_indices) > 0:
+
+                polygon_locs = locs[polygon_point_indices].copy()
+
+                seg_name = segchannel[:-1].lower() + "_index"
+
+                polygon_locs = pd.DataFrame(polygon_locs)
+
+                if "cell_index" in polygon_locs.columns:
+                    polygon_locs = polygon_locs.drop(columns=["cell_index"])
+                if "segmentation_index" in polygon_locs.columns:
+                    polygon_locs = polygon_locs.drop(columns=["segmentation_index"])
+
+                polygon_locs[seg_name] = polygon_indices
+                polygon_locs = polygon_locs.to_records(index=False)
+
+                seglocs.append(polygon_locs)
+
+            if len(seglocs) > 0:
+                seglocs = np.hstack(seglocs).view(np.recarray).copy()
+
+        except:
+            print(traceback.format_exc())
+
+        return seglocs, seg_name
+
+
+
 
 
     def remove_seglocs(self, viewer=None):
