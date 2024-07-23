@@ -310,7 +310,8 @@ class _segmentation_utils:
                         shape = np.insert(shape, 0, frame, axis=1)
 
                     if contour.shape[0] > 0:  # Ensure that the contour has points
-                        shapes.append(shape)
+                        if len(shape) > 3:
+                            shapes.append(shape)
         except:
             pass
 
