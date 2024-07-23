@@ -224,6 +224,10 @@ class _track_filter_utils:
                         xlabel = f"{metric} Speed (µm/s)"
                     elif criterion == "Apparent Diffusion Coefficient":
                         xlabel = f"{metric} Apparent Diffusion Coefficient (µm²/s)"
+                    elif criterion == "Step Size":
+                        xlabel = f"{metric} Step Size (µm)"
+                    elif criterion == "Rolling MSD":
+                        xlabel = f"{metric} Rolling MSD (µm²)"
                     else:
                         xlabel = criterion
 

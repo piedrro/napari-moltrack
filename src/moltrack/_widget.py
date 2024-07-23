@@ -41,6 +41,7 @@ from moltrack.funcs.transform_utils import _transform_utils
 from moltrack.funcs.management_utils import _management_utils
 from moltrack.funcs.pixstats_utils import _pixstats_utils
 from moltrack.funcs.trackplot_utils import _trackplot_utils
+from moltrack.funcs.trackstats_utils import _trackstats_utils
 
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
@@ -53,7 +54,8 @@ subclasses = [_import_utils, _compute_utils,
               oufti, _diffusion_utils, _cell_heatmap_utils,
               _track_filter_utils, _traces_utils,
               _transform_utils, _management_utils,
-              _pixstats_utils, _trackplot_utils]
+              _pixstats_utils, _trackplot_utils,
+              _trackstats_utils]
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -212,6 +214,8 @@ class QWidget(QWidget, gui, *subclasses):
         self.moltrack_metrics = {"Mean Squared Displacement": "msd",
                                  "Speed": "speed",
                                  "Apparent Diffusion Coefficient": "D*",
+                                 "Step Size": "step_size",
+                                 "Rolling MSD": "rolling_msd",
                                  "X": "x",
                                  "Y": "y",
                                  "Photons": "photons",

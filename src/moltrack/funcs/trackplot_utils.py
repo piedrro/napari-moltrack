@@ -176,6 +176,10 @@ class _trackplot_utils:
                         y_axis_label = f"Speed (µm/s)"
                     elif metric == "Apparent Diffusion Coefficient":
                         y_axis_label = f"Apparent Diffusion Coefficient (µm²/s)"
+                    elif metric == "Step Size":
+                        y_axis_label = f"Step Size (µm)"
+                    elif metric == "Rolling MSD":
+                        y_axis_label = f"Rolling MSD (µm²)"
                     else:
                         y_axis_label = metric
 
