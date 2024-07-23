@@ -80,16 +80,8 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
         start_index = dat["start_index"]
         remove_overlapping = dat["remove_overlapping"]
         stop_event = dat["stop_event"]
-        polygon_filter = dat["polygon_filter"]
-        polygons = dat["polygons"]
         threshold = dat["threshold"]
         kernel_size = dat["kernel_size"]
-        segmentation_layer = dat["segmentation_layer"]
-
-        if segmentation_layer not in ["None",""]:
-            seg_name = segmentation_layer[:-1].lower() + "_index"
-        else:
-            seg_name = "shape_index"
 
         loc_list = []
         spot_list = []
@@ -123,12 +115,6 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
                     if remove_overlapping:
                         locs = remove_overlapping_locs(locs, box_size)
 
-                    polygon_indices = get_polygon_indices(polygons, locs)
-
-                    if polygon_filter:
-                        locs, polygon_indices = remove_segmentation_locs(polygons,
-                            locs, polygon_indices)
-
                     if len(locs) > 0:
 
                         image = np.expand_dims(frame.copy(), axis=0)
@@ -140,9 +126,6 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
                         locs = pd.DataFrame(locs)
                         locs.insert(0, "dataset", dataset)
                         locs.insert(1, "channel", channel)
-
-                        if segmentation_layer not in ["None",""]:
-                            locs[seg_name] = polygon_indices
 
                         locs = locs.to_records(index=False)
 
@@ -279,61 +262,6 @@ def fit_spots_lq(spots, locs, box, progress_list):
 
     return locs
 
-
-def get_polygon_indices(polygons, locs):
-
-    polygon_indices = [-1] * len(locs)
-
-    try:
-
-        if len(polygons) > 0 and len(locs) > 0:
-
-            coords = np.stack([locs["x"], locs["y"]], axis=1)
-            points = [Point(coord) for coord in coords]
-
-            spatial_index = STRtree(points)
-
-            for polygon_index, polygon in enumerate(polygons):
-
-                possible_points = spatial_index.query(polygon)
-
-                for point_index in possible_points:
-
-                    point = points[point_index]
-
-                    if polygon.contains(point):
-
-                        polygon_indices[point_index] = polygon_index
-
-    except:
-        print(traceback.format_exc())
-        pass
-
-    return polygon_indices
-
-
-
-def remove_segmentation_locs(polygons, locs, polygon_indices):
-
-    try:
-
-        if len(polygon_indices) > 0:
-
-            delete_indices = np.argwhere(np.array(polygon_indices) == -1).flatten()
-
-            polygon_indices = np.delete(np.array(polygon_indices), delete_indices)
-
-            mask = np.ones(len(locs), dtype=bool)
-            mask[delete_indices] = False
-
-            locs = locs[mask]
-
-    except:
-        print(traceback.format_exc())
-        pass
-
-    return locs, polygon_indices
-
 def detect_picaso_locs(dat, progress_list, fit_list):
 
     result = None
@@ -347,8 +275,6 @@ def detect_picaso_locs(dat, progress_list, fit_list):
         start_index = dat["start_index"]
         remove_overlapping = dat["remove_overlapping"]
         stop_event = dat["stop_event"]
-        polygon_filter = dat["polygon_filter"]
-        polygons = dat["polygons"]
 
         loc_list = []
         spot_list = []
@@ -370,12 +296,6 @@ def detect_picaso_locs(dat, progress_list, fit_list):
 
                 if remove_overlapping:
                     locs = remove_overlapping_locs(locs, box_size)
-
-                polygon_indices = get_polygon_indices(polygons, locs)
-
-                if polygon_filter:
-                    locs, polygon_indices = remove_segmentation_locs(polygons,
-                        locs, polygon_indices)
 
                 if len(locs) > 0:
 
@@ -559,12 +479,8 @@ class _picasso_detect_utils:
 
             box_size = int(self.gui.picasso_box_size.value())
             remove_overlapping = self.gui.picasso_remove_overlapping.isChecked()
-            segmentation_layer = self.gui.picasso_segmentation_layer.currentText()
-            polygon_filter = self.gui.picasso_segmentation_filter.isChecked()
             threshold = int(self.gui.smlm_threshold.value())
             kernel_size = int(self.gui.moltrack_kernel_size.text())
-
-            segmentation_polygons = self.get_segmentation_polygons(segmentation_layer)
 
             compute_jobs = []
 
@@ -590,9 +506,6 @@ class _picasso_detect_utils:
                                "kernel_size": kernel_size,
                                "roi": roi_dict[dataset][channel],
                                "remove_overlapping": remove_overlapping,
-                               "segmentation_layer": segmentation_layer,
-                               "polygon_filter":polygon_filter,
-                               "polygons": segmentation_polygons,
                                "stop_event": self.stop_event, }
 
                 compute_jobs.append(compute_job)

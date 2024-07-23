@@ -295,8 +295,6 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.locs_pixstats_compute.clicked.connect(partial(self.initialise_pixstats, mode="locs"))
         self.gui.tracks_pixstats_compute.clicked.connect(partial(self.initialise_pixstats, mode="tracks"))
 
-        self.gui.picasso_segmentation_layer.currentIndexChanged.connect(self.update_picasso_segmentation_filter)
-
         self.gui.picasso_vis_mode.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))
         self.gui.picasso_vis_size.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))
         self.gui.picasso_vis_opacity.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))

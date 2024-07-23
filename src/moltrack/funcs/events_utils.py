@@ -263,18 +263,6 @@ class _events_utils:
         self.gui.locs_export_mode.clear()
         self.gui.locs_export_mode.addItems(export_modes)
 
-    def update_picasso_segmentation_filter(self):
-        shapes_layers = [layer.name for layer in self.viewer.layers if layer.name in ["Segmentations", "Cells"]]
-
-        segmentation_layer = self.gui.picasso_segmentation_layer.currentText()
-
-        if segmentation_layer in shapes_layers:
-            self.gui.picasso_segmentation_filter.setEnabled(True)
-
-        else:
-            self.gui.picasso_segmentation_filter.setEnabled(False)
-            self.gui.picasso_segmentation_filter.setChecked(False)
-
     def update_layer_combos(self):
         try:
             shapes_layers = [layer.name for layer in self.viewer.layers if layer.name in ["Segmentations", "Cells"]]
@@ -287,9 +275,6 @@ class _events_utils:
 
             self.gui.segtracks_seg.clear()
             self.gui.segtracks_seg.addItems(shapes_layers)
-
-            self.gui.picasso_segmentation_layer.clear()
-            self.gui.picasso_segmentation_layer.addItems(shapes_layers)
 
             shapes_layers.insert(0,"")
 

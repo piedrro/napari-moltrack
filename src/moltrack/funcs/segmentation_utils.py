@@ -467,15 +467,17 @@ class _segmentation_utils:
                     if ndim == 2:
 
                         seg = np.fliplr(seg)
-                        poly = Polygon(seg)
-                        polygons.append(poly)
+                        if len(seg) > 3:
+                            poly = Polygon(seg)
+                            polygons.append(poly)
 
                     elif ndim == 3:
 
                         seg = seg[:, 1:]
                         seg = np.fliplr(seg)
-                        poly = Polygon(seg)
-                        polygons.append(poly)
+                        if len(seg) > 3:
+                            poly = Polygon(seg)
+                            polygons.append(poly)
 
         return polygons
 

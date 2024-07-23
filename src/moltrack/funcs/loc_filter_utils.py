@@ -40,7 +40,7 @@ class _loc_filter_utils:
                 shape_data = [np.fliplr(poly) for poly in shape_data]
 
             if polygon:
-                shape_data = [Polygon(poly) for poly in shape_data]
+                shape_data = [Polygon(poly) for poly in shape_data if len(poly) > 3]
 
         except:
             print(traceback.format_exc())
