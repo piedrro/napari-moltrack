@@ -340,7 +340,7 @@ class BactFit(object):
 
                 result = minimize(BactFit.refine_function, params,
                     args=(cell_polygon, poly_params, fit_mode),
-                    tol=1e-6, options={'maxiter': 500}, bounds=bounds)
+                    tol=1e-1, options={'maxiter': 500}, bounds=bounds)
 
                 params = result.x
 

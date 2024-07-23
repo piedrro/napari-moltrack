@@ -181,10 +181,10 @@ class _cell_events:
                 cell_selection = self.cellLayer.get_value(coords)[0]
 
                 if cell_selection is not None:
-                    cell_properties = self.cellLayer.properties.copy()
-                    cell_shapes = self.cellLayer.data.copy()
+                    properties = copy.deepcopy(self.cellLayer.properties)
+                    cell_shapes = copy.deepcopy(self.cellLayer.data)
 
-                    cell_name = cell_properties["name"][cell_selection]
+                    cell_name = properties["name"][cell_selection]
 
                     cell = self.get_cell(cell_name)
 
@@ -204,20 +204,23 @@ class _cell_events:
                         polygon = midline.buffer(width)
 
                         polygon_coords = np.array(polygon.exterior.coords)
-
                         polygon_coords = polygon_coords[:-1]
 
                         polygon_index = cell["polygon_index"]
                         midline_index = cell["midline_index"]
 
                         cell_shapes[polygon_index] = polygon_coords
-                        cell_properties["cell"][polygon_index]["width"] = width
-                        cell_properties["cell"][midline_index]["width"] = width
+                        properties["cell"][polygon_index]["width"] = width
+                        properties["cell"][midline_index]["width"] = width
 
-                        self.cellLayer.data = cell_shapes
-                        self.cellLayer.refresh()
+                        self.update_cellLayer_shapes(cell_shapes,
+                            properties=properties)
 
-                        self.store_cell_shapes()
+                        # self.cellLayer.data = cell_shapes
+                        # self.cellLayer.properties = cell_properties
+                        #
+                        # self.cellLayer.refresh()
+                        # self.store_cell_shapes()
 
         except:
             print(traceback.format_exc())
@@ -227,8 +230,11 @@ class _cell_events:
         cell = None
 
         try:
+
             name_list = self.cellLayer.properties["name"].copy()
             cell_list = self.cellLayer.properties["cell"].copy()
+
+            cell_list = [cell for cell in cell_list if isinstance(cell, dict)]
 
             shape_types = self.cellLayer.shape_type.copy()
             shapes = self.cellLayer.data.copy()
@@ -329,6 +335,7 @@ class _cell_events:
             self.cellLayer.data = shapes
 
             if properties is not None:
+
                 self.cellLayer.properties = properties
 
             if shape_types is not None:
@@ -338,6 +345,7 @@ class _cell_events:
             self.cellLayer.refresh()
 
         except:
+            print(traceback.format_exc())
             pass
 
     def update_cell_model(self, name):
@@ -355,7 +363,9 @@ class _cell_events:
                 (polygon_fit_coords, midline_fit_coords, poly_params, cell_width,) = fit
 
                 if polygon_fit_coords is not None:
+
                     shapes = copy.deepcopy(self.cellLayer.data)
+                    shape_types = copy.deepcopy(self.cellLayer.shape_type)
                     properties = copy.deepcopy(self.cellLayer.properties)
 
                     shapes[polygon_index] = polygon_fit_coords
@@ -363,11 +373,15 @@ class _cell_events:
 
                     cell_poles = [midline_fit_coords[0], midline_fit_coords[-1], ]
 
+                    properties["cell"][polygon_index]["poly_params"] = poly_params
+                    properties["cell"][polygon_index]["width"] = cell_width
+                    properties["cell"][polygon_index]["cell_poles"] = cell_poles
                     properties["cell"][midline_index]["poly_params"] = poly_params
                     properties["cell"][midline_index]["width"] = cell_width
                     properties["cell"][midline_index]["cell_poles"] = cell_poles
 
-                    self.update_cellLayer_shapes(shapes, properties=properties)
+                    self.update_cellLayer_shapes(shapes,
+                        shape_types=shape_types, properties=properties)
                     self.store_cell_shapes()
 
         except:
@@ -403,7 +417,7 @@ class _cell_events:
                 shapes[midline_index] = midline_coords
                 properties["cell"][midline_index]["cell_poles"] = cell_poles
 
-                self.update_cellLayer_shapes(shapes)
+                self.update_cellLayer_shapes(shapes, properties=properties)
 
                 self.store_cell_shapes()
 
@@ -512,11 +526,9 @@ class _cell_events:
                 if end[1] < end[0]:
                     n_indices = (len(coords) - end[0]) + end[1]
                     mid_index = end[0] + n_indices
-                    print("wrap", n_indices, end)
                 else:
                     n_indices = end[1] - end[0]
                     mid_index = end[0] + n_indices
-                    print("norm", n_indices, end)
 
                 rotated_coords = np.concatenate((coords[start_index:], coords[:start_index]))
 
@@ -570,32 +582,34 @@ class _cell_events:
 
             polygon_coords = np.array(polygon.exterior.coords)
 
-            # self.find_centerline(midline, width)
-
             fit = manual_fit(polygon_coords, midline_coords, width)
             polygon_fit_coords, midline_fit_coords, poly_params, cell_width = (fit)
 
             shapes[last_index] = midline_fit_coords
 
-            cell = {"name": name, "width": width, "poly_params": poly_params, "cell_poles": cell_poles, }
+            cell = {"name": name,
+                    "width": width,
+                    "poly_params": poly_params,
+                    "cell_poles": cell_poles, }
 
             if "name" not in properties.keys():
                 properties["name"] = [name]
                 properties["cell"] = [cell]
-
             else:
                 properties["name"][last_index] = name
                 properties["cell"][last_index] = cell
 
-            self.update_cellLayer_shapes(shapes, shape_types, properties)
+            self.update_cellLayer_shapes(shapes,
+                shape_types=shape_types, properties=properties)
 
             self.cellLayer.events.data.disconnect(self.update_cells)
             self.cellLayer.refresh()
 
             cell = {"name": name, "width": width, "poly_params": poly_params, "cell_poles": cell_poles, }
 
-            self.cellLayer.current_properties = {"name": name, "cell": cell}
+            # self.cellLayer.current_properties = {"name": name, "cell": cell}
             self.cellLayer.add_polygons(polygon_fit_coords)
+            self.cellLayer.properties["cell"][-1] = cell
 
             self.cellLayer.events.data.connect(self.update_cells)
             self.cellLayer.refresh()
@@ -606,12 +620,11 @@ class _cell_events:
 
     def update_cells(self, event):
         try:
+
             if event.action == "changed":
-                # modified_indices = list(event.data_indices)
                 modified_indices = self.get_modified_shape_indices()
 
-                if len(modified_indices) == 1:
-                    modified_index = modified_indices[0]
+                for modified_index in modified_indices:
 
                     name_list = self.cellLayer.properties["name"].copy()
                     shape_types = self.cellLayer.shape_type.copy()

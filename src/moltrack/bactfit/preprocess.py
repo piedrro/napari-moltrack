@@ -18,6 +18,9 @@ def data_to_cells(segmentation_list, locs = None):
         if seg.shape[1] == 2:
             frame_index = -1
 
+            if len(seg) < 3:
+                continue
+
             cell_polygon = Polygon(seg)
 
         if seg.shape[1] == 3:

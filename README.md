@@ -3,8 +3,6 @@
 [![License BSD-3](https://img.shields.io/pypi/l/napari-moltrack.svg?color=green)](https://github.com/piedrro/napari-moltrack/raw/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-moltrack.svg?color=green)](https://pypi.org/project/napari-moltrack)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-moltrack.svg?color=green)](https://python.org)
-[![tests](https://github.com/piedrro/napari-moltrack/workflows/tests/badge.svg)](https://github.com/piedrro/napari-moltrack/actions)
-[![codecov](https://codecov.io/gh/piedrro/napari-moltrack/branch/main/graph/badge.svg)](https://codecov.io/gh/piedrro/napari-moltrack)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-moltrack)](https://napari-hub.org/plugins/napari-moltrack)
 
 A Napari plugin for single molecule localisation *and* tracking based on **Picasso**, **GPUfit** and **Trackpy**.
