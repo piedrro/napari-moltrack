@@ -285,11 +285,15 @@ class _tracking_utils:
                     locs, segcol = self.detect_seglocs(dataset, channel, segchannel)
                     columns = list(locs.dtype.names)
                     locdf = pd.DataFrame(locs, columns=columns)
+                    self.tracking_segchannel = segchannel
+                    self.tracking_segcol = segcol
                 else:
                     columns = list(locs.dtype.names)
                     locdf = pd.DataFrame(locs, columns=columns)
                     segcol ="segmentation_index"
                     locdf[segcol] = 0
+                    self.tracking_segchannel = None
+                    self.tracking_segcol = None
 
                 n_segmentations = len(locdf[segcol].unique())
                 tp.quiet()

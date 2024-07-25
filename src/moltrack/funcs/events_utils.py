@@ -263,7 +263,7 @@ class _events_utils:
         self.gui.locs_export_mode.clear()
         self.gui.locs_export_mode.addItems(export_modes)
 
-    def update_layer_combos(self):
+    def update_segmentation_combos(self):
         try:
             shapes_layers = [layer.name for layer in self.viewer.layers if layer.name in ["Segmentations", "Cells"]]
 
@@ -284,6 +284,33 @@ class _events_utils:
         except:
             print(traceback.format_exc())
             pass
+
+    def update_SMLM_combos(self):
+
+        try:
+
+            localisation_layers = []
+
+            locs = self.get_locs("All Datasets", "All Channels")
+
+            if len(locs) > 0:
+                localisation_layers.append("Localisations")
+
+            tracks = self.get_tracks("All Datasets", "All Channels")
+
+            if len(tracks) > 0:
+                localisation_layers.append("Tracks")
+
+            self.gui.heatmap_data.clear()
+            self.gui.heatmap_data.addItems(localisation_layers)
+
+            self.gui.locs_export_data.clear()
+            self.gui.locs_export_data.addItems(localisation_layers)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
 
     def moltrack_progress(self, progress, progress_bar):
         progress_bar.setValue(progress)
@@ -322,7 +349,7 @@ class _events_utils:
                         "copy_locs", "copy_tracks",
                         "delete_locs", "delete_tracks",
                         "locs_pixstats_compute", "tracks_pixstats_compute",
-                        "import_project_images", "export_project_images",
+                        "import_project", "export_project",
                         "merge_locs",]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
@@ -750,29 +777,54 @@ class _events_utils:
                 if hasattr(self, "segLayer"):
                     seg_data = self.segLayer.data.copy()
 
-                    for seg_index, seg in enumerate(seg_data):
-                        if seg.shape[1] == 2:
-                            seg = seg + shift_vector
-                            seg_data[seg_index] = seg
-                        if seg.shape[1] == 3:
-                            seg[:, 1:] = seg[:, 1:] + shift_vector
-                            seg_data[seg_index] = seg
+                    if len(seg_data) > 0:
 
-                    self.segLayer.data = seg_data
+                        self.segLayer.mouse_drag_callbacks.remove(self.seg_drag_event)
+                        self.segLayer.mouse_double_click_callbacks.remove(self.delete_clicked)
+                        self.segLayer.events.data.disconnect(self.update_shapes)
+                        self.segLayer.mouse_wheel_callbacks.remove(self.dilate_segmentation)
+
+                        for seg_index, seg in enumerate(seg_data):
+                            if seg.shape[1] == 2:
+                                seg = seg + shift_vector
+                                seg_data[seg_index] = seg
+                            if seg.shape[1] == 3:
+                                seg[:, 1:] = seg[:, 1:] + shift_vector
+                                seg_data[seg_index] = seg
+
+                        self.segLayer.data = seg_data
+
+                        self.segLayer.mouse_drag_callbacks.append(self.seg_drag_event)
+                        self.segLayer.mouse_double_click_callbacks.append(self.delete_clicked)
+                        self.segLayer.events.data.connect(self.update_shapes)
+                        self.segLayer.mouse_wheel_callbacks.append(self.dilate_segmentation)
+
 
             if translation_target in ["Cells", "All"]:
                 if hasattr(self, "cellLayer"):
                     cell_data = self.cellLayer.data.copy()
 
-                    for cell_index, cell in enumerate(cell_data):
-                        if cell.shape[1] == 2:
-                            cell = cell + shift_vector
-                            cell_data[cell_index] = cell
-                        if cell.shape[1] == 3:
-                            cell[:, 1:] = cell[:, 1:] + shift_vector
-                            cell_data[cell_index] = cell
+                    if len(cell_data) > 0:
 
-                    self.cellLayer.data = cell_data
+                        self.cellLayer.mouse_drag_callbacks.remove(self.celllayer_clicked)
+                        self.cellLayer.mouse_wheel_callbacks.remove(self.dilate_cell)
+                        self.cellLayer.events.data.disconnect(self.update_cells)
+
+                        for cell_index, cell in enumerate(cell_data):
+                            if cell.shape[1] == 2:
+                                cell = cell + shift_vector
+                                cell_data[cell_index] = cell
+                            if cell.shape[1] == 3:
+                                cell[:, 1:] = cell[:, 1:] + shift_vector
+                                cell_data[cell_index] = cell
+
+                        self.cellLayer.data = cell_data
+
+                        self.store_cell_shapes()
+
+                        self.cellLayer.mouse_drag_callbacks.append(self.celllayer_clicked)
+                        self.cellLayer.mouse_wheel_callbacks.append(self.dilate_cell)
+                        self.cellLayer.events.data.connect(self.update_cells)
 
         except:
             print(traceback.format_exc())

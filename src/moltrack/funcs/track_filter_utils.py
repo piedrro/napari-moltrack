@@ -228,6 +228,16 @@ class _track_filter_utils:
                         xlabel = f"{metric} Step Size (µm)"
                     elif criterion == "Rolling MSD":
                         xlabel = f"{metric} Rolling MSD (µm²)"
+                    elif criterion ==  "Membrane Distance":
+                        xlabel = f"{metric} Membrane Distance (µm)"
+                    elif criterion ==  "Midline Distance":
+                        xlabel = f"{metric} Midline Distance (µm)"
+                    elif criterion ==  "Centroid Distance":
+                        xlabel = f"{metric} Centroid Distance (µm)"
+                    elif criterion ==  "Cell Pole Distance":
+                        xlabel = f"{metric} Cell Pole Distance (µm)"
+                    elif criterion ==  "Angle":
+                        xlabel = f"{metric} Angle (degrees)"
                     else:
                         xlabel = criterion
 

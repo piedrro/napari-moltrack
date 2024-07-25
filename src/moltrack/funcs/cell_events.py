@@ -175,8 +175,11 @@ class _cell_events:
         return self.cellLayer
 
     def dilate_cell(self, viewer=None, event=None):
+
         try:
+
             if "Control" in event.modifiers:
+
                 coords = self.cellLayer.world_to_data(event.position)
                 cell_selection = self.cellLayer.get_value(coords)[0]
 
@@ -189,6 +192,9 @@ class _cell_events:
                     cell = self.get_cell(cell_name)
 
                     if cell is not None:
+
+                        self.cellLayer.events.data.disconnect(self.update_cells)
+
                         midline_coords = cell["midline_coords"]
                         width = cell["width"]
 
@@ -216,11 +222,9 @@ class _cell_events:
                         self.update_cellLayer_shapes(cell_shapes,
                             properties=properties)
 
-                        # self.cellLayer.data = cell_shapes
-                        # self.cellLayer.properties = cell_properties
-                        #
-                        # self.cellLayer.refresh()
-                        # self.store_cell_shapes()
+                        self.store_cell_shapes()
+
+                        self.cellLayer.events.data.connect(self.update_cells)
 
         except:
             print(traceback.format_exc())
@@ -382,7 +386,6 @@ class _cell_events:
 
                     self.update_cellLayer_shapes(shapes,
                         shape_types=shape_types, properties=properties)
-                    self.store_cell_shapes()
 
         except:
             print(traceback.format_exc())
@@ -419,7 +422,7 @@ class _cell_events:
 
                 self.update_cellLayer_shapes(shapes, properties=properties)
 
-                self.store_cell_shapes()
+
 
         except:
             pass
@@ -619,6 +622,7 @@ class _cell_events:
             pass
 
     def update_cells(self, event):
+
         try:
 
             if event.action == "changed":
@@ -634,8 +638,12 @@ class _cell_events:
                     if modified_shape_type == "path":
                         self.update_cell_model(name)
 
+                        self.store_cell_shapes()
+
                     if modified_shape_type == "polygon":
                         self.update_midline_position(name)
+
+                        self.store_cell_shapes()
 
             if event.action == "added":
                 shapes = self.cellLayer.data.copy()

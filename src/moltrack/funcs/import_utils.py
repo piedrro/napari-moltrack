@@ -583,11 +583,7 @@ class _import_utils:
                             self.update_filter_criterion()
                             self.update_criterion_ranges()
 
-                            if len(locs) > 0:
-                                self.gui.locs_export_data.clear()
-                                self.gui.locs_export_data.addItems(["Localisations"])
-                                self.gui.heatmap_data.clear()
-                                self.gui.heatmap_data.addItems(["Localisations"])
+                            self.update_SMLM_combos()
 
                         else:
                             show_info("Missing required columns for localisation data import")
@@ -614,11 +610,7 @@ class _import_utils:
                             self.update_track_filter_criterion()
                             self.update_track_criterion_ranges()
 
-                            if len(locs) > 0:
-                                self.gui.locs_export_data.clear()
-                                self.gui.locs_export_data.addItems(["Localisations", "Tracks"])
-                                self.gui.heatmap_data.clear()
-                                self.gui.heatmap_data.addItems(["Localisations", "Tracks"])
+                            self.update_SMLM_combos()
 
                         else:
                             show_info("Missing required columns for tracking data import")
@@ -939,6 +931,8 @@ class _import_utils:
                         print(traceback.format_exc())
                         pass
 
+            self.update_SMLM_combos()
+            self.update_segmentation_combos()
 
         except:
             print(traceback.format_exc())

@@ -180,6 +180,16 @@ class _trackplot_utils:
                         y_axis_label = f"Step Size (µm)"
                     elif metric == "Rolling MSD":
                         y_axis_label = f"Rolling MSD (µm²)"
+                    elif metric ==  "Membrane Distance":
+                        y_axis_label = f"Membrane Distance (µm)"
+                    elif metric ==  "Midline Distance":
+                        y_axis_label = f"Midline Distance (µm)"
+                    elif metric ==  "Centroid Distance":
+                        y_axis_label = f"Centroid Distance (µm)"
+                    elif metric ==  "Cell Pole Distance":
+                        y_axis_label = f"Cell Pole Distance (µm)"
+                    elif metric ==  "Angle":
+                        y_axis_label = f"Angle (degrees)"
                     else:
                         y_axis_label = metric
 

@@ -201,7 +201,8 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.active_dataset = None
         self.active_channel = None
-
+        self.tracking_segchannel = None
+        self.tracking_segcol = None
         self.transform_matrix = None
 
         self.verbose = False
@@ -216,6 +217,11 @@ class QWidget(QWidget, gui, *subclasses):
                                  "Apparent Diffusion Coefficient": "D*",
                                  "Step Size": "step_size",
                                  "Rolling MSD": "rolling_msd",
+                                 "Angle": "angle",
+                                 "Membrane Distance": "membrane_distance",
+                                 "Midline Distance": "midline_distance",
+                                 "Centroid Distance": "centroid_distance",
+                                 "Cell Pole Distance": "cell_pole_distance",
                                  "X": "x",
                                  "Y": "y",
                                  "Photons": "photons",
@@ -349,8 +355,11 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.export_traces.clicked.connect(self.export_traces)
 
-        self.viewer.layers.events.inserted.connect(self.update_layer_combos)
-        self.viewer.layers.events.removed.connect(self.update_layer_combos)
+        # self.viewer.layers.events.inserted.connect(self.update_segmentation_combos)
+        # self.viewer.layers.events.removed.connect(self.update_segmentation_combos)
+        # self.viewer.layers.events.inserted.connect(self.update_SMLM_combos)
+        # self.viewer.layers.events.removed.connect(self.update_SMLM_combos)
+
         self.viewer.dims.events.current_step.connect(self.slider_event)
 
         self.gui.import_localisations.clicked.connect(self.import_localisations)
@@ -396,9 +405,11 @@ class QWidget(QWidget, gui, *subclasses):
         # self.update_render_msd_range()
 
         self.update_ui()
+
+        self.update_SMLM_combos()
         # self.update_traces_export_options()
 
-        print(self.cellLayer.properties["cell"])
+        # print(self.cellLayer.properties["cell"])
 
         # self.update_filter_criterion()
         # self.update_criterion_ranges()

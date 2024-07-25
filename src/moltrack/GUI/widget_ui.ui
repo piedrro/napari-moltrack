@@ -2795,6 +2795,19 @@
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_13">
            <item>
+            <widget class="QLabel" name="label_30">
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Link Localisations</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QLabel" name="label_148">
              <property name="text">
               <string>When a segmentation (segmentation /cells) layer is selected, the linking algorithm only links the localisations within each segmentation, ensuring that particle tracks are confined within unique segmentations.</string>
@@ -2912,6 +2925,62 @@
            </item>
            <item>
             <spacer name="verticalSpacer_4">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_153">
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Compute Track Statistics</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_154">
+             <property name="text">
+              <string>Compute track statistics/metrics such as MSD, speed, step size and apparent diffusion coefficients. If a segmentation layer is selected during localisation linking, additional distance based metrics will be computed (e.g. distance to membrane).</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="compute_track_stats">
+             <property name="text">
+              <string>Compute Track Statistics</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QProgressBar" name="track_stats_progressbar">
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>10</height>
+              </size>
+             </property>
+             <property name="value">
+              <number>0</number>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_31">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
              </property>
@@ -3705,42 +3774,15 @@
            </item>
           </layout>
          </widget>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-     <widget class="QWidget" name="tab_9">
-      <attribute name="title">
-       <string>Analysis</string>
-      </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_9">
-       <item>
-        <widget class="QTabWidget" name="tabWidget_3">
-         <property name="currentIndex">
-          <number>0</number>
-         </property>
-         <widget class="QWidget" name="tab_10">
+         <widget class="QWidget" name="tab_32">
           <attribute name="title">
            <string>Diffusion Plots</string>
           </attribute>
-          <layout class="QVBoxLayout" name="verticalLayout_10">
+          <layout class="QVBoxLayout" name="verticalLayout_34">
            <item>
-            <widget class="QPushButton" name="compute_track_stats">
+            <widget class="QLabel" name="label_50">
              <property name="text">
-              <string>Compute Diffusion Data</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QProgressBar" name="track_stats_progressbar">
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>10</height>
-              </size>
-             </property>
-             <property name="value">
-              <number>0</number>
+              <string>Requires track statistics to be computed (Tracking -&gt; Link -&gt; Compute Track Statistics)</string>
              </property>
             </widget>
            </item>
@@ -3878,84 +3920,101 @@
            </item>
           </layout>
          </widget>
-         <widget class="QWidget" name="tab_11">
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_9">
+      <attribute name="title">
+       <string>Heatmap</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_9">
+       <item>
+        <widget class="QLabel" name="label_47">
+         <property name="text">
+          <string>SMLM localisations/tracks can be transformed to an ideal cell model to create a heatmap/render that is representative of all cells in the FOV. This requires cell models for coordinate transformations, which can be added manually or using BacFit, see Segment/Fit tab. This is ONLY compatible with ROD shaped cells.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_4">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_48">
+           <property name="text">
+            <string>Data</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="heatmap_data"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>Method</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="heatmap_compute_method">
+           <item>
+            <property name="text">
+             <string>Angular Coordinate Transformation</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QProgressBar" name="heatmap_progressbar">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>10</height>
+          </size>
+         </property>
+         <property name="value">
+          <number>0</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="compute_heatmap">
+         <property name="text">
+          <string>Compute Heatmap</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="heatmap_graph_container" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTabWidget" name="tabWidget_3">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="currentIndex">
+          <number>0</number>
+         </property>
+         <widget class="QWidget" name="tab_10">
           <attribute name="title">
-           <string>Cell Heatmaps</string>
+           <string>Heatmap Settings</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_8">
-           <item>
-            <layout class="QFormLayout" name="formLayout_4">
-             <item row="0" column="0">
-              <widget class="QLabel" name="label_48">
-               <property name="text">
-                <string>Data</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QComboBox" name="heatmap_data"/>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_4">
-               <property name="text">
-                <string>Method</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="1">
-              <widget class="QComboBox" name="heatmap_compute_method">
-               <item>
-                <property name="text">
-                 <string>Angular Coordinate Transformation</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-            </layout>
-           </item>
-           <item>
-            <widget class="QPushButton" name="compute_heatmap">
-             <property name="text">
-              <string>Compute Heatmap</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QProgressBar" name="heatmap_progressbar">
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>10</height>
-              </size>
-             </property>
-             <property name="value">
-              <number>0</number>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QWidget" name="heatmap_graph_container" native="true">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_47">
-             <property name="font">
-              <font>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Heatmap Settings</string>
-             </property>
-            </widget>
-           </item>
            <item>
             <layout class="QFormLayout" name="heatmap_settings_layout">
              <item row="1" column="0">
@@ -4065,19 +4124,13 @@
              </item>
             </layout>
            </item>
-           <item>
-            <widget class="QLabel" name="label_50">
-             <property name="font">
-              <font>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Filter Settings</string>
-             </property>
-            </widget>
-           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="tab_11">
+          <attribute name="title">
+           <string>Heatmap Filter Settings</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_10">
            <item>
             <layout class="QFormLayout" name="formLayout_8">
              <item row="0" column="0">
@@ -4157,32 +4210,61 @@
             </layout>
            </item>
            <item>
-            <widget class="QPushButton" name="generate_heatmap">
+            <spacer name="verticalSpacer_32">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="tab_33">
+          <attribute name="title">
+           <string>Export</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_35">
+           <item>
+            <widget class="QPushButton" name="export_heatmap">
              <property name="text">
-              <string>Generate Heatmap</string>
+              <string>Export Heatmap Image</string>
              </property>
             </widget>
            </item>
            <item>
-            <layout class="QGridLayout" name="gridLayout_10">
-             <item row="0" column="0">
-              <widget class="QPushButton" name="export_heatmap">
-               <property name="text">
-                <string>Export Heatmap Image</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QPushButton" name="export_heatmap_locs">
-               <property name="text">
-                <string>Export Heatmap Localisations</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
+            <widget class="QPushButton" name="export_heatmap_locs">
+             <property name="text">
+              <string>Export Heatmap Localisations</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_33">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
            </item>
           </layout>
          </widget>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="generate_heatmap">
+         <property name="text">
+          <string>Generate Heatmap</string>
+         </property>
         </widget>
        </item>
       </layout>
