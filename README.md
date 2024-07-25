@@ -5,7 +5,8 @@
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-moltrack.svg?color=green)](https://python.org)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-moltrack)](https://napari-hub.org/plugins/napari-moltrack)
 
-A Napari plugin for single molecule localisation *and* tracking based on **Picasso**, **GPUfit** and **Trackpy**.
+A user-friendly SMLM analysis platfrom for napari, which includes single molecule localisation, tracking, and analysis features. 
+Based on established python packages such as **Picasso**, **GPUfit** and **Trackpy**.
 This plugin was designed to detect/track single molecules inside cells, but can be used for any other SMLM/tracking application.
 
 All functions are parallelised/GPU accelerated where possible to increase performance.
