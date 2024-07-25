@@ -1,7 +1,7 @@
 [project]
 name = "napari-moltrack"
 dynamic = ["version"]
-description = "Single molecule tracking package for Napari"
+description = "A user-friendly SMLM analysis platfrom for napari, which includes single molecule localisation, tracking, and analysis features."
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
@@ -128,4 +128,3 @@ exclude = [
     "*vendored*",
     "*_vendor*",
 ]
-

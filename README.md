@@ -18,7 +18,7 @@ Napari-moltrack is also compatible with **FRET** and **ALEX FRET** image data, c
 Segmentations can be used to exclude regions from single molecule localisation and tracking.
 Segmentations can be added automatically using Cellpose or can be added manually. Includes tools for editing/modifying segmentations at a sub-pixel resolution.
 
-Compatible with both single and multi channel .tif and .fits files.
+Compatible with both single and multi-channel .tif and .fits files.
 
 napari-moltrack was written by Piers Turner, Kapanidis Group, University of Oxford.
 
