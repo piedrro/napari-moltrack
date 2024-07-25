@@ -6,6 +6,9 @@ from shapely.ops import unary_union
 import numpy as np
 import warnings
 from napari.utils.notifications import show_info
+import random
+import string
+
 
 class _segmentation_events:
 
@@ -235,6 +238,7 @@ class _segmentation_events:
 
                 self.viewer.layers.selection.select_only(self.cellLayer)
                 self.cellLayer.mode = "add_path"
+                self.cellLayer.refresh()
 
                 show_info("Midline (click to add midline)")
 
