@@ -404,7 +404,7 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.update_ui()
 
-        self.update_SMLM_combos()
+        self.update_segmentation_combos()
         # self.update_traces_export_options()
 
         # print(self.cellLayer.properties["cell"])

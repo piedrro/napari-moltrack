@@ -284,7 +284,7 @@ class _events_utils:
     def update_segmentation_combos(self):
         try:
 
-            shapes_layers = [layer.name for layer in self.viewer.layers if layer.name.lower in ["segmentations", "cells"]]
+            shapes_layers = [layer.name for layer in self.viewer.layers if layer.name in ['Segmentations', 'Cells']]
 
             self.gui.shapes_export_data.clear()
             self.gui.shapes_export_data.addItems(shapes_layers)
@@ -477,13 +477,12 @@ class _events_utils:
             scale = [pixel_size, pixel_size]
 
             if hasattr(self, "segmentation_layer"):
-                self.segmentation_layer.data = self.segmentation_image.copy()
-                self.segmentation_layer.refresh()
-            else:
-                self.segmentation_layer = self.viewer.add_image(self.segmentation_image,
-                    name="Segmentation Image", visible=True, blending="opaque", )
+                self.viewer.layers.remove(self.segmentation_layer)
 
-                self.viewer.reset_view()
+            self.segmentation_layer = self.viewer.add_image(self.segmentation_image,
+                name="Segmentation Image", visible=True, blending="opaque", )
+
+            self.viewer.reset_view()
 
             if self.gui.show_data.isChecked() == False:
                 if self.segmentation_layer in self.viewer.layers:
