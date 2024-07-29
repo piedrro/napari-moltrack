@@ -34,9 +34,8 @@ class _cell_events:
             print(traceback.format_exc())
             pass
 
-    def initialise_cellLayer(
-        self, shapes=None, shape_types=None, properties=None
-    ):
+    def initialise_cellLayer(self, shapes=None,
+            shape_types=None, properties=None):
 
         layer_names = [layer.name for layer in self.viewer.layers]
 
@@ -99,6 +98,8 @@ class _cell_events:
         self.register_shape_layer_keybinds(self.cellLayer)
 
         self.store_cell_shapes(init=True)
+
+        self.update_segmentation_combos()
 
         return self.cellLayer
 
@@ -189,6 +190,8 @@ class _cell_events:
 
         if "Cells" not in layer_names:
             self.cellLayer = self.initialise_cellLayer()
+
+        self.update_segmentation_combos()
 
         return self.cellLayer
 

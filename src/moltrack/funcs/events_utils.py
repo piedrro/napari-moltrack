@@ -265,7 +265,8 @@ class _events_utils:
 
     def update_segmentation_combos(self):
         try:
-            shapes_layers = [layer.name for layer in self.viewer.layers if layer.name in ["Segmentations", "Cells"]]
+
+            shapes_layers = [layer.name for layer in self.viewer.layers if layer.name.lower in ["segmentations", "cells"]]
 
             self.gui.shapes_export_data.clear()
             self.gui.shapes_export_data.addItems(shapes_layers)

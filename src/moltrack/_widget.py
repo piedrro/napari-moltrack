@@ -355,10 +355,8 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.export_traces.clicked.connect(self.export_traces)
 
-        # self.viewer.layers.events.inserted.connect(self.update_segmentation_combos)
-        # self.viewer.layers.events.removed.connect(self.update_segmentation_combos)
-        # self.viewer.layers.events.inserted.connect(self.update_SMLM_combos)
-        # self.viewer.layers.events.removed.connect(self.update_SMLM_combos)
+        self.viewer.layers.events.inserted.connect(self.update_segmentation_combos)
+        self.viewer.layers.events.removed.connect(self.update_segmentation_combos)
 
         self.viewer.dims.events.current_step.connect(self.slider_event)
 

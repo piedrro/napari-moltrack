@@ -13,19 +13,15 @@ import string
 class _segmentation_events:
 
     def dilate_segmentation(self, viewer=None, event=None):
-
         try:
             if "Control" in event.modifiers:
-
                 coords = self.segLayer.world_to_data(event.position)
                 shape_index = self.segLayer.get_value(coords)[0]
 
                 if shape_index is not None:
-
                     shape_type = self.segLayer.shape_type[shape_index]
 
                     if shape_type == "polygon":
-
                         if event.delta[1] > 0:
                             buffer = 0.5
                         else:
@@ -58,50 +54,16 @@ class _segmentation_events:
             pass
 
     def register_shape_layer_keybinds(self, layer):
-
-        layer.bind_key(
-            "Space",
-            func=lambda event: self.modify_mode(mode="add"),
-            overwrite=True,
-        )
-        layer.bind_key(
-            "e",
-            func=lambda event: self.modify_mode(mode="extend"),
-            overwrite=True,
-        )
-        layer.bind_key(
-            "j",
-            func=lambda event: self.modify_mode(mode="join"),
-            overwrite=True,
-        )
-        layer.bind_key(
-            "d",
-            func=lambda event: self.modify_mode(mode="delete"),
-            overwrite=True,
-        )
-        layer.bind_key(
-            "p",
-            func=lambda event: self.modify_mode(mode="pan_zoom"),
-            overwrite=True,
-        )
-        layer.bind_key(
-            "m",
-            func=lambda event: self.modify_mode(mode="midline"),
-            overwrite=True,
-        )
-        layer.bind_key(
-            "s",
-            func=lambda event: self.modify_mode(mode="edit_midlines"),
-            overwrite=True,
-        )
-        layer.bind_key(
-            "Escape",
-            func=lambda event: self.modify_mode(mode="pan_zoom"),
-            overwrite=True,
-        )
+        layer.bind_key("Space", func=lambda event: self.modify_mode(mode="add"), overwrite=True, )
+        layer.bind_key("e", func=lambda event: self.modify_mode(mode="extend"), overwrite=True, )
+        layer.bind_key("j", func=lambda event: self.modify_mode(mode="join"), overwrite=True, )
+        layer.bind_key("d", func=lambda event: self.modify_mode(mode="delete"), overwrite=True, )
+        layer.bind_key("p", func=lambda event: self.modify_mode(mode="pan_zoom"), overwrite=True, )
+        layer.bind_key("m", func=lambda event: self.modify_mode(mode="midline"), overwrite=True, )
+        layer.bind_key("s", func=lambda event: self.modify_mode(mode="edit_midlines"), overwrite=True, )
+        layer.bind_key("Escape", func=lambda event: self.modify_mode(mode="pan_zoom"), overwrite=True, )
 
     def initialise_segLayer(self, shapes=None, pixel_size=None):
-
         layer_names = [layer.name for layer in self.viewer.layers]
 
         if "Segmentations" in layer_names:
@@ -121,24 +83,11 @@ class _segmentation_events:
         scale = [pixel_size, pixel_size]
 
         if shapes is not None:
-            self.segLayer = self.viewer.add_shapes(
-                name="Segmentations",
-                shape_type="polygon",
-                opacity=0.5,
-                face_color="red",
-                edge_color="black",
-                edge_width=1,
-                data=shapes,
-            )
+            self.segLayer = self.viewer.add_shapes(name="Segmentations",
+                shape_type="polygon", opacity=0.5, face_color="red", edge_color="black", edge_width=1, data=shapes, )
         else:
-            self.segLayer = self.viewer.add_shapes(
-                name="Segmentations",
-                shape_type="polygon",
-                opacity=0.5,
-                face_color="red",
-                edge_color="black",
-                edge_width=1,
-            )
+            self.segLayer = self.viewer.add_shapes(name="Segmentations",
+                shape_type="polygon", opacity=0.5, face_color="red", edge_color="black", edge_width=1, )
 
         if self.gui.show_shapes.isChecked() == False:
             if self.segLayer in self.viewer.layers:
@@ -155,23 +104,20 @@ class _segmentation_events:
         self.segLayer.mouse_wheel_callbacks.append(self.dilate_segmentation)
 
         self.register_shape_layer_keybinds(self.segLayer)
+        self.update_segmentation_combos()
 
         return self.segLayer
 
     def get_seglayer(self, shapes=None):
-
         layer_names = [layer.name for layer in self.viewer.layers]
 
         if "Segmentations" not in layer_names:
-
             self.initialise_segLayer()
 
         return self.segLayer
 
     def modify_mode(self, viewer=None, mode="add"):
-
         try:
-
             if mode in ["add", "extend", "join"]:
                 self.segLayer = self.get_seglayer()
 
@@ -203,11 +149,9 @@ class _segmentation_events:
                 show_info("Join (click/drag to join)")
 
             if mode == "delete":
-
                 selected_layer = self.viewer.layers.selection.active
 
                 if selected_layer is not None:
-
                     if selected_layer.name == "Cells":
                         self.cellLayer.mode = "select"
                         show_info("Delete Cell (click/drag to delete)")
@@ -219,11 +163,9 @@ class _segmentation_events:
                     self.segmentation_mode = "delete"
 
             if mode == "pan_zoom":
-
                 selected_layer = self.viewer.layers.selection.active
 
                 if selected_layer is not None:
-
                     if selected_layer.name == "Cells":
                         self.cellLayer.mode = "pan_zoom"
                     if selected_layer.name == "Segmentations":
@@ -235,7 +177,6 @@ class _segmentation_events:
                     self.segmentation_mode = "panzoom"
 
             if mode == "midline":
-
                 self.viewer.layers.selection.select_only(self.cellLayer)
                 self.cellLayer.mode = "add_path"
                 self.cellLayer.refresh()
@@ -243,7 +184,6 @@ class _segmentation_events:
                 show_info("Midline (click to add midline)")
 
             if mode == "edit_midlines":
-
                 self.viewer.layers.selection.select_only(self.cellLayer)
                 self.cellLayer.mode = "direct"
 
@@ -256,12 +196,10 @@ class _segmentation_events:
             pass
 
     def remove_shapes(self, indices):
-
         if type(indices) == int:
             indices = [indices]
 
         if len(indices) > 0:
-
             self.segLayer.mode = "pan_zoom"
 
             self.segLayer.events.data.disconnect(self.update_shapes)
@@ -272,43 +210,31 @@ class _segmentation_events:
             self.segLayer.events.data.connect(self.update_shapes)
 
     def update_shapes(self, event):
-
         try:
-
             if event.action == "added":
-
                 self.segLayer.mode = "pan_zoom"
 
                 if self.segmentation_mode == "join":
-
                     shapes = self.segLayer.data
                     last_index = len(shapes) - 1
 
                     self.remove_shapes(last_index)
 
                     if hasattr(self, "join_coords"):
-
                         if type(self.join_coords) == list:
                             coords1, coords2 = self.join_coords
 
                             shape_index1 = self.segLayer.get_value(coords1)[0]
                             shape_index2 = self.segLayer.get_value(coords2)[0]
 
-                            if (
-                                shape_index1 is not None
-                                and shape_index2 is not None
-                            ):
-
+                            if (shape_index1 is not None and shape_index2 is not None):
                                 shape1 = shapes[shape_index1]
                                 shape2 = shapes[shape_index2]
 
                                 union_shape = self.join_shapes(shape1, shape2)
 
                                 if union_shape is not None:
-
-                                    self.remove_shapes(
-                                        [shape_index1, shape_index2]
-                                    )
+                                    self.remove_shapes([shape_index1, shape_index2])
                                     shapes = self.segLayer.data.copy()
                                     shapes.append(union_shape)
                                     self.segLayer.data = shapes
@@ -317,19 +243,14 @@ class _segmentation_events:
                     self.join_coords = None
 
                 if self.segmentation_mode == "extend":
-
                     extend_shapes = False
 
                     if hasattr(self, "extend_indices"):
-
                         if type(self.extend_indices) == list:
-
                             if len(self.extend_indices) == 2:
-
                                 extend_shapes = True
 
                     if extend_shapes:
-
                         shape_index, extend_index = self.extend_indices
 
                         shapes = self.segLayer.data.copy()
@@ -338,28 +259,16 @@ class _segmentation_events:
                         extension = shapes[extend_index].copy()
 
                         if len(target) > 4 and len(extension) > 4:
-
                             union_shape = self.join_shapes(target, extension)
 
                             if union_shape is not None:
-
-                                self.segLayer.events.data.disconnect(
-                                    self.update_shapes
-                                )
-                                self.segLayer.selected_data = [
-                                    shape_index,
-                                    extend_index,
-                                ]
+                                self.segLayer.events.data.disconnect(self.update_shapes)
+                                self.segLayer.selected_data = [shape_index, extend_index, ]
                                 self.segLayer.remove_selected()
-                                self.segLayer.add(
-                                    union_shape, shape_type="polygon"
-                                )
-                                self.segLayer.events.data.connect(
-                                    self.update_shapes
-                                )
+                                self.segLayer.add(union_shape, shape_type="polygon")
+                                self.segLayer.events.data.connect(self.update_shapes)
 
                     else:
-
                         shapes = self.segLayer.data.copy()
                         last_index = len(shapes) - 1
                         self.remove_shapes(last_index)
@@ -374,9 +283,7 @@ class _segmentation_events:
             pass
 
     def delete_clicked(self, viewer=None, event=None):
-
         try:
-
             coords = self.segLayer.world_to_data(event.position)
             shape_index = self.segLayer.get_value(coords)[0]
 
@@ -388,22 +295,17 @@ class _segmentation_events:
             pass
 
     def seg_drag_event(self, viwer=None, event=None):
-
         if hasattr(self, "segmentation_mode"):
-
             if self.segmentation_mode == "delete":
-
                 coords = self.segLayer.world_to_data(event.position)
                 shape_index = self.segLayer.get_value(coords)[0]
 
                 if shape_index is not None:
-
                     shapes = self.segLayer.data.copy()
                     shapes.pop(shape_index)
                     self.segLayer.data = shapes
 
             if self.segmentation_mode == "join":
-
                 self.join_coords = None
 
                 canvas_pos = event.position
@@ -422,22 +324,18 @@ class _segmentation_events:
                         yield
 
                     if dragged:
-
                         coords2 = self.segLayer.world_to_data(event.position)
                         shape_index2 = self.segLayer.get_value(coords2)[0]
 
                         if shape_index2 is not None:
-
                             self.join_coords = [coords1, coords2]
 
             if self.segmentation_mode == "extend":
-
                 canvas_pos = event.position
                 coords = self.segLayer.world_to_data(canvas_pos)
                 shape_index = self.segLayer.get_value(coords)[0]
 
                 if shape_index is not None:
-
                     dragged = False
 
                     yield
@@ -446,20 +344,16 @@ class _segmentation_events:
                         yield
 
                     if dragged:
-
                         shapes = self.segLayer.data.copy()
                         last_index = len(shapes) - 1
 
                         self.extend_indices = [shape_index, last_index]
 
     def join_shapes(self, shape1, shape2, simplify=True, buffer=1):
-
         union_shape = None
 
         try:
-
             if shape1.shape[1] == 2:
-
                 shape1 = Polygon(shape1)
                 shape2 = Polygon(shape2)
 
@@ -467,7 +361,6 @@ class _segmentation_events:
                 shape2 = shape2.buffer(buffer)
 
                 if shape1.intersects(shape2):
-
                     union_polygon = unary_union([shape1, shape2])
                     union_polygon = union_polygon.buffer(-buffer)
 
@@ -488,7 +381,6 @@ class _segmentation_events:
                 shape2 = shape2.buffer(buffer)
 
                 if shape1.intersects(shape2):
-
                     union_polygon = unary_union([shape1, shape2])
                     union_polygon = union_polygon.buffer(-buffer)
 
@@ -496,9 +388,7 @@ class _segmentation_events:
                         union_polygon = union_polygon.simplify(0.1)
 
                     union_shape = np.array(union_polygon.exterior.coords)
-                    union_shape = np.insert(
-                        union_shape, 0, frame_index, axis=1
-                    )
+                    union_shape = np.insert(union_shape, 0, frame_index, axis=1)
 
                     union_shape = union_shape[1:]
                     union_shape = union_shape.astype(float)

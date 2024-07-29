@@ -320,6 +320,7 @@ class _segmentation_utils:
     def run_cellpose_finished(self):
 
         self.update_ui(init=False)
+        self.update_segmentation_combos()
 
     def get_gpu_free_memory(self):
 

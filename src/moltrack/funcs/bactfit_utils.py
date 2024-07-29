@@ -12,7 +12,9 @@ from napari.utils.notifications import show_info
 class _bactfit_utils:
 
     def run_bactfit_finished(self):
+
         self.update_ui()
+        self.update_segmentation_combos()
 
     def run_bactfit_results(self, cell_list):
 
