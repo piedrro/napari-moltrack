@@ -300,10 +300,15 @@ class _import_utils:
 
     def populate_import_dataset_dict(self, import_list):
         try:
+
+            clear_images = self.gui.import_clear.isChecked()
             concat_images = self.gui.import_concatenate.isChecked()
 
             if self.verbose:
                 print("Populating dataset dict")
+
+            if clear_images == True:
+                self.dataset_dict = {}
 
             import_dict = {}
 

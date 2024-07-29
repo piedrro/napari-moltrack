@@ -258,6 +258,13 @@
             </layout>
            </item>
            <item>
+            <widget class="QCheckBox" name="import_clear">
+             <property name="text">
+              <string>Clear Imported Data</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QCheckBox" name="import_concatenate">
              <property name="text">
               <string>Concatenate Imported Files</string>

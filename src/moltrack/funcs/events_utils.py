@@ -125,7 +125,7 @@ class _events_utils:
             print(traceback.format_exc())
             pass
 
-    def update_control(self, control, enabled=None, show=None):
+    def update_control(self, control, enabled=None, show=None, reset=True):
 
         try:
             control_label = None
@@ -143,6 +143,11 @@ class _events_utils:
                 if control_label is not None:
                     control_label.setVisible(show)
 
+            if reset:
+                if control_label_name != "import_clear_label":
+                    if type(control) == QCheckBox:
+                        control.setChecked(False)
+
         except:
             print(traceback.format_exc())
             pass
@@ -154,25 +159,38 @@ class _events_utils:
             multichannel_mode = self.gui.import_multichannel_mode.currentText()
 
             update_dict = {"import_dataset_name": False,
-                            "import_channel_name": False,
-                            "import_multichannel_mode": False,
-                            "import_concatenate": False}
+                           "import_channel_name": False,
+                           "import_multichannel_mode": False,
+                           "import_concatenate": False,
+                           "frame_averaging": True,
+                           "import_clear": False,
+                           }
 
             if import_mode == "Data (Single Channel)":
                 update_dict["import_concatenate"] = True
+                update_dict["import_clear"] = True
+                update_dict["frame_averaging"] = False
 
             elif import_mode == "Data (Multi Channel)":
                 update_dict["import_multichannel_mode"] = True
+                update_dict["import_clear"] = True
+                update_dict["frame_averaging"] = False
 
                 if multichannel_mode == "None":
                     update_dict["import_channel_name"] = True
+                    update_dict["import_clear"] = True
+                    update_dict["frame_averaging"] = False
                 if multichannel_mode == "Multi File":
                     update_dict["import_dataset_name"] = True
+                    update_dict["import_clear"] = True
+                    update_dict["frame_averaging"] = False
 
             for contol_name, show in update_dict.items():
                 if hasattr(self.gui, contol_name):
                     control = getattr(self.gui, contol_name)
                     self.update_control(control, show=show)
+
+            self.gui.import_clear.setChecked(True)
 
         except:
             print(traceback.format_exc())
