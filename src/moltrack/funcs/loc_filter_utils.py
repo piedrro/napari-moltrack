@@ -351,6 +351,11 @@ class _loc_filter_utils:
             max_value = self.gui.filter_max.value()
             subtract_background = self.gui.filter_subtract_bg.isChecked()
 
+            if criterion not in self.moltrack_metrics.keys():
+                return
+
+            criterion = self.moltrack_metrics[criterion]
+
             n_removed = 0
 
             loc_data = self.get_locs(dataset, channel, return_dict=True)
