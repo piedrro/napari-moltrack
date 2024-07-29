@@ -15,46 +15,9 @@ from multiprocessing import Manager, shared_memory
 from functools import partial
 import warnings
 from napari.utils.notifications import show_info
+import trackpy
 
 warnings.filterwarnings("ignore", category=UserWarning)
-
-@njit
-def calculate_msd_numba(x_disp, y_disp, max_lag):
-    msd_list = np.zeros(max_lag + 1)
-    for lag in range(1, max_lag + 1):
-        squared_displacements = np.zeros(len(x_disp) - lag)
-        for i in range(len(x_disp) - lag):
-            dx = np.sum(x_disp[i:i+lag])
-            dy = np.sum(y_disp[i:i+lag])
-            squared_displacements[i] = dx**2 + dy**2
-        msd_list[lag] = np.mean(squared_displacements)
-    return msd_list
-
-
-@njit
-def calculate_rolling_msd(x, y, pixel_size, window_size=3):
-    n = len(x)
-    half_window = window_size // 2
-    rolling_msd = np.zeros(n)
-
-    for i in range(n):
-
-        start = max(0, i - half_window)
-        end = min(n, i + half_window + 1)
-
-        msd_sum = 0
-        count = 0
-
-        for j in range(start, end):
-            dx = (x[j] - x[i]) * pixel_size
-            dy = (y[j] - y[i]) * pixel_size
-            msd_sum += dx ** 2 + dy ** 2
-            count += 1
-
-        rolling_msd[i] = msd_sum / count if count > 0 else 0
-
-    return rolling_msd
-
 
 
 class _trackstats_utils:
@@ -192,8 +155,6 @@ class _trackstats_utils:
             x = df['x'].values
             y = df['y'].values
 
-            stats["rolling_msd"] = calculate_rolling_msd(x, y, pixel_size, window_size=4)
-
             # Calculate the displacements using numpy diff
             x_disp = np.diff(x, prepend=x[0]) * pixel_size
             y_disp = np.diff(y, prepend=y[0]) * pixel_size
@@ -201,8 +162,11 @@ class _trackstats_utils:
             stats["step_size"] = np.sqrt(x_disp ** 2 + y_disp ** 2)
 
             # Calculate the MSD using numba
-            max_lag = len(x) - 1
-            msd_list = calculate_msd_numba(x_disp, y_disp, max_lag)
+            max_lag = len(x)
+            fps = 1 / time_step
+            msd_data = trackpy.motion.msd(df, pixel_size, fps, max_lag-1)
+            msd_list = msd_data["msd"].tolist()[:max_lag]
+            msd_list = [0] + msd_list
             stats["msd"] = msd_list
 
             # Calculate speed
@@ -210,11 +174,12 @@ class _trackstats_utils:
             stats["speed"] = speed
 
             # Create time array
-            time = np.arange(0, max_lag + 1) * time_step
+            time = np.arange(0, max_lag) * time_step
             stats["time"] = time
 
-            if len(time) >= 4 and len(msd_list) >= 4:  # Ensure there are enough points to fit
-                slope, intercept = np.polyfit(time[:4], msd_list[:4], 1)
+            if len(time) >= 6 and len(msd_list) >= 6:  # Ensure there are enough points to fit
+                #skip the first point as it is zero
+                slope, intercept = np.polyfit(time[1:5], msd_list[1:5], 1)
                 stats["D*"] = abs(slope / 4)  # the slope of MSD vs time gives 4D in 2D
             else:
                 stats["D*"] = 0

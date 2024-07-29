@@ -149,6 +149,8 @@ class _trackplot_utils:
         try:
 
             self.trackplot_layout = {}
+            self.trackplots = {}
+            self.trackplots_text = {}
             self.trackplot_canvas.clear()
 
             if len(trackplot_data["data"]) > 0:
@@ -199,6 +201,9 @@ class _trackplot_utils:
                     plot_line = p.plot(x_axis, values,
                         pen=(i, len(trackplot_data)), name=y_axis_label)
 
+                    # text_item = pg.TextItem(text="xxx", color=(255, 255, 255))
+                    # p.addItem(text_item)
+
                     if plot0 is not None:
                         p.setXLink(plot0)
 
@@ -217,6 +222,8 @@ class _trackplot_utils:
                         label.setAttr('weight', 'bold')
 
                     self.trackplot_layout[i] = plot_line
+                    self.trackplots[i] = p
+                    # self.trackplots_text[i] = text_item
 
         except:
             print(traceback.format_exc())
@@ -267,9 +274,13 @@ class _trackplot_utils:
                 plot_line.setData(x_axis, values)
 
 
+                y_min = min(values)
+                y_max = max(values)
+                padding = 0.1 * (y_max - y_min)
 
-
-
+                self.trackplots[i].setYRange(y_min - padding, y_max + padding)
+                self.trackplots[i].setXRange(min(x_axis), max(x_axis))
+                # self.trackplots_text[i].setText(f"values: {values[0]}")
 
     def get_trackplot_data(self):
 

@@ -130,6 +130,9 @@ class _diffusion_utils:
 
             track_data = pd.DataFrame(track_data)
 
+            if "D*" not in track_data.columns:
+                return
+
             for (dataset_name,channel_name), tracks in track_data.groupby(["dataset", "channel"]):
 
                 coefs = []

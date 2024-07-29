@@ -420,6 +420,12 @@ class _tracking_utils:
         self.draw_localisations()
         self.draw_tracks()
 
+        channel_name = self.gui.tracking_channel.currentText()
+
+        self.gui.adc_channel.blockSignals(True)
+        self.gui.adc_channel.setCurrentText(channel_name)
+        self.gui.adc_channel.blockSignals(False)
+
         channel = self.gui.tracking_channel.currentText()
 
         if channel != "All Channels":
