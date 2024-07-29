@@ -1095,13 +1095,6 @@
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="label_17">
-             <property name="text">
-              <string>Extend segmentation [E]</string>
-             </property>
-            </widget>
-           </item>
-           <item>
             <widget class="QLabel" name="label_18">
              <property name="text">
               <string>Join segmentations [J]</string>

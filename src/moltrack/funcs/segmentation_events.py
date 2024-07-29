@@ -55,7 +55,6 @@ class _segmentation_events:
 
     def register_shape_layer_keybinds(self, layer):
         layer.bind_key("Space", func=lambda event: self.modify_mode(mode="add"), overwrite=True, )
-        layer.bind_key("e", func=lambda event: self.modify_mode(mode="extend"), overwrite=True, )
         layer.bind_key("j", func=lambda event: self.modify_mode(mode="join"), overwrite=True, )
         layer.bind_key("d", func=lambda event: self.modify_mode(mode="delete"), overwrite=True, )
         layer.bind_key("p", func=lambda event: self.modify_mode(mode="pan_zoom"), overwrite=True, )

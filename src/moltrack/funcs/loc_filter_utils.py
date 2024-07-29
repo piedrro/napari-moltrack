@@ -130,9 +130,6 @@ class _loc_filter_utils:
             if len(polygons) == 0:
                 return
 
-            total_locs = 0
-            total_filtered = 0
-
             locs = self.get_locs(dataset, channel, return_dict=False)
 
             n_locs = len(locs)
@@ -145,16 +142,6 @@ class _loc_filter_utils:
 
             coords = np.stack([locs["x"], locs["y"]], axis=1)
             points = [Point(coord) for coord in coords]
-
-            # for polygon in polygons:
-            #     polygon_coords = np.array(polygon.exterior.coords).copy()
-            #     plt.plot(polygon_coords[:,0], polygon_coords[:,1], color="red")
-            # points_coords = coords.copy()
-            # plt.scatter(points_coords[:,0], points_coords[:,1], color="blue", s=0.5)
-            # plt.gca().invert_yaxis()
-            # plt.show()
-
-            # print("Done")
 
             spatial_index = STRtree(points)
 
