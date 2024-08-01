@@ -13,7 +13,7 @@ import os
 import scipy
 from napari.utils.notifications import show_info
 
-from moltrack.bactfit.utils import (resize_line, moving_average, rotate_polygon,
+from bactfit.utils import (resize_line, moving_average, rotate_polygon,
     rotate_linestring, get_vertical, fit_poly)
 
 class oufti:

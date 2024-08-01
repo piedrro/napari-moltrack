@@ -20,6 +20,7 @@ import json
 from moltrack.funcs.compute_utils import Worker
 from napari.utils.notifications import show_info
 import pickle
+from bactfit import fileIO
 
 def format_picasso_path(path):
     if "%" in str(path):
@@ -138,6 +139,7 @@ def export_picasso_localisation(loc_data):
 class _export_utils:
 
     def get_export_shapes_path(self, mode="Binary Mask"):
+
         export_path = None
         export_dir = None
         file_name = None
@@ -266,6 +268,7 @@ class _export_utils:
             self.export_shapes_json(path)
 
     def export_cells(self, export_mode, path=None):
+
         if export_mode == "Binary Mask":
             self.export_shapes_mask(path)
 
@@ -274,6 +277,9 @@ class _export_utils:
 
         elif export_mode == "Oufti/MicrobTracker Mesh":
             self.export_mesh(path)
+
+        else:
+            print("Export mode not recognised")
 
     def get_export_polygons(self):
 
@@ -315,6 +321,7 @@ class _export_utils:
         self.update_ui()
 
     def export_shapes_data(self, path, progress_callback=None):
+
         export_data = self.gui.shapes_export_data.currentText()
         export_mode = self.gui.shapes_export_mode.currentText()
 
@@ -325,6 +332,7 @@ class _export_utils:
             self.export_cells(export_mode, path=path)
 
     def init_export_shapes_data(self):
+
         export_data = self.gui.shapes_export_data.currentText()
         export_mode = self.gui.shapes_export_mode.currentText()
 
@@ -341,6 +349,7 @@ class _export_utils:
                 self.threadpool.start(worker)
 
     def update_shape_export_options(self):
+
         export_data = self.gui.shapes_export_data.currentText()
 
         if export_data == "Segmentations":
@@ -660,4 +669,66 @@ class _export_utils:
             print(traceback.format_exc())
             self.update_ui()
             pass
+
+
+    def export_bactfit(self):
+
+        try:
+            celllist = None
+
+            dataset = self.gui.bactfit_export_dataset.currentText()
+            channel = self.gui.bactfit_export_channel.currentText()
+            export_data = self.gui.bactfit_export_data.currentText()
+
+            if export_data == "Localisations":
+                locs = self.get_locs(dataset, channel)
+            else:
+                locs = self.get_tracks(dataset, channel)
+
+            if len(locs) == 0:
+                locs = None
+
+            if hasattr(self, "celllist"):
+                celllist = self.celllist
+            else:
+                if hasattr(self, "cellLayer") == False:
+                    show_info("BactFit export requires fitted cells")
+                    return
+
+                show_info("Polpulating BactFit CellList")
+
+                celllist = self.populate_celllist()
+
+                if locs is not None:
+
+                    show_info("Adding localisations to CellList")
+                    celllist.add_localisations(locs)
+
+            if celllist is None:
+                show_info("No cells found")
+                return
+
+            path = self.dataset_dict[dataset]["path"]
+
+            if type(path) == list:
+                path = path[0]
+
+            export_dir = os.path.dirname(path)
+            file_name = os.path.basename(path)
+            base, ext = os.path.splitext(file_name)
+            file_name = base + ".h5"
+
+            export_path = os.path.join(export_dir, file_name)
+
+            export_path = QFileDialog.getSaveFileName(self, "Export BactFit",
+                export_path, "(*.h5)")[0]
+
+            if export_path == "":
+                return
+
+            fileIO.save(export_path, celllist)
+            show_info("BactFit exported")
+
+        except:
+            print(traceback.format_exc())
 

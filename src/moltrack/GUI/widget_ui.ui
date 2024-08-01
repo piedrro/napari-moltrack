@@ -262,6 +262,9 @@
              <property name="text">
               <string>Clear Imported Data</string>
              </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
             </widget>
            </item>
            <item>
@@ -1281,7 +1284,7 @@
          </widget>
          <widget class="QWidget" name="tab_14">
           <attribute name="title">
-           <string>BactFit</string>
+           <string>Fit Segmentations (BactFit)</string>
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_15">
            <item>
@@ -1485,12 +1488,12 @@
              <item row="0" column="0">
               <widget class="QLabel" name="label_51">
                <property name="text">
-                <string>Default Cell Width</string>
+                <string>Default Cell Radius</string>
                </property>
               </widget>
              </item>
              <item row="0" column="1">
-              <widget class="QSpinBox" name="default_cell_width">
+              <widget class="QSpinBox" name="default_cell_radius">
                <property name="value">
                 <number>5</number>
                </property>
@@ -3983,9 +3986,9 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="compute_heatmap">
+        <widget class="QPushButton" name="transform_coordinates">
          <property name="text">
-          <string>Compute Heatmap</string>
+          <string>Transform Localisations/Tracks</string>
          </property>
         </widget>
        </item>
@@ -4443,6 +4446,19 @@
              </property>
             </widget>
            </item>
+           <item>
+            <spacer name="verticalSpacer_34">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
           </layout>
          </widget>
          <widget class="QWidget" name="tab_15">
@@ -4523,6 +4539,91 @@
            </item>
            <item>
             <spacer name="verticalSpacer_15">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="tab_34">
+          <attribute name="title">
+           <string>BactFit</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_36">
+           <item>
+            <layout class="QFormLayout" name="formLayout_37">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_17">
+               <property name="text">
+                <string>Export Data</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="bactfit_export_data">
+               <item>
+                <property name="text">
+                 <string>Localisations</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Tracks</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_156">
+               <property name="text">
+                <string>Dataset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="bactfit_export_dataset"/>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_157">
+               <property name="text">
+                <string>Channel</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QComboBox" name="bactfit_export_channel"/>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="QPushButton" name="export_bactfit">
+             <property name="text">
+              <string>Export Localisations</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QProgressBar" name="export_bactfit_progressbar">
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>10</height>
+              </size>
+             </property>
+             <property name="value">
+              <number>0</number>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_35">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
              </property>

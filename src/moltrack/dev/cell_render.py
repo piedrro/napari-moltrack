@@ -8,8 +8,7 @@ from shapely.geometry import LineString, Point, Polygon
 from shapely.strtree import STRtree
 import matplotlib.pyplot as plt
 from multiprocessing import Pool, cpu_count
-from moltrack.bactfit.fit import BactFit
-from moltrack.bactfit.cell import ModelCell, Cell, CellList
+from bactfit.cell import ModelCell, Cell, CellList
 import traceback
 import time
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed

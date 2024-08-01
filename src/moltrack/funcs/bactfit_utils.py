@@ -1,12 +1,11 @@
 import numpy as np
 import traceback
 from moltrack.funcs.compute_utils import Worker
-from moltrack.bactfit.preprocess import data_to_cells
+from bactfit.preprocess import data_to_cells
 from functools import partial
 from shapely.geometry import Polygon, LineString
 import matplotlib.pyplot as plt
-from moltrack.bactfit.fit import BactFit
-from moltrack.bactfit.cell import CellList
+from bactfit.cell import CellList
 from napari.utils.notifications import show_info
 
 class _bactfit_utils:
@@ -16,16 +15,18 @@ class _bactfit_utils:
         self.update_ui()
         self.update_segmentation_combos()
 
-    def run_bactfit_results(self, cell_list):
+    def run_bactfit_results(self, celllist):
 
-        if cell_list is None:
+        if celllist is None:
             return
 
-        data = cell_list.get_cell_polygons()
+        self.celllist = celllist
+
+        data = celllist.get_cell_polygons()
 
         cell_names = data["names"]
         cell_polygons = data["polygons"]
-        cell_widths = data["widths"]
+        cell_radii = data["cell_radii"]
         cell_params = data["poly_params"]
         cell_poles = data["cell_poles"]
         cell_midlines = data["midlines"]
@@ -39,12 +40,12 @@ class _bactfit_utils:
         shape_types = []
         properties = {"name": [], "cell": []}
 
-        for name, polygon, width, midline, params, poles in zip(cell_names, cell_polygons,
-                cell_widths, cell_midlines, cell_params, cell_poles):
+        for name, polygon, radius, midline, params, poles in zip(cell_names, cell_polygons,
+                cell_radii, cell_midlines, cell_params, cell_poles):
 
             try:
 
-                fit_params = {"name": name, "width": width,
+                fit_params = {"name": name, "radius": radius,
                               "poly_params": params, "cell_poles": poles}
 
                 shapes.append(polygon)
@@ -74,16 +75,23 @@ class _bactfit_utils:
             max_radius = float(self.gui.fit_max_radius.value())
             max_error = float(self.gui.fit_max_error.value())
 
+            show_info(f"Building CellList")
+
             celllist = data_to_cells(segmentations)
 
-            bf = BactFit(celllist=celllist,
-                max_radius=max_radius, min_radius=min_radius, max_error=max_error,
-                progress_callback=progress_callback, parallel=True,)
+            n_cells = len(celllist.data)
 
-            celllist = bf.fit()
+            if n_cells == 0:
+                return None
 
-            max_error = [cell.fit_error for cell in celllist.data]
-            print(f"Max error: {max(max_error)}")
+            show_info(f"BactFit Fitting {n_cells} cells")
+
+            celllist.optimise(max_radius=max_radius, min_radius=min_radius,
+                max_error=max_error, progress_callback=progress_callback)
+
+            error_list = [cell.fit_error for cell in celllist.data]
+            error_list = [error for error in error_list if error is not None]
+            print(f"Max error: {max(error_list)}")
 
         except:
             print(traceback.format_exc())

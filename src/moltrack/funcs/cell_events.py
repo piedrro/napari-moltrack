@@ -1,15 +1,15 @@
 import numpy as np
 import traceback
 from moltrack.funcs.compute_utils import Worker
-from moltrack.bactfit.preprocess import data_to_cells
-from moltrack.bactfit.cell import Cell
+from bactfit.preprocess import data_to_cells
+from bactfit.cell import Cell
 from functools import partial
 from shapely.geometry import Polygon, LineString, Point
 import matplotlib.pyplot as plt
 import copy
 import random
 import string
-from moltrack.bactfit.utils import manual_fit
+from bactfit.utils import manual_fit
 from napari.utils.notifications import show_info
 
 
@@ -219,7 +219,7 @@ class _cell_events:
                         )
 
                         midline_coords = cell["midline_coords"]
-                        width = cell["width"]
+                        radius = cell["radius"]
 
                         midline = LineString(midline_coords)
 
@@ -228,9 +228,9 @@ class _cell_events:
                         else:
                             buffer = -0.5
 
-                        width += buffer
+                        radius += buffer
 
-                        polygon = midline.buffer(width)
+                        polygon = midline.buffer(radius)
 
                         polygon_coords = np.array(polygon.exterior.coords)
                         polygon_coords = polygon_coords[:-1]
@@ -239,8 +239,8 @@ class _cell_events:
                         midline_index = cell["midline_index"]
 
                         cell_shapes[polygon_index] = polygon_coords
-                        properties["cell"][polygon_index]["width"] = width
-                        properties["cell"][midline_index]["width"] = width
+                        properties["cell"][polygon_index]["radius"] = radius
+                        properties["cell"][midline_index]["radius"] = radius
 
                         self.update_cellLayer_shapes(
                             cell_shapes, properties=properties
@@ -299,8 +299,8 @@ class _cell_events:
                             list(pole)
                             for pole in cell_properties["cell_poles"]
                         ]
-                        cell_properties["width"] = float(
-                            cell_properties["width"]
+                        cell_properties["radius"] = float(
+                            cell_properties["radius"]
                         )
 
                     cell_coords = {
@@ -405,16 +405,16 @@ class _cell_events:
             if cell is not None:
                 midline_coords = cell["midline_coords"]
                 polygon_coords = cell["polygon_coords"]
-                width = cell["width"]
+                radius = cell["radius"]
                 midline_index = cell["midline_index"]
                 polygon_index = cell["polygon_index"]
 
-                fit = manual_fit(polygon_coords, midline_coords, width)
+                fit = manual_fit(polygon_coords, midline_coords, radius)
                 (
                     polygon_fit_coords,
                     midline_fit_coords,
                     poly_params,
-                    cell_width,
+                    cell_radius,
                 ) = fit
 
                 if polygon_fit_coords is not None:
@@ -434,14 +434,14 @@ class _cell_events:
                     properties["cell"][polygon_index][
                         "poly_params"
                     ] = poly_params
-                    properties["cell"][polygon_index]["width"] = cell_width
+                    properties["cell"][polygon_index]["radius"] = cell_radius
                     properties["cell"][polygon_index][
                         "cell_poles"
                     ] = cell_poles
                     properties["cell"][midline_index][
                         "poly_params"
                     ] = poly_params
-                    properties["cell"][midline_index]["width"] = cell_width
+                    properties["cell"][midline_index]["radius"] = cell_radius
                     properties["cell"][midline_index][
                         "cell_poles"
                     ] = cell_poles
@@ -488,7 +488,7 @@ class _cell_events:
         except:
             pass
 
-    def find_centerline(self, midline, width):
+    def find_centerline(self, midline, radius):
         try:
 
             def resample_line(line, num_points):
@@ -574,7 +574,7 @@ class _cell_events:
                     return LineString(cropped_coords)
                 return line
 
-            model = midline.buffer(width)
+            model = midline.buffer(radius)
 
             centerline = resample_line(
                 midline, 1000
@@ -582,7 +582,7 @@ class _cell_events:
 
             start_points, end_points = extract_end_points(centerline)
 
-            extension_distance = width * 3
+            extension_distance = radius * 3
 
             extended_start = extend_away(start_points, extension_distance)
             extended_end = extend_away(end_points, extension_distance)
@@ -615,7 +615,7 @@ class _cell_events:
 
         return centerline
 
-    def find_end_cap_centroid(self, midline, width):
+    def find_end_cap_centroid(self, midline, radius):
         try:
 
             def find_nearest_index(coords, point):
@@ -641,14 +641,14 @@ class _cell_events:
                 return end_point
 
             # offset line
-            polygon = midline.buffer(width)
+            polygon = midline.buffer(radius)
             polygon_coords = np.array(polygon.exterior.coords)
 
             left_line = midline.parallel_offset(
-                width, side="left", join_style=2
+                radius, side="left", join_style=2
             )
             right_line = midline.parallel_offset(
-                width, side="right", join_style=2
+                radius, side="right", join_style=2
             )
 
             left_coords = np.array(left_line.coords)
@@ -680,7 +680,7 @@ class _cell_events:
     def add_manual_cell(self, last_index):
         try:
             shapes = self.cellLayer.data.copy()
-            width = self.gui.default_cell_width.value()
+            radius = self.gui.default_cell_radius.value()
             properties = self.cellLayer.properties.copy()
             shape_types = self.cellLayer.shape_type.copy()
 
@@ -694,12 +694,12 @@ class _cell_events:
             cell_poles = [midline_coords[0], midline_coords[-1]]
 
             midline = LineString(midline_coords)
-            polygon = midline.buffer(width)
+            polygon = midline.buffer(radius)
 
             polygon_coords = np.array(polygon.exterior.coords)
 
-            fit = manual_fit(polygon_coords, midline_coords, width)
-            polygon_fit_coords, midline_fit_coords, poly_params, cell_width = (
+            fit = manual_fit(polygon_coords, midline_coords, radius)
+            polygon_fit_coords, midline_fit_coords, poly_params, cell_radius = (
                 fit
             )
 
@@ -707,7 +707,7 @@ class _cell_events:
 
             cell = {
                 "name": name,
-                "width": width,
+                "radius": cell_radius,
                 "poly_params": poly_params,
                 "cell_poles": cell_poles,
             }
@@ -728,7 +728,7 @@ class _cell_events:
 
             cell = {
                 "name": name,
-                "width": width,
+                "radius": radius,
                 "poly_params": poly_params,
                 "cell_poles": cell_poles,
             }

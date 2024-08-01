@@ -345,7 +345,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.show_locs.stateChanged.connect(partial(self.update_active_layers, mode="locs"))
         self.gui.show_render.stateChanged.connect(partial(self.update_active_layers, mode="render"))
 
-        self.gui.compute_heatmap.clicked.connect(self.compute_cell_heatmap)
+        self.gui.transform_coordinates.clicked.connect(self.compute_cell_heatmap)
         self.gui.export_heatmap.clicked.connect(self.export_cell_heatmap)
         self.gui.export_heatmap_locs.clicked.connect(self.export_heatmap_locs)
         self.gui.heatmap_mode.currentIndexChanged.connect(self.update_heatmap_options)
@@ -397,6 +397,8 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.merge_locs.clicked.connect(self.merge_localisations)
 
+        self.gui.export_bactfit.clicked.connect(self.export_bactfit)
+
     def devfunc(self, viewer=None):
 
         # self.update_render_length_range()
@@ -439,7 +441,7 @@ class QWidget(QWidget, gui, *subclasses):
 
         try:
 
-            from moltrack.bactfit.fileIO import load, save
+            from bactfit.fileIO import load, save
 
             celllist = self.populate_celllist()
 
