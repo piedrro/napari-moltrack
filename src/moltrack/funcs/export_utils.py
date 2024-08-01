@@ -230,6 +230,8 @@ class _export_utils:
 
             tifffile.imwrite(path, mask)
 
+            show_info(f"Mask exported to {path}")
+
         except:
             print(traceback.format_exc())
             pass
@@ -294,28 +296,62 @@ class _export_utils:
 
         if export_data == "Segmentations":
             if export_mode == "Binary Mask":
-                export_polygons = [shapes[i] for i, shape_type in enumerate(shape_types) if shape_type == "polygon"]
+
+                export_polygons = []
+
+                for i, shape_type in enumerate(shape_types):
+                    if shape_type == "polygon":
+                        polygon = shapes[i]
+                        print(i, len(polygon))
+                        if len(polygon) > 3:
+                            export_polygons.append(polygon)
 
                 return export_polygons
 
             else:
-                export_polygons = [shapes[i] for i, shape_type in enumerate(shape_types) if shape_type == "polygon"]
-                export_polygons = [{"polygon_coords": polygon.tolist()} for polygon in export_polygons]
+
+                export_polygons = []
+
+                for i, shape_type in enumerate(shape_types):
+                    if shape_type == "polygon":
+                        polygon = shapes[i]
+                        polygon_dict = {"polygon_coords": polygon.tolist()}
+                        export_polygons.append(polygon_dict)
 
                 return export_polygons
 
         else:
-            export_polygons = []
+            if export_mode == "Binary Mask":
 
-            names = set(properties["name"])
+                export_polygons = []
+                names = set(properties["name"])
 
-            for name in names:
-                cell = self.get_cell(name, json=True)
+                for name in names:
+                    cell = self.get_cell(name, json=True)
 
-                if cell is not None:
-                    export_polygons.append(cell)
+                    if cell is not None:
+                        polygon = cell["polygon_coords"]
 
-            return export_polygons
+                        if polygon is not None:
+
+                            if len(polygon) > 3:
+                                polygon = np.array(polygon)
+                                export_polygons.append(polygon)
+
+                return export_polygons
+
+            else:
+
+                export_polygons = []
+                names = set(properties["name"])
+
+                for name in names:
+                    cell = self.get_cell(name, json=True)
+
+                    if cell is not None:
+                        export_polygons.append(cell)
+
+                return export_polygons
 
     def export_shapes_data_finished(self):
         self.update_ui()

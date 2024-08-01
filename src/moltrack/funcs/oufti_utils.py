@@ -50,12 +50,12 @@ class oufti:
 
             midline_coords = np.array(cell["midline_coords"])
             polygon_coords = np.array(cell["polygon_coords"])
-            width = cell["width"]
+            radius = cell["radius"]
 
             polygon = Polygon(polygon_coords)
             midline = LineString(midline_coords)
 
-            centerline = oufti.find_centerline(midline,width,True)
+            centerline = oufti.find_centerline(midline,radius,True)
             centerline_coords = np.array(centerline.coords)
 
             left_coords, right_coords = oufti.get_boundary_lines(centerline, polygon)
