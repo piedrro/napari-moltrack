@@ -142,7 +142,7 @@ class _trackstats_utils:
 
 
     @staticmethod
-    def get_track_stats(df, shape_data=None):
+    def get_track_stats(df, min_track_length = 4, shape_data=None):
 
         stats = {}
 
@@ -177,12 +177,15 @@ class _trackstats_utils:
             time = np.arange(0, max_lag) * time_step
             stats["time"] = time
 
-            if len(time) >= 6 and len(msd_list) >= 6:  # Ensure there are enough points to fit
+            if len(time) >= min_track_length and len(msd_list) >= min_track_length:  # Ensure there are enough points to fit
                 #skip the first point as it is zero
-                slope, intercept = np.polyfit(time[1:5], msd_list[1:5], 1)
+                slope, intercept = np.polyfit(
+                    time[1:min_track_length+1],
+                    msd_list[1:min_track_length+1], 1)
+
                 stats["D*"] = abs(slope / 4)  # the slope of MSD vs time gives 4D in 2D
             else:
-                stats["D*"] = 0
+                stats["D*"] = np.nan
 
             try:
                 track_angles = _trackstats_utils.calculate_track_angles(np.array([x, y]).T)
@@ -217,13 +220,12 @@ class _trackstats_utils:
 
         try:
 
+            min_track_length = self.gui.trackstats_adc_track_length.value()
+
             tracks_with_stats = []
 
             if type(track_data) == np.recarray:
                 track_data = pd.DataFrame(track_data)
-
-            # stats_jobs = [dat[1] for dat in track_data.groupby(["dataset", "channel", "particle"])]
-            # _trackstats_utils.get_track_stats(stats_jobs[0], shape_data)
 
             with ProcessPoolExecutor() as executor:
 
@@ -232,7 +234,8 @@ class _trackstats_utils:
 
                 n_processed = 0
 
-                futures = [executor.submit(_trackstats_utils.get_track_stats, df, shape_data) for df in stats_jobs]
+                futures = [executor.submit(_trackstats_utils.get_track_stats, df,
+                    min_track_length, shape_data) for df in stats_jobs]
 
                 for future in as_completed(futures):
                     n_processed += 1

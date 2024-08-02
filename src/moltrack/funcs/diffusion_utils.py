@@ -152,6 +152,7 @@ class _diffusion_utils:
                     label = f"{dataset_name}"
 
                 coefs = np.array(coefs)
+                coefs = coefs[(~np.isnan(coefs)) & (~np.isinf(coefs))]
                 coefs = coefs[(coefs >= min_range) & (coefs <= max_range)]
 
                 if len(coefs) > 0:

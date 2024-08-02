@@ -278,6 +278,12 @@ class _trackplot_utils:
                 y_max = max(values)
                 padding = 0.1 * (y_max - y_min)
 
+                #check y min a  number
+                if np.isnan(y_min) or np.isinf(y_min):
+                    continue
+                if np.isnan(y_max) or np.isinf(y_max):
+                    continue
+
                 self.trackplots[i].setYRange(y_min - padding, y_max + padding)
                 self.trackplots[i].setXRange(min(x_axis), max(x_axis))
                 # self.trackplots_text[i].setText(f"values: {values[0]}")

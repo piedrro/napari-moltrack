@@ -724,21 +724,18 @@ class _export_utils:
             if len(locs) == 0:
                 locs = None
 
-            if hasattr(self, "celllist"):
-                celllist = self.celllist
-            else:
-                if hasattr(self, "cellLayer") == False:
-                    show_info("BactFit export requires fitted cells")
-                    return
+            if hasattr(self, "cellLayer") == False:
+                show_info("BactFit export requires fitted cells")
+                return
 
-                show_info("Polpulating BactFit CellList")
+            show_info("Polpulating BactFit CellList")
 
-                celllist = self.populate_celllist()
+            celllist = self.populate_celllist()
 
-                if locs is not None:
+            if locs is not None:
 
-                    show_info("Adding localisations to CellList")
-                    celllist.add_localisations(locs)
+                show_info("Adding localisations to CellList")
+                celllist.add_localisations(locs)
 
             if celllist is None:
                 show_info("No cells found")
