@@ -14,6 +14,52 @@ from napari.utils.notifications import show_info
 
 class _diffusion_utils:
 
+    def update_diffusion_range(self):
+
+        try:
+            dataset = self.gui.adc_dataset.currentText()
+            channel = self.gui.adc_channel.currentText()
+
+            track_data = self.get_tracks(dataset, channel)
+
+            if len(track_data) == 0:
+                return
+            track_data = pd.DataFrame(track_data)
+
+            if "D*" not in track_data.columns:
+                return
+
+            data = np.array(track_data["D*"].values)
+            data = data[(~np.isnan(data)) & (~np.isinf(data))]
+
+            if len(data) == 0:
+                return
+
+            min_range = np.min(data)
+            max_range = np.max(data)
+
+            self.gui.adc_range_min.blockSignals(True)
+            self.gui.adc_range_max.blockSignals(True)
+
+            self.gui.adc_range_min.setMinimum(min_range)
+            self.gui.adc_range_min.setMaximum(max_range)
+
+            self.gui.adc_range_max.setMinimum(min_range)
+            self.gui.adc_range_max.setMaximum(max_range)
+
+            self.gui.adc_range_min.setValue(0)
+            self.gui.adc_range_max.setValue(max_range)
+
+            self.gui.adc_range_min.setDecimals(3)
+            self.gui.adc_range_max.setDecimals(3)
+
+            self.gui.adc_range_min.blockSignals(False)
+            self.gui.adc_range_max.blockSignals(False)
+
+        except:
+            print(traceback.format_exc())
+            pass
+
     def update_diffusion_options(self):
 
         try:

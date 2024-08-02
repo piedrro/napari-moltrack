@@ -406,7 +406,7 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.update_ui()
 
-        self.update_segmentation_combos()
+        self.update_diffusion_range()
         # self.update_traces_export_options()
 
         # print(self.cellLayer.properties["cell"])

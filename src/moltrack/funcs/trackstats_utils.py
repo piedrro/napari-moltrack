@@ -177,13 +177,31 @@ class _trackstats_utils:
             time = np.arange(0, max_lag) * time_step
             stats["time"] = time
 
-            if len(time) >= min_track_length and len(msd_list) >= min_track_length:  # Ensure there are enough points to fit
-                #skip the first point as it is zero
-                slope, intercept = np.polyfit(
-                    time[1:min_track_length+1],
-                    msd_list[1:min_track_length+1], 1)
+            min_track_length += 1
 
-                stats["D*"] = abs(slope / 4)  # the slope of MSD vs time gives 4D in 2D
+            if len(time) >= min_track_length and len(msd_list) >= min_track_length:  # Ensure there are enough points to fit
+
+                # skip the first point as it is zero
+                fitx = np.array(time[1:min_track_length])
+                fity = np.array(msd_list[1:min_track_length])
+
+                slope, intercept = np.polyfit(fitx,fity, 1)
+                D = slope / 4
+
+                #Correct D* for localization error, if available
+                if "lpx" in df.columns and "lpy" in df.columns:
+                    lpx = np.array(df["lpx"].values)
+                    lpy = np.array(df["lpy"].values)
+
+                    sigma = np.sqrt((lpx ** 2 + lpy ** 2) / 2)
+
+                    sigma = sigma[1:min_track_length]
+                    mean_sigma = np.mean(sigma)
+
+                    D = D - (4 * (mean_sigma ** 2))
+
+                stats["D*"] = D
+
             else:
                 stats["D*"] = np.nan
 
@@ -257,6 +275,7 @@ class _trackstats_utils:
 
     def compute_track_stats_finished(self):
 
+        self.update_diffusion_range()
         self.plot_diffusion_graph()
 
         self.update_track_filter_criterion()
