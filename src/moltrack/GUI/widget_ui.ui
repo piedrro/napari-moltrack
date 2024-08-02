@@ -3851,7 +3851,12 @@
                </item>
                <item>
                 <property name="text">
-                 <string>Apparent Diffusion Coefficient</string>
+                 <string>D</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>D*</string>
                 </property>
                </item>
               </widget>

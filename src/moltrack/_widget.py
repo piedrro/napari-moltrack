@@ -214,9 +214,9 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.moltrack_metrics = {"Mean Squared Displacement": "msd",
                                  "Speed": "speed",
-                                 "Apparent Diffusion Coefficient": "D*",
+                                 "D": "D",
+                                 "D*": "D*",
                                  "Step Size": "step_size",
-                                 "Rolling MSD": "rolling_msd",
                                  "Angle": "angle",
                                  "Membrane Distance": "membrane_distance",
                                  "Midline Distance": "midline_distance",
@@ -338,6 +338,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.export_adc.clicked.connect(self.export_diffusion_graph)
 
         self.gui.adc_plot.currentIndexChanged.connect(self.update_diffusion_options)
+        self.gui.adc_plot.currentIndexChanged.connect(self.update_diffusion_range)
 
         self.gui.show_data.stateChanged.connect(partial(self.update_active_layers, mode="data"))
         self.gui.show_shapes.stateChanged.connect(partial(self.update_active_layers, mode="shapes"))
@@ -398,6 +399,8 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.merge_locs.clicked.connect(self.merge_localisations)
 
         self.gui.export_bactfit.clicked.connect(self.export_bactfit)
+
+
 
     def devfunc(self, viewer=None):
 

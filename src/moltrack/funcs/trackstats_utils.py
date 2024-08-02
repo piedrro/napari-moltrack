@@ -182,13 +182,15 @@ class _trackstats_utils:
             if len(time) >= min_track_length and len(msd_list) >= min_track_length:  # Ensure there are enough points to fit
 
                 # skip the first point as it is zero
-                fitx = np.array(time[1:min_track_length])
-                fity = np.array(msd_list[1:min_track_length])
+                Dtime = np.array(time[1:min_track_length])
+                Dmsd = np.array(msd_list[1:min_track_length])
 
-                slope, intercept = np.polyfit(fitx,fity, 1)
+                slope, intercept = np.polyfit(Dtime,Dmsd, 1)
                 D = slope / 4
+                stats["D"] = D
 
                 #Correct D* for localization error, if available
+
                 if "lpx" in df.columns and "lpy" in df.columns:
                     lpx = np.array(df["lpx"].values)
                     lpy = np.array(df["lpy"].values)
@@ -198,11 +200,14 @@ class _trackstats_utils:
                     sigma = sigma[1:min_track_length]
                     mean_sigma = np.mean(sigma)
 
-                    D = D - (4 * (mean_sigma ** 2))
+                    D_star = D - mean_sigma**2 /time_step
 
-                stats["D*"] = D
+                    stats["D*"] = D_star
+                else:
+                    stats["D*"] = np.nan
 
             else:
+                stats["D"] = np.nan
                 stats["D*"] = np.nan
 
             try:

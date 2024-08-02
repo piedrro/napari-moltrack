@@ -19,6 +19,7 @@ class _diffusion_utils:
         try:
             dataset = self.gui.adc_dataset.currentText()
             channel = self.gui.adc_channel.currentText()
+            metric = self.gui.adc_plot.currentText()
 
             track_data = self.get_tracks(dataset, channel)
 
@@ -26,10 +27,10 @@ class _diffusion_utils:
                 return
             track_data = pd.DataFrame(track_data)
 
-            if "D*" not in track_data.columns:
+            if metric not in track_data.columns:
                 return
 
-            data = np.array(track_data["D*"].values)
+            data = np.array(track_data[metric].values)
             data = data[(~np.isnan(data)) & (~np.isinf(data))]
 
             if len(data) == 0:
@@ -157,6 +158,7 @@ class _diffusion_utils:
 
             dataset = self.gui.adc_dataset.currentText()
             channel = self.gui.adc_channel.currentText()
+            plot_metric = self.gui.adc_plot.currentText()
             min_range = self.gui.adc_range_min.value()
             max_range = self.gui.adc_range_max.value()
             bins = self.gui.adc_bins.value()
@@ -176,7 +178,7 @@ class _diffusion_utils:
 
             track_data = pd.DataFrame(track_data)
 
-            if "D*" not in track_data.columns:
+            if plot_metric not in track_data.columns:
                 return
 
             for (dataset_name,channel_name), tracks in track_data.groupby(["dataset", "channel"]):
@@ -185,7 +187,7 @@ class _diffusion_utils:
 
                 for particle, track in tracks.groupby("particle"):
 
-                    diffusion = track["D*"].values[0]
+                    diffusion = track[plot_metric].values[0]
                     coefs.append(diffusion)
 
                 if dataset_name == "All Datasets" and channel_name == "All Channels":
@@ -217,7 +219,7 @@ class _diffusion_utils:
                     plotItem = ax.plot(x, y, stepMode=True, fillLevel=0,
                         brush=(0, 0, 255, 90), name=label)
                     ax.setLabel('left', y_label)
-                    ax.setLabel('bottom', 'Apparent Diffusion Coefficient (μm²/s)')
+                    ax.setLabel('bottom', f'Apparent Diffusion Coefficient {plot_metric} (μm²/s)')
                     legend.addItem(plotItem, label)
 
             ax.showGrid(x=True, y=True)
