@@ -51,6 +51,21 @@ To install latest development version :
 
     pip install git+https://github.com/piedrro/napari-moltrack.git
 
+
+## BactFit
+
+napari-moltrack integrates BactFit, a package for fitting the shape of rod shaped bacterial cells to an ideal cell model.
+BactFit allows cell renders and heatmaps to be generated through the transformation of SMLM localisations to an ideal cell model.
+
+### BactFit Heatmap
+
+![Feature Image](resources/heatmap.png)
+
+### BactFit Cell Render
+
+![Feature Image](resources/render.png)
+
+
 ## Contributing
 
 Contributions are very welcome. Tests can be run with [tox], please ensure
