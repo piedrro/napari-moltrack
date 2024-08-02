@@ -174,10 +174,14 @@ class _trackplot_utils:
                         y_axis_label = "Track Duration (s)"
                     elif metric == "Mean Squared Displacement":
                         y_axis_label = f"Mean Squared Displacement (µm²)"
+                    elif metric == "MSD":
+                        y_axis_label = f"MSD (µm²)"
                     elif metric == "Speed":
                         y_axis_label = f"Speed (µm/s)"
-                    elif metric == "Apparent Diffusion Coefficient":
-                        y_axis_label = f"Apparent Diffusion Coefficient (µm²/s)"
+                    elif metric == "D":
+                        y_axis_label = f"D (µm²/s)"
+                    elif metric == "D*":
+                        y_axis_label = f"D* (µm²/s)"
                     elif metric == "Step Size":
                         y_axis_label = f"Step Size (µm)"
                     elif metric == "Rolling MSD":

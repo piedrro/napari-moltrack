@@ -752,6 +752,19 @@ class _picasso_detect_utils:
 
             if len(locs) > 0:
 
+                loc_columns = list(locs.dtype.names)
+
+                if "lpx" in loc_columns and "lpy" in loc_columns:
+                    locs = pd.DataFrame(locs)
+
+                    lpx = np.array(locs["lpx"].values)
+                    lpy = np.array(locs["lpy"].values)
+
+                    sigma = np.sqrt((lpx ** 2 + lpy ** 2) / 2)
+                    locs["sigma"] = sigma
+
+                    locs = locs.to_records(index=False)
+
                 dataset_list = list(set(locs["dataset"]))
                 channel_list = list(set(locs["channel"]))
 

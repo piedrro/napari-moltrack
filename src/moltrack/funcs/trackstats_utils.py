@@ -203,12 +203,15 @@ class _trackstats_utils:
                     D_star = D - mean_sigma**2 /time_step
 
                     stats["D*"] = D_star
+                    stats["sigma"] = sigma
                 else:
                     stats["D*"] = np.nan
+                    stats["sigma"] = np.nan
 
             else:
                 stats["D"] = np.nan
                 stats["D*"] = np.nan
+                stats["sigma"] = np.nan
 
             try:
                 track_angles = _trackstats_utils.calculate_track_angles(np.array([x, y]).T)

@@ -212,10 +212,11 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.trackplot_tracks = None
 
-        self.moltrack_metrics = {"Mean Squared Displacement": "msd",
+        self.moltrack_metrics = {"MSD": "msd",
                                  "Speed": "speed",
                                  "D": "D",
                                  "D*": "D*",
+                                 "Localisation Error": "sigma",
                                  "Step Size": "step_size",
                                  "Angle": "angle",
                                  "Membrane Distance": "membrane_distance",
@@ -409,7 +410,7 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.update_ui()
 
-        self.update_diffusion_range()
+        self.update_filter_criterion()
         # self.update_traces_export_options()
 
         # print(self.cellLayer.properties["cell"])

@@ -210,7 +210,7 @@ class _loc_filter_utils:
                  "cell_index", "segmentation_index",
                  "x", "y", "photons", "bg", "sx", "sy",
                  "lpx", "lpy", "ellipticity", "net_gradient",
-                 "iterations",
+                 "iterations","sigma",
                  "pixel_mean", "pixel_median", "pixel_sum",
                  "pixel_min", "pixel_max","pixel_std",
                  "pixel_mean_bg", "pixel_median_bg", "pixel_sum_bg",

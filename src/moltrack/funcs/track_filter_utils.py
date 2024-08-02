@@ -220,10 +220,14 @@ class _track_filter_utils:
                         xlabel = "Track Duration (s)"
                     elif criterion == "Mean Squared Displacement":
                         xlabel = f"{metric} MSD (µm²)"
+                    elif criterion == "MSD":
+                        xlabel = f"{metric} MSD (µm²)"
                     elif criterion == "Speed":
                         xlabel = f"{metric} Speed (µm/s)"
-                    elif criterion == "Apparent Diffusion Coefficient":
-                        xlabel = f"{metric} Apparent Diffusion Coefficient (µm²/s)"
+                    elif criterion == "D":
+                        xlabel = f"{metric} D (µm²/s)"
+                    elif criterion == "D*":
+                        xlabel = f"{metric} D* (µm²/s)"
                     elif criterion == "Step Size":
                         xlabel = f"{metric} Step Size (µm)"
                     elif criterion == "Rolling MSD":
