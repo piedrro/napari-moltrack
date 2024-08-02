@@ -191,27 +191,21 @@ class _trackstats_utils:
 
                 #Correct D* for localization error, if available
 
-                if "lpx" in df.columns and "lpy" in df.columns:
-                    lpx = np.array(df["lpx"].values)
-                    lpy = np.array(df["lpy"].values)
+                if "sigma" in df.columns:
 
-                    sigma = np.sqrt((lpx ** 2 + lpy ** 2) / 2)
-
-                    sigma = sigma[1:min_track_length]
-                    mean_sigma = np.mean(sigma)
+                    sigma_data = df["sigma"].values
+                    sigma_data = sigma_data[1:min_track_length]
+                    mean_sigma = np.mean(sigma_data)
 
                     D_star = D - mean_sigma**2 /time_step
 
                     stats["D*"] = D_star
-                    stats["sigma"] = sigma
                 else:
                     stats["D*"] = np.nan
-                    stats["sigma"] = np.nan
 
             else:
                 stats["D"] = np.nan
                 stats["D*"] = np.nan
-                stats["sigma"] = np.nan
 
             try:
                 track_angles = _trackstats_utils.calculate_track_angles(np.array([x, y]).T)
