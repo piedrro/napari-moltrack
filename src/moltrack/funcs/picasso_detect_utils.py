@@ -118,7 +118,7 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
                     if len(locs) > 0:
 
                         image = np.expand_dims(frame.copy(), axis=0)
-                        camera_info = {"baseline": 100.0, "gain": 1, "sensitivity": 1.0, "qe": 0.9, }
+                        camera_info = {"Baseline": 100.0, "Gain": 1, "Sensitivity": 1.0, "qe": 0.9, }
                         spot_data = get_spots(image, locs, box_size, camera_info)
 
                         locs.frame = frame_index
@@ -297,12 +297,15 @@ def detect_picaso_locs(dat, progress_list, fit_list):
                 if remove_overlapping:
                     locs = remove_overlapping_locs(locs, box_size)
 
+
                 if len(locs) > 0:
 
                     try:
 
                         image = np.expand_dims(frame, axis=0)
-                        camera_info = {"baseline": 100.0, "gain": 1, "sensitivity": 1.0, "qe": 0.9, }
+                        camera_info = {"Baseline": 100.0, "Gain": 1,
+                                       "Sensitivity": 1.0, "qe": 0.9, }
+
                         spot_data = get_spots(image, locs, box_size, camera_info)
 
                         locs.frame = frame_index
@@ -322,6 +325,7 @@ def detect_picaso_locs(dat, progress_list, fit_list):
                         progress_list.append(1)
 
                     except:
+                        print(traceback.format_exc())
                         pass
 
             if len(loc_list) > 0:
@@ -450,7 +454,7 @@ class _picasso_detect_utils:
 
                                 image = image_dict.pop(channel)
 
-                                camera_info = {"baseline": 100.0, "gain": 1, "sensitivity": 1.0, "qe": 0.9, }
+                                camera_info = {"Baseline": 100.0, "Gain": 1, "Sensitivity": 1.0, "qe": 0.9, }
                                 spot_data = get_spots(image, locs, box_size, camera_info)
 
                                 loc_list.append(locs)
