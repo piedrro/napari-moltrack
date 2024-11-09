@@ -134,7 +134,7 @@ def detect_moltrack_locs(dat, progress_list, fit_list):
                             spot_list.append(spot)
 
                 except:
-                    print(traceback.format_exc())
+                    pass
 
                 progress_list.append(1)
 

@@ -41,7 +41,7 @@ dependencies = [
     "pyqt5-tools",
     "torch",
     "torchvision",
-    "cellpose >= 3.0.1",
+    "cellpose == 3.0.1",
     "omnipose",
     "trackpy",
     "shapely",

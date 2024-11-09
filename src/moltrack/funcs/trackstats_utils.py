@@ -7,6 +7,8 @@ from numba import njit
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from napari.utils.notifications import show_info
+from statsmodels.sandbox.archive.linalg_covmat import sigma
+
 from moltrack.funcs.compute_utils import Worker
 from shapely.geometry import Point, Polygon, LineString
 from shapely.strtree import STRtree
@@ -142,7 +144,9 @@ class _trackstats_utils:
 
 
     @staticmethod
-    def get_track_stats(df, min_track_length = 4, shape_data=None):
+    def get_track_stats(df, min_track_length = 4,
+                        rolling_window_size = 4,
+                        shape_data=None):
 
         stats = {}
 
@@ -154,6 +158,11 @@ class _trackstats_utils:
             # Convert columns to numpy arrays for faster computation
             x = df['x'].values
             y = df['y'].values
+
+            if "sigma" in df.columns:
+                sigma_data = df["sigma"].values[:].copy()
+            else:
+                sigma_data = None
 
             # Calculate the displacements using numpy diff
             x_disp = np.diff(x, prepend=x[0]) * pixel_size
@@ -191,17 +200,28 @@ class _trackstats_utils:
 
                 #Correct D* for localization error, if available
 
-                if "sigma" in df.columns:
-
-                    sigma_data = df["sigma"].values
-                    sigma_data = sigma_data[1:min_track_length]
-                    mean_sigma = np.mean(sigma_data)
+                if sigma_data is not None:
+                    sigma_window = sigma_data[1:min_track_length]
+                    mean_sigma = np.mean(sigma_window)
 
                     D_star = D - mean_sigma**2 /time_step
 
                     stats["D*"] = D_star
                 else:
                     stats["D*"] = np.nan
+
+                roll_D, roll_Dstar = _trackstats_utils.calculate_rolling_diffusion(time,msd_list,time_step,
+                                                                                   sigma_data,
+                                                                                   window_size=rolling_window_size)
+                if len(roll_D) > 0:
+                    stats["rD"] = roll_D
+                else:
+                    stats["rD"] = np.nan
+
+                if len(roll_Dstar) > 0:
+                    stats["rD*"] = roll_Dstar
+                else:
+                    stats["rD*"] = np.nan
 
             else:
                 stats["D"] = np.nan
@@ -236,11 +256,71 @@ class _trackstats_utils:
         return df
 
 
+    @staticmethod
+    def calculate_rolling_diffusion(time_array, msd_array, time_step,
+                                   sigma_array=None, window_size=4):
+
+        # Ensure inputs are numpy arrays for easier slicing
+        time_array = np.array(time_array)
+        msd_array = np.array(msd_array)
+        if sigma_array is not None:
+            sigma_array = np.array(sigma_array)
+
+        # Initialize lists to store results
+        roll_D = []
+        roll_Dstar = []
+
+        # Calculate rolling D and D* over the specified window
+        for i in range(len(time_array)):
+
+            try:
+
+                start = i - window_size//2
+                end = i + window_size//2
+
+                if start < 0:
+                    start = 0
+                if end > len(time_array):
+                    end = len(time_array)
+
+                window_time = time_array[start:end].copy()
+                window_msd = msd_array[start:end].copy()
+
+                slope, intercept = np.polyfit(window_time, window_msd, 1)
+                D = slope / 4
+
+                roll_D.append(D)
+
+                if sigma_array is not None:
+
+                    try:
+
+                        sigma_window = sigma_array[start:end].copy()
+                        mean_sigma = np.mean(sigma_window)
+
+                        Dstar = D - mean_sigma ** 2 / time_step
+
+                        roll_Dstar.append(Dstar)
+
+                    except:
+                        roll_Dstar.append(np.nan)
+
+                else:
+                    roll_Dstar.append(np.nan)
+
+            except:
+                roll_D.append(np.nan)
+                roll_Dstar.append(np.nan)
+
+
+        return roll_D, roll_Dstar
+
     def compute_track_stats(self, track_data, shape_data, progress_callback=None):
 
         try:
 
             min_track_length = self.gui.trackstats_adc_track_length.value()
+            rolling_window_size = self.gui.trackstats_roll_window_size.value()
 
             tracks_with_stats = []
 
@@ -255,7 +335,7 @@ class _trackstats_utils:
                 n_processed = 0
 
                 futures = [executor.submit(_trackstats_utils.get_track_stats, df,
-                    min_track_length, shape_data) for df in stats_jobs]
+                    min_track_length, rolling_window_size, shape_data) for df in stats_jobs]
 
                 for future in as_completed(futures):
                     n_processed += 1

@@ -224,9 +224,9 @@ class _track_filter_utils:
                         xlabel = f"{metric} MSD (µm²)"
                     elif criterion == "Speed":
                         xlabel = f"{metric} Speed (µm/s)"
-                    elif criterion == "D":
+                    elif criterion in ["D","Rolling D"]:
                         xlabel = f"{metric} D (µm²/s)"
-                    elif criterion == "D*":
+                    elif criterion in ["D*","Rolling D*"]:
                         xlabel = f"{metric} D* (µm²/s)"
                     elif criterion == "Step Size":
                         xlabel = f"{metric} Step Size (µm)"

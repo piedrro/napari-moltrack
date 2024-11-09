@@ -215,6 +215,8 @@ class QWidget(QWidget, gui, *subclasses):
         self.moltrack_metrics = {"MSD": "msd",
                                  "Speed": "speed",
                                  "D": "D",
+                                 "Rolling D" : "rD",
+                                 "Rolling D*" : "rD*",
                                  "D*": "D*",
                                  "Localisation Error": "sigma",
                                  "Step Size": "step_size",

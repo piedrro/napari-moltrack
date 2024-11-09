@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'widget_ui.ui'
+# Form implementation generated from reading ui file 'src/moltrack/GUI/widget_ui.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.9
 #
@@ -1236,6 +1236,15 @@ class Ui_Frame(object):
         self.trackstats_adc_track_length.setProperty("value", 4)
         self.trackstats_adc_track_length.setObjectName("trackstats_adc_track_length")
         self.formLayout_38.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.trackstats_adc_track_length)
+        self.label_158 = QtWidgets.QLabel(self.tab_12)
+        self.label_158.setObjectName("label_158")
+        self.formLayout_38.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.label_158)
+        self.trackstats_roll_window_size = QtWidgets.QSpinBox(self.tab_12)
+        self.trackstats_roll_window_size.setMinimum(4)
+        self.trackstats_roll_window_size.setMaximum(50)
+        self.trackstats_roll_window_size.setProperty("value", 4)
+        self.trackstats_roll_window_size.setObjectName("trackstats_roll_window_size")
+        self.formLayout_38.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.trackstats_roll_window_size)
         self.verticalLayout_13.addLayout(self.formLayout_38)
         self.compute_track_stats = QtWidgets.QPushButton(self.tab_12)
         self.compute_track_stats.setObjectName("compute_track_stats")
@@ -2517,6 +2526,7 @@ class Ui_Frame(object):
         self.label_153.setText(_translate("Frame", "Compute Track Statistics"))
         self.label_154.setText(_translate("Frame", "Compute track statistics/metrics such as MSD, speed, step size and apparent diffusion coefficients. If a segmentation layer is selected during localisation linking, additional distance-based metrics will be computed (e.g. distance to membrane). The diffusion coefficient track length specifies the number of track segments over which the apparent diffusion coefficient is calculated, for tracks shorter than this the diffusion coefficient will be discarded."))
         self.label_155.setText(_translate("Frame", "Diffusion Coefficient Track Length"))
+        self.label_158.setText(_translate("Frame", "Rolling Average Window Size"))
         self.compute_track_stats.setText(_translate("Frame", "Compute Track Statistics"))
         self.tabWidget_5.setTabText(self.tabWidget_5.indexOf(self.tab_12), _translate("Frame", "Link"))
         self.label_39.setText(_translate("Frame", "Remove Tracks/Track Coords Outside Segmentations"))

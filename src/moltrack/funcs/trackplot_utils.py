@@ -178,9 +178,9 @@ class _trackplot_utils:
                         y_axis_label = f"MSD (µm²)"
                     elif metric == "Speed":
                         y_axis_label = f"Speed (µm/s)"
-                    elif metric == "D":
+                    elif metric in ["D","Rolling D"]:
                         y_axis_label = f"D (µm²/s)"
-                    elif metric == "D*":
+                    elif metric in ["D*","Rolling D*"]:
                         y_axis_label = f"D* (µm²/s)"
                     elif metric == "Step Size":
                         y_axis_label = f"Step Size (µm)"
@@ -276,7 +276,6 @@ class _trackplot_utils:
                 x_axis = trackplot_data["data"][i]["x_axis"]
 
                 plot_line.setData(x_axis, values)
-
 
                 y_min = min(values)
                 y_max = max(values)

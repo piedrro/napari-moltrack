@@ -881,23 +881,26 @@ class _import_utils:
                         self.tracking_dict = value
 
                         dataset_list = list(self.tracking_dict.keys())
-                        channel_list = list(self.tracking_dict[dataset_list[0]].keys())
 
-                        self.draw_tracks()
+                        if len(dataset_list) != 0:
 
-                        self.update_track_filter_criterion()
-                        self.update_track_criterion_ranges()
+                            channel_list = list(self.tracking_dict[dataset_list[0]].keys())
 
-                        self.update_trackplot_options()
-                        self.plot_tracks(reset=True)
+                            self.draw_tracks()
 
-                        if len(channel_list) > 0:
+                            self.update_track_filter_criterion()
+                            self.update_track_criterion_ranges()
 
-                            active_dataset = dataset_list[0]
-                            active_channel = channel_list[0]
+                            self.update_trackplot_options()
+                            self.plot_tracks(reset=True)
 
-                            self.gui.moltrack_dataset_selector.setCurrentText(active_dataset)
-                            self.gui.moltrack_channel_selector.setCurrentText(active_channel)
+                            if len(channel_list) > 0:
+
+                                active_dataset = dataset_list[0]
+                                active_channel = channel_list[0]
+
+                                self.gui.moltrack_dataset_selector.setCurrentText(active_dataset)
+                                self.gui.moltrack_channel_selector.setCurrentText(active_channel)
 
 
                     except:
