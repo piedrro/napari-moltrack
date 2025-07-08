@@ -2981,7 +2981,7 @@
              <item row="0" column="1">
               <widget class="QSpinBox" name="trackstats_adc_track_length">
                <property name="minimum">
-                <number>3</number>
+                <number>1</number>
                </property>
                <property name="value">
                 <number>4</number>
@@ -2998,7 +2998,7 @@
              <item row="1" column="1">
               <widget class="QSpinBox" name="trackstats_roll_window_size">
                <property name="minimum">
-                <number>4</number>
+                <number>1</number>
                </property>
                <property name="maximum">
                 <number>50</number>
