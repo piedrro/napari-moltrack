@@ -302,7 +302,6 @@ class _export_utils:
                 for i, shape_type in enumerate(shape_types):
                     if shape_type == "polygon":
                         polygon = shapes[i]
-                        print(i, len(polygon))
                         if len(polygon) > 3:
                             export_polygons.append(polygon)
 

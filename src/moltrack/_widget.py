@@ -2,6 +2,7 @@ from functools import partial
 from multiprocessing import Manager
 from typing import TYPE_CHECKING
 
+import cv2
 import pyqtgraph as pg
 from pyqtgraph import GraphicsLayoutWidget
 from pyqtgraph import ImageView
@@ -77,6 +78,8 @@ class QWidget(QWidget, gui, *subclasses):
         # create UI
         self.gui = gui()
         self.gui.setupUi(self)
+
+
 
         from moltrack.__init__ import __version__ as version
 
@@ -194,6 +197,7 @@ class QWidget(QWidget, gui, *subclasses):
         self.tracks_pixstats_canvas.ui.menuBtn.hide()
 
         self.dataset_dict = {}
+        self.segmentation_dict = {}
         self.localisation_dict = {}
         self.tracking_dict = {}
         self.contrast_dict = {}
@@ -257,6 +261,11 @@ class QWidget(QWidget, gui, *subclasses):
 
         np.seterr(all='ignore')
 
+        from napari.utils.colormaps import AVAILABLE_COLORMAPS
+        colormap_names = list(AVAILABLE_COLORMAPS.keys())
+        colormap_names = [name for name in colormap_names if 'I ' not in name]
+        self.gui.track_colour_colourmap.clear()
+        self.gui.track_colour_colourmap.addItems(colormap_names)
 
     def initialise_events(self):
 
@@ -394,6 +403,9 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.trackplot_subtrack_background.stateChanged.connect(self.plot_tracks)
         self.gui.trackplot_xaxis.currentIndexChanged.connect(partial(self.plot_tracks, reset=True))
 
+        self.gui.track_colour_metric.currentIndexChanged.connect(self.draw_tracks)
+        self.gui.track_colour_colourmap.currentIndexChanged.connect(self.draw_tracks)
+
         self.gui.traces_export_dataset.currentIndexChanged.connect(self.update_traces_export_options)
         self.gui.traces_export_channel.currentIndexChanged.connect(self.update_traces_export_options)
 
@@ -404,17 +416,72 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.export_bactfit.clicked.connect(self.export_bactfit)
 
 
+    def compute_segmentation_stats(self):
+
+        try:
+
+            if not hasattr(self, 'segLayer'):
+                return None
+
+            contours = []
+
+            shapes = self.segLayer.data.copy()
+            shape_types = self.segLayer.shape_type.copy()
+            properties = self.segLayer.properties.copy()
+
+            for i, shape_type in enumerate(shape_types):
+                if shape_type == "polygon":
+                    polygon = shapes[i]
+                    if len(polygon) > 3:
+                        cnt = np.array(polygon).reshape(-1, 1, 2)
+                        cnt = cnt[:, :, ::-1]
+                        cnt = np.round(cnt).astype(np.int32)
+                        contours.append(cnt)
+
+            cell_stats = []
+
+            for dataset, dataset_dict in self.dataset_dict.items():
+                channel_dict = dataset_dict.get('images', {})
+
+                for channel, image_stack in channel_dict.items():
+
+                    # Precompute masks for all contours
+                    contour_masks = np.zeros((len(contours), *image_stack[0].shape), dtype=np.uint8)
+
+                    for cnt_idx, cnt in enumerate(contours):
+                        cv2.drawContours(contour_masks[cnt_idx], [cnt], -1, 255, -1)
+
+                    # Process all frames
+                    image_stack = image_stack.copy()  # Ensure it's a NumPy array
+                    for cnt_idx, mask in enumerate(contour_masks):
+                        # Broadcast mask over all frames
+                        masked_pixels = np.where(mask == 255, image_stack, np.nan)  # Use NaN for ignored areas
+
+                        # Compute mean intensity for all frames at once
+                        mean_intensities = np.nanmean(masked_pixels, axis=(1, 2))  # Mean across H, W
+
+                        # Append results
+                        for frame_idx, mean_intensity in enumerate(mean_intensities):
+                            cell_stats.append({
+                                'dataset': dataset,
+                                'channel': channel,
+                                'cell_index': cnt_idx,
+                                'frame_index': frame_idx,
+                                'mean_intensity': mean_intensity
+                            })
+
+        except:
+            print(traceback.format_exc())
+            pass
+
 
     def devfunc(self, viewer=None):
 
+
+        self.compute_segmentation_stats()
+
         # self.update_render_length_range()
         # self.update_render_msd_range()
-
-        self.update_ui()
-
-        self.update_filter_criterion()
-        # self.update_traces_export_options()
-
         # print(self.cellLayer.properties["cell"])
 
         # self.update_filter_criterion()

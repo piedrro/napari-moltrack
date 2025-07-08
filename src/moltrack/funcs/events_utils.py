@@ -13,6 +13,9 @@ from napari.utils.notifications import show_info
 
 class _events_utils:
 
+    def update_track_colour(self, widget=None):
+        self.draw_tracks()
+
     def populate_dataset_selectors(self):
         try:
             dataset_selectors = ["import_picasso_dataset", "cellpose_dataset",

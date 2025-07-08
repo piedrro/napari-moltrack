@@ -479,7 +479,7 @@ class _tracking_utils:
             self.update_ui()
 
 
-    def draw_tracks(self, track_id=None):
+    def draw_tracks(self, viewer=None, track_id=None):
         try:
 
             remove_tracks = True
@@ -510,10 +510,14 @@ class _tracking_utils:
 
                     render_tracks = pd.DataFrame(tracks)
 
-                    if "speed" in render_tracks.columns:
-                        speed = render_tracks["speed"].values.tolist()
+                    colour_metric = self.gui.track_colour_metric.currentText()
+                    colour_metric = self.moltrack_metrics.get(colour_metric)
+                    colourmap = self.gui.track_colour_colourmap.currentText().lower()
+
+                    if colour_metric in render_tracks.columns:
+                        metric_data = render_tracks[colour_metric].values.tolist()
                     else:
-                        speed = None
+                        metric_data = None
 
                     render_tracks = render_tracks[["particle", "frame", "y", "x"]]
 
@@ -525,11 +529,11 @@ class _tracking_utils:
                     render_tracks = np.array(render_tracks).copy()
                     render_tracks[:, 1] = 0
 
-                    properties = {"speed": speed}
+                    properties = {colour_metric: metric_data}
 
                     if "Tracks" not in layer_names:
                         self.track_layer = self.viewer.add_tracks(render_tracks, name="Tracks",
-                            scale=scale, colormap="plasma", properties=properties, color_by="track_id",)
+                            scale=scale, colormap=colourmap, properties=properties, color_by="track_id",)
                         self.viewer.reset_view()
 
                         self.track_layer.mouse_double_click_callbacks.append(self.select_track)
@@ -539,6 +543,7 @@ class _tracking_utils:
                         self.track_layer.color_by = "track_id"
                         self.track_layer.data = render_tracks
                         self.track_layer.scale = scale
+                        self.track_layer.colormap = colourmap
 
 
                     if self.gui.show_tracks.isChecked() == False:
@@ -547,8 +552,8 @@ class _tracking_utils:
 
                     self.track_layer.properties = properties
 
-                    if speed is not None:
-                        self.track_layer.color_by = "speed"
+                    if metric_data is not None:
+                        self.track_layer.color_by = colour_metric
 
                     self.track_layer.tail_length = n_frames * 2
                     self.track_layer.blending = "opaque"

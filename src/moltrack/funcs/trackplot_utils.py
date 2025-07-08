@@ -460,6 +460,11 @@ class _trackplot_utils:
 
                 metric_combo.blockSignals(False)
 
+            self.gui.track_colour_metric.blockSignals(True)
+            self.gui.track_colour_metric.clear()
+            self.gui.track_colour_metric.addItems(metric_list[1:])
+            self.gui.track_colour_metric.blockSignals(False)
+
             self.plot_tracks()
 
         except:

@@ -91,7 +91,6 @@ class _bactfit_utils:
 
             error_list = [cell.fit_error for cell in celllist.data]
             error_list = [error for error in error_list if error is not None]
-            print(f"Max error: {max(error_list)}")
 
         except:
             print(traceback.format_exc())
