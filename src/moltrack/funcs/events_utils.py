@@ -13,6 +13,33 @@ from napari.utils.notifications import show_info
 
 class _events_utils:
 
+    def update_pixel_size(self):
+
+        dataset = self.gui.update_pixel_size_dataset.currentText()
+        pixel_size = self.gui.update_pixel_size_value.value()
+        update_seg = self.gui.update_pixel_size_segmentations.isChecked()
+
+        if dataset == "" or dataset not in self.dataset_dict.keys():
+            return
+
+        self.dataset_dict[dataset]["pixel_size"] = pixel_size
+
+        self.update_active_image()
+        self.draw_localisations()
+        self.draw_segmentation_image()
+        self.draw_tracks()
+
+        if hasattr(self, "segLayer") and update_seg:
+            self.segmentation_image_pixel_size = pixel_size
+            self.segLayer.scale = [pixel_size, pixel_size]
+            self.segLayer.refresh()
+
+        if hasattr(self, "cellLayer") and update_seg:
+            self.cellLayer.scale = [pixel_size, pixel_size]
+            self.cellLayer.refresh()
+
+        self.viewer.reset_view()
+
     def update_track_colour(self, widget=None):
         self.draw_tracks()
 
@@ -29,7 +56,8 @@ class _events_utils:
                                  "copy_locs_dataset", "copy_tracks_dataset",
                                  "delete_locs_dataset", "delete_tracks_dataset",
                                  "trackplot_dataset", "merge_locs_dataset",
-                                 "bactfit_export_dataset",]
+                                 "bactfit_export_dataset","update_pixel_size_dataset",
+                                 ]
 
             for selector_name in dataset_selectors:
                 dataset_names = list(self.dataset_dict.keys())
@@ -66,6 +94,7 @@ class _events_utils:
                                  "copy_locs_channel", "copy_tracks_channel",
                                  "delete_locs_channel", "delete_tracks_channel",
                                  "trackplot_channel","bactfit_export_channel",
+                                 "update_pixel_size_channel",
                                  ]
 
             for channel_selector in channel_selectors:
@@ -87,7 +116,8 @@ class _events_utils:
             single_channel_selectors = ["moltrack_channel_selector", "cellpose_channel",
                                         "tform_compute_channel", "copy_locs_channel",
                                         "copy_tracks_channel", "trackplot_channel",
-                                        "bactfit_export_channel"]
+                                        "bactfit_export_channel","update_pixel_size_channel",
+                                        ]
 
             dataset_name = dataset_selector.currentText()
             channel_names = []
@@ -374,7 +404,8 @@ class _events_utils:
                         "delete_locs", "delete_tracks",
                         "locs_pixstats_compute", "tracks_pixstats_compute",
                         "import_project", "export_project",
-                        "merge_locs",]
+                        "merge_locs","update_pixel_size",
+                        ]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
                             "picasso_progressbar", "export_progressbar",

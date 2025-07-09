@@ -6,4 +6,4 @@ __all__ = (
     "QWidget",
 )
 
-__version__ = "0.1.6"
+__version__ = "0.1.7"

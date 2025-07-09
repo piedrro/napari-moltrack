@@ -114,7 +114,7 @@ class _bactfit_utils:
                     progress_bar=self.gui.bactfit_progressbar))
             worker.signals.result.connect(self.run_bactfit_results)
             worker.signals.finished.connect(self.run_bactfit_finished)
-            self.worker.signals.error.connect(self.update_ui)
+            worker.signals.error.connect(self.update_ui)
             self.threadpool.start(worker)
 
 

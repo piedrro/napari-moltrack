@@ -328,6 +328,8 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.export_localisations.clicked.connect(self.initialise_export_locs)
 
+        self.gui.update_pixel_size.clicked.connect(self.update_pixel_size)
+
         self.gui.fit_segmentations.clicked.connect(self.initialise_bactfit)
 
         self.gui.shapes_export_data.currentIndexChanged.connect(self.update_shape_export_options)
