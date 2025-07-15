@@ -44,6 +44,8 @@ from moltrack.funcs.tracking_utils import _tracking_utils
 from moltrack.funcs.trackplot_utils import _trackplot_utils
 from moltrack.funcs.trackstats_utils import _trackstats_utils
 from moltrack.funcs.transform_utils import _transform_utils
+from moltrack.funcs.undrift_utils import MoltrackUndrifting
+
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
 subclasses = [_import_utils, _compute_utils,
@@ -68,7 +70,7 @@ class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
         self.frame_position = None
 
 
-class QWidget(QWidget, gui, *subclasses):
+class MolTrack(QWidget, gui, *subclasses):
     # your QWidget.__init__ can optionally request the napari viewer instance
     # use a type annotation of 'napari.viewer.Viewer' for any parameter
     def __init__(self, viewer: "napari.viewer.Viewer"):
@@ -80,8 +82,9 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui.setupUi(self)
 
         from moltrack.__init__ import __version__ as version
-
         show_info(f"napari-moltrack version: {version}")
+
+        self.undrifting_tools = MoltrackUndrifting(self.viewer,self)
 
         self.initialise_variables()
         self.initialise_events()

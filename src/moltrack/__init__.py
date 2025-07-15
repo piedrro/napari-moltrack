@@ -1,9 +1,9 @@
 from ._widget import (
-    QWidget,
+    MolTrack,
 )
 
 __all__ = (
-    "QWidget",
+    "MolTrack",
 )
 
-__version__ = "0.1.8"
+__version__ = "0.1.9"

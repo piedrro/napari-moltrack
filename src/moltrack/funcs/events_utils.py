@@ -60,6 +60,7 @@ class _events_utils:
                                  "delete_locs_dataset", "delete_tracks_dataset",
                                  "trackplot_dataset", "merge_locs_dataset",
                                  "bactfit_export_dataset","update_pixel_size_dataset",
+                                 "undrift_dataset",
                                  ]
 
             for selector_name in dataset_selectors:
@@ -96,7 +97,7 @@ class _events_utils:
                                  "copy_locs_channel", "copy_tracks_channel",
                                  "delete_locs_channel", "delete_tracks_channel",
                                  "trackplot_channel","bactfit_export_channel",
-                                 "update_pixel_size_channel",
+                                 "update_pixel_size_channel","undrift_channel",
                                  ]
 
             for channel_selector in channel_selectors:
