@@ -1,16 +1,12 @@
-import numpy as np
-import traceback
-from moltrack.funcs.compute_utils import Worker
-from bactfit.preprocess import data_to_cells
-from bactfit.cell import Cell
-from functools import partial
-from shapely.geometry import Polygon, LineString, Point
-import matplotlib.pyplot as plt
 import copy
 import random
 import string
+import traceback
+
+import numpy as np
+from bactfit.cell import Cell
 from bactfit.utils import manual_fit
-from napari.utils.notifications import show_info
+from shapely.geometry import LineString, Point, Polygon
 
 
 class _cell_events:
@@ -32,7 +28,6 @@ class _cell_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def initialise_cellLayer(self, shapes=None,
             shape_types=None, properties=None):
@@ -128,7 +123,6 @@ class _cell_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def cellLayer_event_manager(self, mode="connect"):
         if mode == "connect":
@@ -166,7 +160,6 @@ class _cell_events:
                     self.stored_cells.pop(0)
         except:
             print(traceback.format_exc())
-            pass
 
     def get_modified_shape_indices(self):
         if not hasattr(self, "stored_cells"):
@@ -252,7 +245,6 @@ class _cell_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def get_cell(self, name, json=False, bactfit=False):
         cell = None
@@ -318,7 +310,6 @@ class _cell_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return cell
 
@@ -396,7 +387,6 @@ class _cell_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def update_cell_model(self, name):
         try:
@@ -452,7 +442,6 @@ class _cell_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def update_midline_position(self, name):
         try:
@@ -611,7 +600,6 @@ class _cell_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return centerline
 
@@ -742,7 +730,6 @@ class _cell_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def update_cells(self, event):
 
@@ -782,7 +769,6 @@ class _cell_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def remove_cells(self, indices=[]):
         try:

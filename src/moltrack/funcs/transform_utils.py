@@ -1,15 +1,16 @@
-import traceback
-import numpy as np
-import cv2
-import os
-from functools import partial
-from qtpy.QtWidgets import QFileDialog
-import math
 import json
+import math
+import os
+import traceback
 from datetime import datetime
-from moltrack.funcs.compute_utils import Worker
-from napari.utils.notifications import show_info
+from functools import partial
 
+import cv2
+import numpy as np
+from napari.utils.notifications import show_info
+from qtpy.QtWidgets import QFileDialog
+
+from moltrack.funcs.compute_utils import Worker
 
 
 def transform_image(img, transform_matrix,
@@ -124,7 +125,6 @@ class _transform_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def import_fret_transform_matrix(self):
 
@@ -138,7 +138,7 @@ class _transform_utils:
             if path != "":
                 if os.path.isfile(path) == True:
                     if path.endswith(".txt"):
-                        with open(path, 'r') as f:
+                        with open(path) as f:
                             transform_matrix = json.load(f)
 
                     transform_matrix = np.array(transform_matrix, dtype=np.float64)
@@ -146,13 +146,13 @@ class _transform_utils:
                     if transform_matrix.shape == (3, 3):
                         self.transform_matrix = transform_matrix
 
-                        show_info(f"Imported Homography transformation matrix")
+                        show_info("Imported Homography transformation matrix")
                         print(f"{transform_matrix}")
 
                     elif transform_matrix.shape == (2, 3):
                         self.transform_matrix = transform_matrix
 
-                        show_info(f"Imported Affine transformation matrix")
+                        show_info("Imported Affine transformation matrix")
                         print(f"{transform_matrix}")
 
                     else:
@@ -165,7 +165,6 @@ class _transform_utils:
         except:
             print(traceback.format_exc())
             self.update_ui(init=False)
-            pass
 
     def compute_fret_transform_matrix(self):
 
@@ -229,7 +228,6 @@ class _transform_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
     def _apply_fret_transform_matrix_finished(self):
@@ -302,7 +300,6 @@ class _transform_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def apply_fret_transform_matrix(self):
 
@@ -329,7 +326,6 @@ class _transform_utils:
             self.update_ui()
 
             print(traceback.format_exc())
-            pass
 
 
     def save_transform_matrix(self):
@@ -364,4 +360,3 @@ class _transform_utils:
 
         except:
             print(traceback.format_exc())
-            pass

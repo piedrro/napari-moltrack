@@ -8,7 +8,17 @@ See https://docs.python.org/3.5/library/ctypes.html, http://www.scipy-lectures.o
 
 import os
 import time
-from ctypes import cdll, POINTER, byref, c_int, c_float, c_char, c_char_p, c_size_t
+from ctypes import (
+    POINTER,
+    byref,
+    c_char,
+    c_char_p,
+    c_float,
+    c_int,
+    c_size_t,
+    cdll,
+)
+
 import numpy as np
 
 # define library loader (actual loading is lazy)
@@ -19,7 +29,7 @@ if os.name == 'nt':
 elif os.name == 'posix':
     lib_path = os.path.join(package_dir, 'libGpufit.so')  # library name on Unix
 else:
-    raise RuntimeError('OS {} not supported by pyGpufit.'.format(os.name))
+    raise RuntimeError(f'OS {os.name} not supported by pyGpufit.')
 
 lib = cdll.LoadLibrary(lib_path)
 
@@ -279,7 +289,7 @@ def fit_constrained(data, weights, model_id, initial_parameters, constraints=Non
     if status != Status.Ok:
         # get error from last error and raise runtime error
         error_message = error_func()
-        raise RuntimeError('status = {}, message = {}'.format(status, error_message))
+        raise RuntimeError(f'status = {status}, message = {error_message}')
 
     # return output values
     return parameters, states, chi_squares, number_iterations, t1 - t0
@@ -311,7 +321,7 @@ def get_cuda_version():
     if status != Status.Ok:
         # get error from last error and raise runtime error
         error_message = error_func()
-        raise RuntimeError('status = {}, message = {}'.format(status, error_message))
+        raise RuntimeError(f'status = {status}, message = {error_message}')
 
     # decode versions
     runtime_version = runtime_version.value

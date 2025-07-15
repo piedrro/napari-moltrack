@@ -1,20 +1,16 @@
+import math
 import traceback
+import warnings
+from functools import partial
 
 import numpy as np
 import pandas as pd
 import trackpy as tp
-from numba import njit
-from functools import partial
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from napari.utils.notifications import show_info
-from moltrack.funcs.compute_utils import Worker
-from shapely.geometry import Point, Polygon, LineString
+from shapely.geometry import Point
 from shapely.strtree import STRtree
-import matplotlib.pyplot as plt
-from multiprocessing import Manager, shared_memory
-from functools import partial
-import warnings
-from napari.utils.notifications import show_info
+
+from moltrack.funcs.compute_utils import Worker
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -128,7 +124,6 @@ class _tracking_utils:
         except:
             self.update_ui()
             print(traceback.format_exc())
-            pass
 
     def get_tracks(self, dataset, channel, return_dict=False, include_metadata=True):
 
@@ -225,8 +220,12 @@ class _tracking_utils:
     def link_locs(self, f, search_range, pos_columns=None,
             t_column='frame', progress_callback = None, **kwargs):
 
-        from trackpy.linking.linking import (coords_from_df, pandas_sort,
-            guess_pos_columns, link_iter)
+        from trackpy.linking.linking import (
+            coords_from_df,
+            guess_pos_columns,
+            link_iter,
+            pandas_sort,
+        )
 
         if pos_columns is None:
             pos_columns = guess_pos_columns(f)
@@ -478,8 +477,27 @@ class _tracking_utils:
             print(traceback.format_exc())
             self.update_ui()
 
+    def nice_step(self, min_val, max_val, n_steps=50):
+        range_val = max_val - min_val
+        raw_step = range_val / n_steps
+        exponent = math.floor(math.log10(raw_step))
+        base = 10 ** exponent
+        fraction = raw_step / base
 
-    def draw_tracks(self, viewer=None, track_id=None):
+        # Choose 1, 2, or 5 times the base for a "nice" step
+        if fraction < 1.5:
+            nice = 1
+        elif fraction < 3.5:
+            nice = 2
+        elif fraction < 7.5:
+            nice = 5
+        else:
+            nice = 10
+
+        return nice * base
+
+
+    def draw_tracks(self, viewer=None, track_id=None, reset_cmap_range = True):
         try:
 
             remove_tracks = True
@@ -510,14 +528,42 @@ class _tracking_utils:
 
                     render_tracks = pd.DataFrame(tracks)
 
-                    colour_metric = self.gui.track_colour_metric.currentText()
-                    colour_metric = self.moltrack_metrics.get(colour_metric)
-                    colourmap = self.gui.track_colour_colourmap.currentText().lower()
+                    cmap_metric = self.gui.track_colour_metric.currentText()
+                    cmap_metric = self.moltrack_metrics.get(cmap_metric)
+                    cmap_name = self.gui.track_colour_colourmap.currentText()
 
-                    if colour_metric in render_tracks.columns:
-                        metric_data = render_tracks[colour_metric].values.tolist()
+                    if cmap_metric in render_tracks.columns:
+                        metric_data = render_tracks[cmap_metric].values
+
+                        if reset_cmap_range:
+                            cmap_min = min(metric_data)
+                            cmap_max = max(metric_data)
+
+                            step = self.nice_step(cmap_min,cmap_max)
+                            self.gui.track_colour_min.blockSignals(True)
+                            self.gui.track_colour_max.blockSignals(True)
+
+                            self.gui.track_colour_min.setRange(cmap_min, cmap_max)
+                            self.gui.track_colour_max.setRange(cmap_min, cmap_max)
+
+                            self.gui.track_colour_min.setValue(cmap_min)
+                            self.gui.track_colour_max.setValue(cmap_max)
+
+                            self.gui.track_colour_min.setSingleStep(step)
+                            self.gui.track_colour_max.setSingleStep(step)
+
+                            self.gui.track_colour_min.blockSignals(False)
+                            self.gui.track_colour_max.blockSignals(False)
+                        else:
+                            cmap_min = self.gui.track_colour_min.value()
+                            cmap_max = self.gui.track_colour_max.value()
+
+                        if cmap_min > cmap_max:
+                            cmap_min, cmap_max = cmap_max, cmap_min
+
+                        metric_norm_data = np.clip((metric_data - cmap_min) / (cmap_max - cmap_min), 0, 1)
                     else:
-                        metric_data = None
+                        metric_norm_data = None
 
                     render_tracks = render_tracks[["particle", "frame", "y", "x"]]
 
@@ -529,13 +575,15 @@ class _tracking_utils:
                     render_tracks = np.array(render_tracks).copy()
                     render_tracks[:, 1] = 0
 
-                    properties = {colour_metric: metric_data}
+                    properties = {cmap_metric: metric_norm_data}
 
                     if "Tracks" not in layer_names:
-                        self.track_layer = self.viewer.add_tracks(render_tracks, name="Tracks",
-                            scale=scale, colormap=colourmap, properties=properties, color_by="track_id",)
-                        self.viewer.reset_view()
+                        self.track_layer = self.viewer.add_tracks(
+                            render_tracks, name="Tracks",scale=scale,
+                            colormap=cmap_name, properties=properties,
+                            color_by="track_id",)
 
+                        self.viewer.reset_view()
                         self.track_layer.mouse_double_click_callbacks.append(self.select_track)
 
                     else:
@@ -543,8 +591,7 @@ class _tracking_utils:
                         self.track_layer.color_by = "track_id"
                         self.track_layer.data = render_tracks
                         self.track_layer.scale = scale
-                        self.track_layer.colormap = colourmap
-
+                        self.track_layer.colormap = cmap_name
 
                     if self.gui.show_tracks.isChecked() == False:
                         if self.track_layer in self.viewer.layers:
@@ -552,8 +599,8 @@ class _tracking_utils:
 
                     self.track_layer.properties = properties
 
-                    if metric_data is not None:
-                        self.track_layer.color_by = colour_metric
+                    if metric_norm_data is not None:
+                        self.track_layer.color_by = cmap_metric
 
                     self.track_layer.tail_length = n_frames * 2
                     self.track_layer.blending = "opaque"
@@ -571,7 +618,6 @@ class _tracking_utils:
                         self.track_layer = self.viewer.add_tracks(np.array([[0,0,0,0]]), name="Tracks")
                 except:
                     print(traceback.format_exc())
-                    pass
 
             if hasattr(self, "track_layer"):
                 self.track_layer.refresh()

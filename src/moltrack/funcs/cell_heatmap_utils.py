@@ -1,27 +1,19 @@
-import cellpose.io
-import pandas as pd
-import traceback
-import numpy as np
-from functools import partial
-from bactfit.preprocess import data_to_cells
-from bactfit.cell import CellList, ModelCell
-from bactfit.postprocess import remove_locs_outside_cell
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
-import pyqtgraph as pg
-from io import BytesIO
-from picasso.render import render
-from PyQt5.QtWidgets import QApplication, QComboBox, QDoubleSpinBox, QFormLayout, QVBoxLayout, QWidget, QMainWindow, QSpinBox
-from PyQt5.QtWidgets import QFileDialog
 import os
-import cv2
-from shapely.geometry import Polygon
-from matplotlib.colors import ListedColormap
-from napari.utils.notifications import show_info
-from moltrack.funcs.compute_utils import Worker
-from napari.utils.notifications import show_info
+import traceback
+from functools import partial
+
 import h5py
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import pyqtgraph as pg
 import yaml
+from bactfit.cell import CellList, ModelCell
+from napari.utils.notifications import show_info
+from PyQt5.QtWidgets import QFileDialog
+
+from moltrack.funcs.compute_utils import Worker
+
 
 class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 
@@ -57,7 +49,6 @@ class _cell_heatmap_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def update_render_msd_range(self):
 
@@ -104,7 +95,6 @@ class _cell_heatmap_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
     def cell_heatmap_compute_finished(self):
@@ -120,7 +110,6 @@ class _cell_heatmap_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def cell_heatmap_compute(self, celllist, model,method,
             progress_callback=None):
@@ -134,7 +123,6 @@ class _cell_heatmap_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def populate_celllist(self):
 
@@ -155,7 +143,6 @@ class _cell_heatmap_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return cells
 
@@ -309,7 +296,6 @@ class _cell_heatmap_utils:
         except:
             self.update_ui()
             print(traceback.format_exc())
-            pass
 
 
     def show_heatmap(self, image):
@@ -328,7 +314,6 @@ class _cell_heatmap_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
     def export_cell_heatmap(self):
@@ -407,7 +392,7 @@ class _cell_heatmap_utils:
                 locs = pd.DataFrame(locs)
                 locs.to_csv(path, index=False)
 
-                show_info(f"Exported heatmap CSV localisations")
+                show_info("Exported heatmap CSV localisations")
 
             elif filter == "Picasso HDF5 (*.hdf5)":
 
@@ -447,7 +432,7 @@ class _cell_heatmap_utils:
                 with open(info_path, "w") as file:
                     yaml.dump_all(picasso_info, file, default_flow_style=False)
 
-                show_info(f"Exported heatmap HDF5 localisations")
+                show_info("Exported heatmap HDF5 localisations")
 
             elif filter == "POS.OUT (*.pos.out)":
 
@@ -468,7 +453,7 @@ class _cell_heatmap_utils:
 
                 pos_locs.to_csv(path, sep="\t", index=False)
 
-                show_info(f"Exported heatmap POS.OUT localisations")
+                show_info("Exported heatmap POS.OUT localisations")
 
             else:
                 print("File format not supported")
@@ -476,6 +461,5 @@ class _cell_heatmap_utils:
         except:
             print(traceback.format_exc())
             self.update_ui()
-            pass
 
         self.update_ui()

@@ -1,12 +1,11 @@
-import numpy as np
 import traceback
-from moltrack.funcs.compute_utils import Worker
-from bactfit.preprocess import data_to_cells
 from functools import partial
-from shapely.geometry import Polygon, LineString
-import matplotlib.pyplot as plt
-from bactfit.cell import CellList
+
+from bactfit.preprocess import data_to_cells
 from napari.utils.notifications import show_info
+
+from moltrack.funcs.compute_utils import Worker
+
 
 class _bactfit_utils:
 
@@ -75,7 +74,7 @@ class _bactfit_utils:
             max_radius = float(self.gui.fit_max_radius.value())
             max_error = float(self.gui.fit_max_error.value())
 
-            show_info(f"Building CellList")
+            show_info("Building CellList")
 
             celllist = data_to_cells(segmentations)
 
@@ -114,7 +113,7 @@ class _bactfit_utils:
                     progress_bar=self.gui.bactfit_progressbar))
             worker.signals.result.connect(self.run_bactfit_results)
             worker.signals.finished.connect(self.run_bactfit_finished)
-            worker.signals.error.connect(self.update_ui)
+            self.worker.signals.error.connect(self.update_ui)
             self.threadpool.start(worker)
 
 

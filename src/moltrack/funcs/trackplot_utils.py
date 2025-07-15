@@ -1,9 +1,10 @@
 import traceback
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 import pyqtgraph as pg
-import matplotlib.pyplot as plt
 from PyQt5.QtGui import QColor
+
 
 class _trackplot_utils:
 
@@ -33,9 +34,7 @@ class _trackplot_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
-        pass
 
 
     def initialise_trackplot_slider(self):
@@ -65,7 +64,6 @@ class _trackplot_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
     def update_trackplot_slider(self):
@@ -90,7 +88,6 @@ class _trackplot_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def highlight_track(self, track_id):
 
@@ -103,7 +100,6 @@ class _trackplot_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def reset_tracks(self):
 
@@ -115,7 +111,6 @@ class _trackplot_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
     def focus_on_track(self, track_id):
@@ -140,7 +135,6 @@ class _trackplot_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
 
@@ -173,29 +167,29 @@ class _trackplot_utils:
                     elif metric == "Track Duration":
                         y_axis_label = "Track Duration (s)"
                     elif metric == "Mean Squared Displacement":
-                        y_axis_label = f"Mean Squared Displacement (µm²)"
+                        y_axis_label = "Mean Squared Displacement (µm²)"
                     elif metric == "MSD":
-                        y_axis_label = f"MSD (µm²)"
+                        y_axis_label = "MSD (µm²)"
                     elif metric == "Speed":
-                        y_axis_label = f"Speed (µm/s)"
+                        y_axis_label = "Speed (µm/s)"
                     elif metric in ["D","Rolling D"]:
-                        y_axis_label = f"D (µm²/s)"
+                        y_axis_label = "D (µm²/s)"
                     elif metric in ["D*","Rolling D*"]:
-                        y_axis_label = f"D* (µm²/s)"
+                        y_axis_label = "D* (µm²/s)"
                     elif metric == "Step Size":
-                        y_axis_label = f"Step Size (µm)"
+                        y_axis_label = "Step Size (µm)"
                     elif metric == "Rolling MSD":
-                        y_axis_label = f"Rolling MSD (µm²)"
+                        y_axis_label = "Rolling MSD (µm²)"
                     elif metric ==  "Membrane Distance":
-                        y_axis_label = f"Membrane Distance (µm)"
+                        y_axis_label = "Membrane Distance (µm)"
                     elif metric ==  "Midline Distance":
-                        y_axis_label = f"Midline Distance (µm)"
+                        y_axis_label = "Midline Distance (µm)"
                     elif metric ==  "Centroid Distance":
-                        y_axis_label = f"Centroid Distance (µm)"
+                        y_axis_label = "Centroid Distance (µm)"
                     elif metric ==  "Cell Pole Distance":
-                        y_axis_label = f"Cell Pole Distance (µm)"
+                        y_axis_label = "Cell Pole Distance (µm)"
                     elif metric ==  "Angle":
-                        y_axis_label = f"Angle (degrees)"
+                        y_axis_label = "Angle (degrees)"
                     else:
                         y_axis_label = metric
 
@@ -231,7 +225,6 @@ class _trackplot_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
 
@@ -375,7 +368,6 @@ class _trackplot_utils:
                                                                "user_label": user_label})
         except:
             print(traceback.format_exc())
-            pass
 
         return trackplot_data
 
@@ -399,7 +391,6 @@ class _trackplot_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return self.trackplot_tracks
 
@@ -469,4 +460,3 @@ class _trackplot_utils:
 
         except:
             print(traceback.format_exc())
-            pass

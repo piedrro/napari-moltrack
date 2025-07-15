@@ -1,15 +1,18 @@
 import os.path
 import traceback
-import numpy as np
-from functools import partial, wraps
-from qtpy.QtWidgets import QSlider, QLabel
-import time
-from napari.utils.notifications import show_info
+from functools import partial
+
 import napari
-from scipy.ndimage import shift
-from PyQt5.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QFormLayout,
-    QVBoxLayout, QWidget, QMainWindow, QSpinBox, QLineEdit, QCheckBox)
+import numpy as np
 from napari.utils.notifications import show_info
+from PyQt5.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDoubleSpinBox,
+    QSpinBox,
+)
+from scipy.ndimage import shift
+
 
 class _events_utils:
 
@@ -79,7 +82,6 @@ class _events_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def initialise_channel_selectors(self):
         try:
@@ -109,7 +111,6 @@ class _events_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def update_channel_selector(self, channel_selector, dataset_selector):
         try:
@@ -157,7 +158,6 @@ class _events_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def update_control(self, control, enabled=None, show=None, reset=True):
 
@@ -184,7 +184,6 @@ class _events_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def update_import_options(self, event=None):
         try:
@@ -228,7 +227,6 @@ class _events_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def update_heatmap_options(self):
 
@@ -300,7 +298,6 @@ class _events_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
 
@@ -337,7 +334,6 @@ class _events_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def update_SMLM_combos(self):
 
@@ -363,7 +359,6 @@ class _events_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
     def moltrack_progress(self, progress, progress_bar):
@@ -438,7 +433,6 @@ class _events_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def image_layer_auto_contrast(self, image, dataset, channel):
         contrast_limits = None
@@ -616,7 +610,6 @@ class _events_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def update_overlay_text(self):
         try:
@@ -768,7 +761,6 @@ class _events_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def update_detect_options(self, event=None):
 
@@ -793,7 +785,6 @@ class _events_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
     def moltract_translation(self, event=None, direction="left"):

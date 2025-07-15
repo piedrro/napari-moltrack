@@ -1,24 +1,21 @@
-import traceback
-
-from moltrack.funcs.compute_utils import Worker
-import time
-import os
-from multiprocessing import shared_memory
-from picasso.localize import get_spots, identify_frame
-from picasso import gausslq
-from picasso import postprocess
-from functools import partial
 import concurrent.futures
+import math
 import multiprocessing
-from multiprocessing import Manager
+import time
+import traceback
+from functools import partial
+from multiprocessing import Manager, shared_memory
+
+import cv2
 import numpy as np
 import pandas as pd
-import math
-import cv2
-from skimage.feature import peak_local_max
-from shapely.geometry import Polygon, Point, MultiPolygon, MultiPoint
-from shapely.strtree import STRtree
 from napari.utils.notifications import show_info
+from picasso import gausslq, postprocess
+from picasso.localize import get_spots, identify_frame
+from skimage.feature import peak_local_max
+
+from moltrack.funcs.compute_utils import Worker
+
 
 def precompute_kernels(lnoise=0, lobject=1):
 
@@ -245,7 +242,6 @@ def locs_from_fits(locs, theta, box, em=False, gpu_fit=False):
 
     except:
         print(traceback.format_exc())
-        pass
 
     return locs
 
@@ -326,7 +322,6 @@ def detect_picaso_locs(dat, progress_list, fit_list):
 
                     except:
                         print(traceback.format_exc())
-                        pass
 
             if len(loc_list) > 0:
                 result = loc_list, spot_list
@@ -384,9 +379,7 @@ class _picasso_detect_utils:
             loc_dict, n_locs, _ = self.get_loc_dict(dataset_name,
                 image_channel.lower(), type = "localisations")
 
-            if "localisations" not in loc_dict.keys():
-                return None
-            elif len(loc_dict["localisations"]) == 0:
+            if "localisations" not in loc_dict.keys() or len(loc_dict["localisations"]) == 0:
                 return None
             else:
                 locs = loc_dict["localisations"]
@@ -406,9 +399,7 @@ class _picasso_detect_utils:
             loc_dict, n_locs, _ = self.get_loc_dict(dataset_name,
                 image_channel.lower(), type = "localisations")
 
-            if "localisations" not in loc_dict.keys():
-                return None
-            elif len(loc_dict["localisations"]) == 0:
+            if "localisations" not in loc_dict.keys() or len(loc_dict["localisations"]) == 0:
                 return None
             else:
                 locs = loc_dict["localisations"]
@@ -464,7 +455,6 @@ class _picasso_detect_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
         if len(loc_list) > 0:
             loc_list = np.hstack(loc_list).view(np.recarray).copy()
@@ -613,7 +603,6 @@ class _picasso_detect_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return locs
 
@@ -821,7 +810,7 @@ class _picasso_detect_utils:
             print(traceback.format_exc())
             return None
 
-        show_info(f"Finished processing locs")
+        show_info("Finished processing locs")
 
     def init_picasso(self, detect = False, fit = False):
 
@@ -945,7 +934,7 @@ class _picasso_detect_utils:
 
                     for channel_name in channel_list:
 
-                        if dataset_name not in roi_dict.keys():
+                        if dataset_name not in roi_dict:
                             roi_dict[dataset_name] = {}
                         if channel_name not in roi_dict[dataset_name].keys():
                             roi_dict[dataset_name][channel_name] = {}
@@ -979,6 +968,5 @@ class _picasso_detect_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return roi_dict

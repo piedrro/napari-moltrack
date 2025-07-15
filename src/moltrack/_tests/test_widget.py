@@ -1,9 +1,5 @@
 import numpy as np
 
-from moltrack._widget import (
-    ExampleQWidget,
-)
-
 
 def test_threshold_autogenerate_widget():
     # because our "widget" is a pure function, we can call it and

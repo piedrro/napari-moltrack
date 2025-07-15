@@ -1,26 +1,25 @@
-import matplotlib.pyplot as plt
+import concurrent
+import json
+import os
+import pickle
+import shutil
+import tempfile
+import traceback
+from functools import partial
+from pathlib import Path
+
+import cv2
+import h5py
+import numpy as np
+import pandas as pd
 import tifffile
+import yaml
+from bactfit import fileIO
+from napari.utils.notifications import show_info
+from qtpy.QtWidgets import QFileDialog
 
 from moltrack.funcs.compute_utils import Worker
-from functools import partial
-from concurrent.futures import ThreadPoolExecutor
-import concurrent
-import os
-import h5py
-import yaml
-import tempfile
-import shutil
-from pathlib import Path
-import traceback
-import numpy as np
-from qtpy.QtWidgets import QFileDialog
-import pandas as pd
-import cv2
-import json
-from moltrack.funcs.compute_utils import Worker
-from napari.utils.notifications import show_info
-import pickle
-from bactfit import fileIO
+
 
 def format_picasso_path(path):
     if "%" in str(path):
@@ -46,7 +45,6 @@ def initialise_data_export(loc_data):
 
     except:
         print(traceback.format_exc())
-        pass
 
 
 def export_localisation_data(loc_data):
@@ -132,7 +130,7 @@ def export_picasso_localisation(loc_data):
             shutil.move(temp_h5py_path, desktop_h5py_path)
             shutil.move(temp_yaml_path, desktop_yaml_path)
 
-    except Exception as e:
+    except Exception:
         print(traceback.format_exc())
 
 
@@ -234,7 +232,6 @@ class _export_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def export_shapes_json(self, path):
         try:
@@ -260,7 +257,6 @@ class _export_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def export_segmentations(self, export_mode, path=None):
         if export_mode == "Binary Mask":
@@ -445,7 +441,6 @@ class _export_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return picasso_info
 
@@ -516,7 +511,6 @@ class _export_utils:
                             future.result()
                         except:
                             print(traceback.format_exc())
-                            pass
 
                         progress = int(100 * (len(export_loc_jobs) - len(futures)) / len(export_loc_jobs))
 
@@ -525,7 +519,6 @@ class _export_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def export_locs_finished(self):
         try:
@@ -535,7 +528,6 @@ class _export_utils:
         except:
             self.update_ui()
             print(traceback.format_exc())
-            pass
 
     def sort_export_cols(self, data):
         order = ["dataset", "channel", "group", "particle", "frame", "cell_index",
@@ -594,7 +586,6 @@ class _export_utils:
 
         except:
             self.update_ui()
-            pass
 
     def export_moltrack_project(self, viewer = None, path=None):
 
@@ -703,7 +694,6 @@ class _export_utils:
         except:
             print(traceback.format_exc())
             self.update_ui()
-            pass
 
 
     def export_bactfit(self):

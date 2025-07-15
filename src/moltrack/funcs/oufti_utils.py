@@ -1,20 +1,20 @@
-from shapely.geometry import Polygon, LineString
-import matplotlib.pyplot as plt
-import traceback
-import numpy as np
-import shapely
-from scipy.spatial import distance
-from shapely.ops import nearest_points, split
-from scipy.spatial.distance import cdist
-from shapely.geometry import Point, LinearRing
-from shapely.geometry.polygon import orient
 import math
 import os
-import scipy
-from napari.utils.notifications import show_info
+import traceback
 
-from bactfit.utils import (resize_line, moving_average, rotate_polygon,
-    rotate_linestring, get_vertical, fit_poly)
+import numpy as np
+import scipy
+from bactfit.utils import (
+    fit_poly,
+    get_vertical,
+    resize_line,
+    rotate_linestring,
+)
+from napari.utils.notifications import show_info
+from scipy.spatial.distance import cdist
+from shapely.geometry import LinearRing, LineString, Point, Polygon
+from shapely.geometry.polygon import orient
+
 
 class oufti:
 
@@ -39,7 +39,6 @@ class oufti:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
     def get_cell_mesh(self, cell, n_segments = 50):
@@ -65,7 +64,6 @@ class oufti:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return mesh_data
 
@@ -304,7 +302,6 @@ class oufti:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return centerline
 
@@ -368,7 +365,6 @@ class oufti:
 
             except:
                 print(traceback.format_exc())
-                pass
 
         cellListN = len(cell_data)
         cellList = np.zeros((1,), dtype=object)
@@ -381,7 +377,7 @@ class oufti:
 
         cellList[0] = cellList_items
 
-        p = [];
+        p = []
         paramString = np.empty((len(microbeTrackerParamsString.split('\n')), 1), dtype=object)
         paramSplit = microbeTrackerParamsString.split('\n')
         for p_index in range(len(microbeTrackerParamsString.split('\n'))):

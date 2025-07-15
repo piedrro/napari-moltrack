@@ -1,25 +1,27 @@
-import traceback
-import numpy as np
-import os
-
-import pandas as pd
-from PIL import Image
-from qtpy.QtWidgets import QFileDialog, QApplication
-from moltrack.funcs.compute_utils import Worker
-import time
-import multiprocessing
-from multiprocessing import shared_memory, Manager
-from functools import partial
-import tifffile
 import concurrent.futures
-from astropy.io import fits
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from napari.utils.notifications import show_info
-import h5py
 import json
-import mat4py
-from shapely.geometry import Polygon
+import multiprocessing
+import os
 import pickle
+import time
+import traceback
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from functools import partial
+from multiprocessing import Manager
+
+import h5py
+import mat4py
+import numpy as np
+import pandas as pd
+import tifffile
+from astropy.io import fits
+from napari.utils.notifications import show_info
+from PIL import Image
+from qtpy.QtWidgets import QApplication, QFileDialog
+from shapely.geometry import Polygon
+
+from moltrack.funcs.compute_utils import Worker
+
 
 def crop_frame(image, crop_mode):
     try:
@@ -129,7 +131,6 @@ def import_image_data(dat, progress_dict={}, index=0):
 
     except:
         print(traceback.format_exc())
-        pass
 
     return dat
 
@@ -193,7 +194,6 @@ class _import_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return path
 
@@ -282,7 +282,7 @@ class _import_utils:
                 while any(not future.done() for future in futures):
                     # Calculate and emit progress
                     total_progress = sum(progress_dict.values())
-                    overall_progress = int((total_progress / len(compute_jobs)))
+                    overall_progress = int(total_progress / len(compute_jobs))
                     if progress_callback is not None:
                         progress_callback.emit(overall_progress)
                     time.sleep(0.1)  # Update frequency
@@ -319,7 +319,7 @@ class _import_utils:
                         image_dict = import_data["images"]
 
                         if image_dict != {}:
-                            if dataset_name not in import_dict.keys():
+                            if dataset_name not in import_dict:
                                 import_dict[dataset_name] = import_data
                             else:
                                 for channel in image_dict.keys():
@@ -368,7 +368,6 @@ class _import_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def import_data(self, progress_callback=None, paths=[], import_mode="data", import_jobs = None):
 
@@ -403,7 +402,6 @@ class _import_utils:
             self.viewer.dims.current_step = curent_step
         except:
             print(traceback.format_exc())
-            pass
 
     def init_import_data(self, viewer=None, import_mode=None, import_path=None):
 
@@ -439,7 +437,6 @@ class _import_utils:
         except:
             self.update_ui()
             print(traceback.format_exc())
-            pass
 
 
 
@@ -621,7 +618,6 @@ class _import_utils:
                             show_info("Missing required columns for tracking data import")
         except:
             print(traceback.format_exc())
-            pass
 
 
 
@@ -640,7 +636,7 @@ class _import_utils:
     def import_cells(self, path):
 
         #import json file
-        with open(path, 'r') as f:
+        with open(path) as f:
             data = json.load(f)
 
         cell_names = data["name"]
@@ -872,7 +868,6 @@ class _import_utils:
 
                     except:
                         print(traceback.format_exc())
-                        pass
 
                 if key == "tracking_dict":
 
@@ -905,7 +900,6 @@ class _import_utils:
 
                     except:
                         print(traceback.format_exc())
-                        pass
 
                 if key == "segmentations":
 
@@ -919,7 +913,6 @@ class _import_utils:
 
                     except:
                         print(traceback.format_exc())
-                        pass
 
                 if key == "cells":
 
@@ -937,11 +930,9 @@ class _import_utils:
 
                     except:
                         print(traceback.format_exc())
-                        pass
 
             self.update_SMLM_combos()
             self.update_segmentation_combos()
 
         except:
             print(traceback.format_exc())
-            pass

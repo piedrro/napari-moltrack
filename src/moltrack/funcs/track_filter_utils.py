@@ -1,13 +1,13 @@
 import traceback
+
 import numpy as np
 import pandas as pd
-from shapely.geometry import Polygon, Point, MultiPolygon, MultiPoint
-from shapely.strtree import STRtree
-import matplotlib.pyplot as plt
 from napari.utils.notifications import show_info
 
 
 class _track_filter_utils:
+
+
 
     def update_track_filter_metric(self, viewer=None):
 
@@ -218,9 +218,7 @@ class _track_filter_utils:
                         xlabel = "Track Length (frames)"
                     elif criterion == "Track Duration":
                         xlabel = "Track Duration (s)"
-                    elif criterion == "Mean Squared Displacement":
-                        xlabel = f"{metric} MSD (µm²)"
-                    elif criterion == "MSD":
+                    elif criterion == "Mean Squared Displacement" or criterion == "MSD":
                         xlabel = f"{metric} MSD (µm²)"
                     elif criterion == "Speed":
                         xlabel = f"{metric} Speed (µm/s)"
@@ -280,4 +278,3 @@ class _track_filter_utils:
 
         except:
             print(traceback.print_exc())
-            pass

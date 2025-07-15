@@ -1,16 +1,13 @@
+import os
 import traceback
+
 import numpy as np
 import pandas as pd
-import trackpy as tp
-from moltrack.funcs.compute_utils import Worker
-from functools import partial
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
-from multiprocessing import Manager
-from pyqtgraph import LegendItem
-import os
-from PyQt5.QtWidgets import QFileDialog
 import pyqtgraph as pg
 from napari.utils.notifications import show_info
+from PyQt5.QtWidgets import QFileDialog
+from pyqtgraph import LegendItem
+
 
 class _diffusion_utils:
 
@@ -59,7 +56,6 @@ class _diffusion_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def update_diffusion_options(self):
 
@@ -80,7 +76,7 @@ class _diffusion_utils:
                     control.show()
 
 
-        except Exception as e:
+        except Exception:
             print(traceback.format_exc())
 
 
@@ -99,7 +95,6 @@ class _diffusion_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
     def plot_msd_curve(self):
@@ -147,7 +142,6 @@ class _diffusion_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
 
@@ -192,9 +186,7 @@ class _diffusion_utils:
 
                 if dataset_name == "All Datasets" and channel_name == "All Channels":
                     label = f"{dataset_name} - {channel_name}"
-                elif dataset_name == "All Datasets":
-                    label = f"{dataset_name}"
-                elif channel_name == "All Channels":
+                elif dataset_name == "All Datasets" or channel_name == "All Channels":
                     label = f"{dataset_name}"
                 else:
                     label = f"{dataset_name}"
@@ -228,7 +220,6 @@ class _diffusion_utils:
             print(traceback.format_exc())
             self.update_ui()
 
-        pass
 
 
 
@@ -283,7 +274,7 @@ class _diffusion_utils:
                 base, ext = os.path.splitext(file_path)
                 file_path = f"{base}_msd_curve.csv"
 
-                file_path = QFileDialog.getSaveFileName(self, f"Export MSD Curve", file_path, f"(*.csv)")[0]
+                file_path = QFileDialog.getSaveFileName(self, "Export MSD Curve", file_path, "(*.csv)")[0]
 
                 if file_path == "":
                     return
@@ -337,8 +328,8 @@ class _diffusion_utils:
             base, ext = os.path.splitext(file_path)
             file_path = f"{base}_diffusion_coefficients.csv"
 
-            file_path = QFileDialog.getSaveFileName(self, f"Export Diffusion Coefficients",
-                file_path, f"(*.csv)")[0]
+            file_path = QFileDialog.getSaveFileName(self, "Export Diffusion Coefficients",
+                file_path, "(*.csv)")[0]
 
             if file_path == "":
                 return

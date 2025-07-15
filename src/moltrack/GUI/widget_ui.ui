@@ -3051,92 +3051,6 @@
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_4">
            <item>
-            <widget class="QLabel" name="label_159">
-             <property name="font">
-              <font>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>Track Metric Colour</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <layout class="QFormLayout" name="formLayout_39">
-             <item row="0" column="0">
-              <widget class="QLabel" name="label_160">
-               <property name="text">
-                <string>Colour Metric</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QComboBox" name="track_colour_metric"/>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_161">
-               <property name="text">
-                <string>Colourmap</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="1">
-              <widget class="QComboBox" name="track_colour_colourmap">
-               <item>
-                <property name="text">
-                 <string>Jet</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Turbo</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Viridis</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Plasma</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Inferno</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Magma</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Hot</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-            </layout>
-           </item>
-           <item>
-            <spacer name="verticalSpacer_36">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
             <widget class="QLabel" name="label_39">
              <property name="font">
               <font>
@@ -3371,6 +3285,145 @@
               <string>Delete Tracks</string>
              </property>
             </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="tab_37">
+          <attribute name="title">
+           <string>CMAP</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_39">
+           <item>
+            <widget class="QLabel" name="label_159">
+             <property name="font">
+              <font>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Adjust Track Metric Colourmap</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QFormLayout" name="formLayout_39">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_160">
+               <property name="text">
+                <string>Colour Metric</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QComboBox" name="track_colour_metric"/>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_161">
+               <property name="text">
+                <string>Colourmap</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QComboBox" name="track_colour_colourmap">
+               <item>
+                <property name="text">
+                 <string>Jet</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Turbo</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Viridis</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Plasma</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Inferno</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Magma</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Hot</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QGridLayout" name="gridLayout_10">
+             <item row="0" column="0">
+              <layout class="QFormLayout" name="formLayout_41">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_164">
+                 <property name="text">
+                  <string>Min</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QDoubleSpinBox" name="track_colour_min">
+                 <property name="minimum">
+                  <double>-999999999.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>9999999999.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="0" column="1">
+              <layout class="QFormLayout" name="formLayout_42">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_166">
+                 <property name="text">
+                  <string>Max</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QDoubleSpinBox" name="track_colour_max">
+                 <property name="minimum">
+                  <double>-99999999999.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>9999999999.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_36">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
            </item>
           </layout>
          </widget>
@@ -4150,7 +4203,7 @@
           </sizepolicy>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>2</number>
          </property>
          <widget class="QWidget" name="tab_10">
           <attribute name="title">

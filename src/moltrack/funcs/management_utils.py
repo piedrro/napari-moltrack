@@ -1,4 +1,5 @@
 import traceback
+
 from napari.utils.notifications import show_info
 
 
@@ -126,7 +127,6 @@ class _management_utils:
         except:
             print(traceback.format_exc())
             self.update_ui()
-            pass
 
     def delete_data(self, mode = "locs"):
 
@@ -210,4 +210,3 @@ class _management_utils:
         except:
             print(traceback.format_exc())
             self.update_ui()
-            pass

@@ -1,16 +1,17 @@
-from moltrack.funcs.compute_utils import Worker
-from shapely.geometry import Point, Polygon, LineString
-from shapely.strtree import STRtree
-import matplotlib.pyplot as plt
-from multiprocessing import Manager, shared_memory
+import traceback
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from functools import partial
+from io import BytesIO
+from multiprocessing import Manager, shared_memory
+
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from napari.utils.notifications import show_info
-import traceback
-import numpy as np
-import matplotlib.patches as mpatches
-from io import BytesIO
+
+from moltrack.funcs.compute_utils import Worker
+
 
 class _pixstats_utils:
 
@@ -81,7 +82,6 @@ class _pixstats_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def initialise_pixstats(self, mode="tracks"):
 
@@ -231,7 +231,6 @@ class _pixstats_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return fret_dataset
 
@@ -265,7 +264,6 @@ class _pixstats_utils:
 
             except:
                 print(traceback.format_exc())
-                pass
 
         return data
 
@@ -309,7 +307,6 @@ class _pixstats_utils:
 
             except:
                 print(traceback.format_exc())
-                pass
 
         return data
 
@@ -560,7 +557,6 @@ class _pixstats_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
         if progress_list is not None:
             progress_list.append(1)
@@ -623,7 +619,6 @@ class _pixstats_utils:
             print(traceback.format_exc())
             self.restore_shared_image_chunks()
             self.update_ui()
-            pass
 
         return results, mode
 

@@ -1,14 +1,12 @@
+import time
 import traceback
 
-import pandas as pd
+import cv2
+import numpy as np
+from napari.utils.notifications import show_info
+from picasso.render import render
 
 from moltrack.funcs.compute_utils import Worker
-from picasso.render import render
-import numpy as np
-import time
-from functools import partial
-import cv2
-from napari.utils.notifications import show_info
 
 
 class _picasso_render_utils:
@@ -127,7 +125,7 @@ class _picasso_render_utils:
             elif bit_depth == 32:
                 rgb = to_32bit(rgb)
 
-        except Exception as e:
+        except Exception:
             print(traceback.format_exc())
             Y, X = images[0].shape
             if bit_depth == 8:

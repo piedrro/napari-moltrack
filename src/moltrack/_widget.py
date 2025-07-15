@@ -1,49 +1,49 @@
+import os
+import traceback
 from functools import partial
 from multiprocessing import Manager
 from typing import TYPE_CHECKING
 
 import cv2
+import numpy as np
 import pyqtgraph as pg
-from pyqtgraph import GraphicsLayoutWidget
+import torch
+from napari.utils.notifications import show_info
+from PyQt5.QtWidgets import (
+    QApplication,
+    QVBoxLayout,
+    QWidget,
+)
 from pyqtgraph import ImageView
-import tifffile
 from qtpy.QtCore import QThreadPool
 from qtpy.QtWidgets import QVBoxLayout, QWidget
 from skimage import exposure
-import numpy as np
-import torch
-import traceback
-from napari.utils.notifications import show_info
-from PyQt5.QtWidgets import QApplication, QComboBox, QDoubleSpinBox, QFormLayout, QVBoxLayout, QWidget, QMainWindow
-from PyQt5 import uic
-import os
 
 if TYPE_CHECKING:
     import napari
 
+from moltrack.funcs.bactfit_utils import _bactfit_utils
+from moltrack.funcs.cell_events import _cell_events
+from moltrack.funcs.cell_heatmap_utils import _cell_heatmap_utils
 from moltrack.funcs.compute_utils import _compute_utils
+from moltrack.funcs.diffusion_utils import _diffusion_utils
 from moltrack.funcs.events_utils import _events_utils
 from moltrack.funcs.export_utils import _export_utils
 from moltrack.funcs.import_utils import _import_utils
 from moltrack.funcs.loc_filter_utils import _loc_filter_utils
-from moltrack.funcs.track_filter_utils import _track_filter_utils
+from moltrack.funcs.management_utils import _management_utils
+from moltrack.funcs.oufti_utils import oufti
 from moltrack.funcs.picasso_detect_utils import _picasso_detect_utils
 from moltrack.funcs.picasso_render_utils import _picasso_render_utils
+from moltrack.funcs.pixstats_utils import _pixstats_utils
 from moltrack.funcs.segmentation_events import _segmentation_events
 from moltrack.funcs.segmentation_utils import _segmentation_utils
-from moltrack.funcs.tracking_utils import _tracking_utils
-from moltrack.funcs.bactfit_utils import _bactfit_utils
-from moltrack.funcs.cell_events import _cell_events
-from moltrack.funcs.oufti_utils import oufti
-from moltrack.funcs.diffusion_utils import _diffusion_utils
-from moltrack.funcs.cell_heatmap_utils import _cell_heatmap_utils
 from moltrack.funcs.traces_utils import _traces_utils
-from moltrack.funcs.transform_utils import _transform_utils
-from moltrack.funcs.management_utils import _management_utils
-from moltrack.funcs.pixstats_utils import _pixstats_utils
+from moltrack.funcs.track_filter_utils import _track_filter_utils
+from moltrack.funcs.tracking_utils import _tracking_utils
 from moltrack.funcs.trackplot_utils import _trackplot_utils
 from moltrack.funcs.trackstats_utils import _trackstats_utils
-
+from moltrack.funcs.transform_utils import _transform_utils
 from moltrack.GUI.widget_ui import Ui_Frame as gui
 
 subclasses = [_import_utils, _compute_utils,
@@ -79,8 +79,6 @@ class QWidget(QWidget, gui, *subclasses):
         self.gui = gui()
         self.gui.setupUi(self)
 
-
-
         from moltrack.__init__ import __version__ as version
 
         show_info(f"napari-moltrack version: {version}")
@@ -107,7 +105,7 @@ class QWidget(QWidget, gui, *subclasses):
         manager = Manager()
         self.stop_event = manager.Event()
 
-        # self.import_dev_data()
+        self.import_dev_data()
 
     def import_dev_data(self):
 
@@ -256,16 +254,38 @@ class QWidget(QWidget, gui, *subclasses):
                                   "pixel_median", "pixel_min",
                                   "pixel_max", "pixel_sum"]
 
-        # self.gui.tracks_pixstats_fret.hide()
-        # self.gui.locs_pixstats_fret.hide()
+        self.colourmaps = [
+            'blue',
+            'bop blue',
+            'bop orange',
+            'bop purple',
+            'cyan',
+            'gist_earth',
+            'gray',
+            'gray_r',
+            'green',
+            'hsv',
+            'I Blue',
+            'I Bordeaux',
+            'I Forest',
+            'I Orange',
+            'I Purple',
+            'inferno',
+            'magenta',
+            'magma',
+            'PiYG',
+            'plasma',
+            'red',
+            'turbo',
+            'twilight',
+            'twilight_shifted',
+            'viridis',
+            'yellow']
 
         np.seterr(all='ignore')
 
-        from napari.utils.colormaps import AVAILABLE_COLORMAPS
-        colormap_names = list(AVAILABLE_COLORMAPS.keys())
-        colormap_names = [name for name in colormap_names if 'I ' not in name]
         self.gui.track_colour_colourmap.clear()
-        self.gui.track_colour_colourmap.addItems(colormap_names)
+        self.gui.track_colour_colourmap.addItems(self.colourmaps)
 
     def initialise_events(self):
 
@@ -407,6 +427,8 @@ class QWidget(QWidget, gui, *subclasses):
 
         self.gui.track_colour_metric.currentIndexChanged.connect(self.draw_tracks)
         self.gui.track_colour_colourmap.currentIndexChanged.connect(self.draw_tracks)
+        self.gui.track_colour_min.valueChanged.connect(lambda: self.draw_tracks(reset_cmap_range = False))
+        self.gui.track_colour_max.valueChanged.connect(lambda: self.draw_tracks(reset_cmap_range = False))
 
         self.gui.traces_export_dataset.currentIndexChanged.connect(self.update_traces_export_options)
         self.gui.traces_export_channel.currentIndexChanged.connect(self.update_traces_export_options)
@@ -474,7 +496,6 @@ class QWidget(QWidget, gui, *subclasses):
 
         except:
             print(traceback.format_exc())
-            pass
 
 
     def devfunc(self, viewer=None):
@@ -527,7 +548,6 @@ class QWidget(QWidget, gui, *subclasses):
 
         except:
             print(traceback.format_exc())
-            pass
 
     def initialise_keybindings(self):
 
@@ -582,7 +602,6 @@ class QWidget(QWidget, gui, *subclasses):
                 show_info("Pytorch Using CPU")
         except:
             print(traceback.format_exc())
-            pass
 
     def check_gpufit_availibility(self):
         self.gpufit_available = False
@@ -612,7 +631,7 @@ class QWidget(QWidget, gui, *subclasses):
             show_info("Pygpufit not available due to missing package")
 
             import moltrack
-            src_dir = moltrack.__file__.replace("\moltrack\__init__.py", "")
+            src_dir = moltrack.__file__.replace(r"\moltrack\__init__.py", "")
             show_info(f"Add pygpufit package to moltrack src directory [{src_dir}] to enable GPUFit.")
 
         if self.gpufit_available:

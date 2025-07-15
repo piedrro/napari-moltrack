@@ -1,12 +1,14 @@
 import traceback
+
 import numpy as np
 import pandas as pd
-from shapely.geometry import Polygon, Point, MultiPolygon, MultiPoint
-from shapely.strtree import STRtree
-import matplotlib.pyplot as plt
 from napari.utils.notifications import show_info
+from shapely.geometry import Point, Polygon
+from shapely.strtree import STRtree
 from sklearn.cluster import DBSCAN
+
 from moltrack.funcs.compute_utils import Worker
+
 
 class _loc_filter_utils:
 
@@ -199,7 +201,6 @@ class _loc_filter_utils:
         except:
             print(traceback.format_exc())
 
-        pass
 
 
 
@@ -575,7 +576,6 @@ class _loc_filter_utils:
 
                     except:
                         print(traceback.format_exc())
-                        pass
 
                 merged_locs = pd.concat(merged_locs)
 
@@ -598,7 +598,6 @@ class _loc_filter_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return merged_locs
 
@@ -624,5 +623,4 @@ class _loc_filter_utils:
         except:
             print(traceback.format_exc())
             self.update_ui()
-            pass
 

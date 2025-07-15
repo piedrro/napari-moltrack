@@ -1,11 +1,11 @@
+import json
+import os
 import traceback
 
 import numpy as np
 import pandas as pd
-import json
-import os
-from PyQt5.QtWidgets import QFileDialog
 from napari.utils.notifications import show_info
+from PyQt5.QtWidgets import QFileDialog
 
 
 class _traces_utils:

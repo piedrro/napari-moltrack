@@ -1,26 +1,17 @@
 import traceback
+import warnings
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from functools import partial
 
 import numpy as np
 import pandas as pd
-import trackpy as tp
-from numba import njit
-from functools import partial
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+import trackpy
 from napari.utils.notifications import show_info
-from statsmodels.sandbox.archive.linalg_covmat import sigma
+from shapely.geometry import LineString, Point, Polygon
 
 from moltrack.funcs.compute_utils import Worker
-from shapely.geometry import Point, Polygon, LineString
-from shapely.strtree import STRtree
-import matplotlib.pyplot as plt
-from multiprocessing import Manager, shared_memory
-from functools import partial
-import warnings
-from napari.utils.notifications import show_info
-import trackpy
 
 warnings.filterwarnings("ignore", category=UserWarning)
-
 
 class _trackstats_utils:
 
@@ -138,7 +129,6 @@ class _trackstats_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return shape_stats
 
@@ -347,7 +337,6 @@ class _trackstats_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
         if len(tracks_with_stats) > 0:
             track_data = pd.concat(tracks_with_stats, ignore_index=True)

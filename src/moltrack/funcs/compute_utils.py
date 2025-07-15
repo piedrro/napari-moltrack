@@ -1,12 +1,12 @@
-from qtpy.QtCore import QObject
-from qtpy.QtCore import QRunnable
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
-import traceback
 import sys
-from multiprocessing import Process, shared_memory, Pool
-import numpy as np
+import traceback
+from multiprocessing import shared_memory
+
 import napari
-from napari.utils.notifications import show_info
+import numpy as np
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
+from qtpy.QtCore import QObject, QRunnable
+
 
 class _compute_utils:
 
@@ -119,7 +119,6 @@ class _compute_utils:
 
                     except:
                         print(traceback.format_exc())
-                        pass
 
                 dataset_list = list(set(dataset_list))
 
@@ -149,7 +148,6 @@ class _compute_utils:
 
                     except:
                         print(traceback.format_exc())
-                        pass
 
 
     def clear_live_images(self):
@@ -169,7 +167,6 @@ class _compute_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
 
 

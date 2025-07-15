@@ -1,15 +1,18 @@
+import math
+import os
 import traceback
 import warnings
-from moltrack.funcs.compute_utils import Worker
-from napari.utils.notifications import show_info
-from torch.cuda import empty_cache
-import math
-import numpy as np
-import os
 from functools import partial
+
 import cv2
+import numpy as np
+from napari.utils.notifications import show_info
 from qtpy.QtWidgets import QFileDialog
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Polygon
+from torch.cuda import empty_cache
+
+from moltrack.funcs.compute_utils import Worker
+
 
 class _segmentation_utils:
 
@@ -177,7 +180,7 @@ class _segmentation_utils:
 
                 else:
                     if self.widget_notifications:
-                        show_info(f"Could not load model")
+                        show_info("Could not load model")
 
         except:
             print(traceback.format_exc())
@@ -248,7 +251,6 @@ class _segmentation_utils:
         except:
             self.update_ui(init=False)
             print(traceback.format_exc())
-            pass
 
     def process_cellpose_result(self, result):
 
@@ -283,7 +285,6 @@ class _segmentation_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def mask_to_shape(self, mask, frame = None):
 
@@ -421,7 +422,6 @@ class _segmentation_utils:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return mode, cellpose_masks
 

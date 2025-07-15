@@ -1,13 +1,9 @@
-import time
-from napari.utils.notifications import show_info
 import traceback
+
+import numpy as np
+from napari.utils.notifications import show_info
 from shapely.geometry import Polygon
 from shapely.ops import unary_union
-import numpy as np
-import warnings
-from napari.utils.notifications import show_info
-import random
-import string
 
 
 class _segmentation_events:
@@ -51,7 +47,6 @@ class _segmentation_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def register_shape_layer_keybinds(self, layer):
         layer.bind_key("Space", func=lambda event: self.modify_mode(mode="add"), overwrite=True, )
@@ -192,7 +187,6 @@ class _segmentation_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def remove_shapes(self, indices):
         if type(indices) == int:
@@ -279,7 +273,6 @@ class _segmentation_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def delete_clicked(self, viewer=None, event=None):
         try:
@@ -291,7 +284,6 @@ class _segmentation_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
     def seg_drag_event(self, viwer=None, event=None):
         if hasattr(self, "segmentation_mode"):
@@ -394,6 +386,5 @@ class _segmentation_events:
 
         except:
             print(traceback.format_exc())
-            pass
 
         return union_shape
