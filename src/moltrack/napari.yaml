@@ -7,7 +7,7 @@ categories: ["Annotation", "Segmentation", "Acquisition"]
 contributions:
   commands:
     - id: napari-moltrack.make_qwidget
-      python_name: moltrack:QWidget
+      python_name: moltrack:MolTrack
       title: Make moltrack QWidget
   widgets:
     - command: napari-moltrack.make_qwidget

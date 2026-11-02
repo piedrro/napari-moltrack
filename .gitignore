@@ -1,5 +1,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+.venv/
+.verify*/
 *.py[cod]
 *$py.class
 
@@ -90,3 +92,4 @@ venv/
 /src/moltrack/dev/transform_dev.py
 /dev_data/
 /src/moltrack/dev/
+/development/

@@ -4,7 +4,7 @@ import traceback
 import cv2
 import numpy as np
 from napari.utils.notifications import show_info
-from picasso.render import render
+from moltrack.backend import render_locs
 
 from moltrack.funcs.compute_utils import Worker
 
@@ -23,9 +23,6 @@ class _picasso_render_utils:
     ):
         try:
 
-            h, w = image_shape[-2:]
-
-            viewport = [(float(0), float(0)), (float(h), float(w))]
 
             start_time = time.time()
 
@@ -38,13 +35,12 @@ class _picasso_render_utils:
 
                 locs = dat["localisations"]
 
-                n_rendered_locs, image = render(
+                n_rendered_locs, image = render_locs(
                     locs,
-                    viewport=viewport,
+                    image_shape=image_shape,
                     blur_method=blur_method,
                     min_blur_width=min_blur_width,
                     oversampling=oversampling,
-                    ang=0,
                 )
 
                 images.append(image)
@@ -161,6 +157,7 @@ class _picasso_render_utils:
                     scale=scale,
                     blending="opaque",
                     rgb=True,
+                    units=("nm", "nm"),
                 )
                 self.viewer.reset_view()
             else:
@@ -175,6 +172,7 @@ class _picasso_render_utils:
                     scale=scale,
                     blending="opaque",
                     rgb=True,
+                    units=("nm", "nm"),
                 )
                 self.viewer.reset_view()
 

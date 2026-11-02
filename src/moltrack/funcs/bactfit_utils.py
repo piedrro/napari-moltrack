@@ -115,9 +115,3 @@ class _bactfit_utils:
             worker.signals.finished.connect(self.run_bactfit_finished)
             self.worker.signals.error.connect(self.update_ui)
             self.threadpool.start(worker)
-
-
-
-
-
-

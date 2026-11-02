@@ -1,157 +1,104 @@
-from napari.viewer import Viewer
-from typing import TYPE_CHECKING
-import traceback
+"""Connect the existing RCC/AIM controls to MolCore drift processing."""
 from functools import partial
+from concurrent.futures import CancelledError
+
+import numpy as np
+
+from napari.utils.notifications import show_info
+
+from moltrack.backend import correct_drift, estimate_drift
 from moltrack.funcs.compute_utils import Worker
 
 
-if TYPE_CHECKING:
-    from moltrack._widget import MolTrack
-
 class MoltrackUndrifting:
-    def __init__(self, viewer: Viewer, parent: "MolTrack"):
+    def __init__(self, viewer, parent):
         self.viewer = viewer
         self.moltrack = parent
 
-    @property
-    def gui(self):
-        return self.moltrack.gui
-
-    @property
-    def dataset_dict(self):
-        return self.moltrack.dataset_dict
-
-    @property
-    def localisation_dict(self):
-        return self.moltrack.localisation_dict
-
     def aim_undrift(self):
-
-        try:
-
-            dataset = self.gui.undrift_dataset.currentText()
-            channel = self.gui.undrift_channel.currentText()
-            segmentation = self.gui.aim_segmentation.value()
-            intersect_d = self.gui.aim_intersect_d.value()
-            roi_r = self.gui.aim_roi_r.value()
-
-            if dataset == "All Datasets":
-                dataset_list = list(self.dataset_dict.keys())
-            else:
-                dataset_list = [dataset]
-
-            undrift_dict = {}
-
-            for dataset in dataset_list:
-
-                loc_dict = self.localisation_dict[dataset][channel]
-
-                if "localisations" not in loc_dict.keys():
-                    continue
-
-                locs = loc_dict["localisations"]
-
-                n_locs = len(locs)
-
-                if n_locs > 0 and loc_dict["fitted"] == True:
-
-                    n_frames, height, width = self.dataset_dict[dataset][channel.lower()]["data"].shape
-                    pixel_size = self.dataset_dict[dataset][channel.lower()]["pixel_size"]
-                    picasso_info = [{'Frames': n_frames, 'Height': height,
-                                     'Width': width, 'Pixelsize': pixel_size}, {}]
-                    undrift_dict[dataset] = {"loc_dict": loc_dict, "n_locs": n_locs,
-                                             "picasso_info": picasso_info,
-                                             "channel": channel.lower(), "dataset": dataset}
-                else:
-                    self.moltrack.molseeq_notification("No fitted localizations found for dataset: " + dataset)
-
-            if undrift_dict != {}:
-                self.moltrack.update_ui(init=True)
-
-                self.worker = Worker(self._undrift,
-                                     mode = 'AIM',
-                                     undrift_dict=undrift_dict,
-                                     segmentation=segmentation,
-                                     intersect_d = intersect_d,
-                                     roi_r = roi_r)
-                self.worker.signals.progress.connect(partial(self.moltrack.moltrack_progress, progress_bar=self.gui.aim_progressbar))
-                self.worker.signals.finished.connect(self._undrift_images_finished)
-                self.moltrack.threadpool.start(self.worker)
-
-        except:
-            self.moltrack.update_ui()
-            print(traceback.format_exc())
-            pass
+        self._start('aim')
 
     def rcc_undrift(self):
+        self._start('rcc')
 
-        try:
+    def _start(self, method):
+        parent, gui = self.moltrack, self.moltrack.gui
+        selected = gui.undrift_dataset.currentText()
+        channel = gui.undrift_channel.currentText()
+        datasets = list(parent.dataset_dict) if selected == 'All Datasets' else [selected]
+        jobs = []
+        for name in datasets:
+            entry = parent.localisation_dict.get(name, {}).get(channel, {})
+            if not entry.get('fitted') or not len(entry.get('localisations', [])):
+                show_info(f'No fitted localisations found for dataset: {name}')
+                continue
+            images = dict(parent.dataset_dict[name]['images'])
+            locs = {c: v.get('localisations') for c, v in parent.localisation_dict.get(name, {}).items()}
+            tracks = {c: v.get('tracks') for c, v in parent.tracking_dict.get(name, {}).items()}
+            frame_maps = {}
+            if parent.dataset_dict[name].get('multichannel_mode') == 'ALEX':
+                frame_maps = {c: np.arange(len(movie)) * 2 + (1 if c.upper() in ('DA', 'AA') else 0)
+                              for c, movie in images.items()}
+            jobs.append((name, channel, images, locs, tracks, frame_maps))
+        if not jobs:
+            return
+        settings = dict(method=method,
+            segment_frames=int((gui.aim_segmentation if method == 'aim' else gui.undrift_segmentation).value()),
+            intersect_distance=float(gui.aim_intersect_d.value()), search_radius=float(gui.aim_roi_r.value()))
+        parent.update_ui(init=True)
+        self.worker = Worker(self._compute, jobs, settings)
+        bar = gui.aim_progressbar if method == 'aim' else gui.undrift_progressbar
+        self.worker.signals.progress.connect(partial(parent.moltrack_progress, progress_bar=bar))
+        self.worker.signals.result.connect(self._apply)
+        self.worker.signals.error.connect(parent.update_ui)
+        self.worker.signals.finished.connect(parent.update_ui)
+        parent.threadpool.start(self.worker)
 
-            dataset = self.gui.undrift_dataset_selector.currentText()
-            channel = self.gui.undrift_channel_selector.currentText()
-            segmentation = self.gui.undrift_segmentation.value()
+    def _compute(self, jobs, settings, progress_callback=None):
+        pending = []
+        for name, channel, images, locs, tracks, frame_maps in jobs:
+            result = estimate_drift(images[channel], locs[channel], **settings,
+                progress_callback=progress_callback, cancel_event=self.moltrack.stop_event)
+            output = {}
+            for target, movie in images.items():
+                options = dict(cancel_event=self.moltrack.stop_event,
+                    source_frames=frame_maps.get(channel), target_frames=frame_maps.get(target))
+                corrected_movie, corrected_locs = correct_drift(movie, locs.get(target), result, **options)
+                corrected_tracks = None
+                if tracks.get(target) is not None:
+                    _, corrected_tracks = correct_drift(movie, tracks[target], result, images=False, **options)
+                output[target] = corrected_movie, corrected_locs, corrected_tracks
+            pending.append((name, images, locs, tracks, output, result))
+        return pending
 
-            if dataset == "All Datasets":
-                dataset_list = list(self.dataset_dict.keys())
-            else:
-                dataset_list = [dataset]
-
-            undrift_dict = {}
-
-            for dataset in dataset_list:
-
-                loc_dict = self.localisation_dict[dataset][channel]
-
-                if "localisations" not in loc_dict.keys():
-                    continue
-
-                locs = loc_dict["localisations"]
-
-                n_locs = len(locs)
-
-                if n_locs > 0 and loc_dict["fitted"] == True:
-
-                    n_frames,height,width = self.dataset_dict[dataset][channel.lower()]["data"].shape
-                    picasso_info = [{'Frames': n_frames, 'Height': height, 'Width': width}, {}]
-
-                    undrift_dict[dataset] = {"loc_dict": loc_dict, "n_locs": n_locs,
-                                             "picasso_info": picasso_info,
-                                             "channel": channel.lower(), "dataset": dataset}
-                else:
-                    self.moltrack.moltrack_notification("No fitted localizations found for dataset: " + dataset)
-
-            if undrift_dict != {}:
-
-                self.moltrack.update_ui(init=True)
-
-                self.worker = Worker(self._undrift,
-                                     mode = 'RCC',
-                                     undrift_dict=undrift_dict,
-                                     segmentation=segmentation)
-                self.worker.signals.progress.connect(partial(self.moltrack.moltrack_progress,
-                                                             progress_bar=self.gui.undrift_progressbar))
-                self.worker.signals.finished.connect(self._undrift_images_finished)
-                self.moltrack.threadpool.start(self.worker)
-
-        except:
-            self.moltrack.update_ui()
-            print(traceback.format_exc())
-            pass
-
-    def _undrift_images_finished(self):
-
-        try:
-
-            self.moltrack.image_layer.data = self.dataset_dict[self.moltrack.active_dataset][self.moltrack.active_channel]["data"]
-
-            self.undrift_localisations()
-            self.moltrack.draw_localisations(update_vis=True)
-
-            for layer in self.viewer.layers:
-                layer.refresh()
-
-            self.moltrack.update_ui()
-
-        except:
-            print(traceback.format_exc())
-            self.moltrack.update_ui()
+    def _apply(self, pending):
+        parent = self.moltrack
+        if parent.stop_event.is_set():
+            return
+        for name, images, locs, tracks, _, _ in pending:
+            if name not in parent.dataset_dict:
+                show_info('Dataset removed while estimating drift; results discarded')
+                return
+            for channel, image in images.items():
+                if parent.dataset_dict[name]['images'].get(channel) is not image:
+                    show_info('Images changed while estimating drift; results discarded')
+                    return
+            for channel, rows in locs.items():
+                if parent.localisation_dict.get(name, {}).get(channel, {}).get('localisations') is not rows:
+                    show_info('Localisations changed while estimating drift; results discarded')
+                    return
+            for channel, rows in tracks.items():
+                if parent.tracking_dict.get(name, {}).get(channel, {}).get('tracks') is not rows:
+                    show_info('Tracks changed while estimating drift; results discarded')
+                    return
+        for name, _, _, _, output, result in pending:
+            for channel, (movie, locs, tracks) in output.items():
+                parent.dataset_dict[name]['images'][channel] = movie
+                if locs is not None:
+                    parent.localisation_dict[name][channel]['localisations'] = locs
+                if tracks is not None:
+                    parent.tracking_dict[name][channel]['tracks'] = tracks
+            parent.dataset_dict[name]['drift'] = {'frames': result.frames, 'displacement': result.displacement}
+        parent.update_active_image()
+        parent.draw_localisations(update_vis=True)
+        parent.draw_tracks()

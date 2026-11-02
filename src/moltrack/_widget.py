@@ -1,7 +1,7 @@
 import os
 import traceback
 from functools import partial
-from multiprocessing import Manager
+from threading import Event
 from typing import TYPE_CHECKING
 
 import cv2
@@ -9,7 +9,7 @@ import numpy as np
 import pyqtgraph as pg
 import torch
 from napari.utils.notifications import show_info
-from PyQt5.QtWidgets import (
+from qtpy.QtWidgets import (
     QApplication,
     QVBoxLayout,
     QWidget,
@@ -80,6 +80,8 @@ class MolTrack(QWidget, gui, *subclasses):
         # create UI
         self.gui = gui()
         self.gui.setupUi(self)
+        self.gui.cellpose_model.clear()
+        self.gui.cellpose_model.addItems(["cpsam_v2", "cpsam", "cpdino", "cpdino-vitb", "custom"])
 
         from moltrack.__init__ import __version__ as version
         show_info(f"napari-moltrack version: {version}")
@@ -91,7 +93,7 @@ class MolTrack(QWidget, gui, *subclasses):
         self.initialise_keybindings()
 
         self.check_cuda_availibility()
-        self.check_gpufit_availibility()
+        self.configure_picasso_fitting()
         self.update_detect_options()
         self.initialise_channel_selectors()
         self.update_import_options()
@@ -105,8 +107,7 @@ class MolTrack(QWidget, gui, *subclasses):
 
         # create threadpool and stop event
         self.threadpool = QThreadPool()
-        manager = Manager()
-        self.stop_event = manager.Event()
+        self.stop_event = Event()
 
         self.import_dev_data()
 
@@ -530,8 +531,6 @@ class MolTrack(QWidget, gui, *subclasses):
 
         # self.populate_dataset_selectors()
 
-        # self.create_shared_image_chunks()
-        # self.restore_shared_image_chunks()
         # self.gui.track_filter_channel.currentIndexChanged.connect(self.update_track_filter_criterion)
 
 
@@ -606,44 +605,9 @@ class MolTrack(QWidget, gui, *subclasses):
         except:
             print(traceback.format_exc())
 
-    def check_gpufit_availibility(self):
-        self.gpufit_available = False
+    def configure_picasso_fitting(self):
+        from picasso.localize import CUDA_AVAILABLE
 
-        try:
-            from pygpufit import gpufit as gf
-
-            package_installed = True
-        except:
-            package_installed = False
-
-        if package_installed:
-            if not gf.cuda_available():
-                show_info("Pygpufit not available due to missing CUDA")
-            else:
-                runtime_version, driver_version = gf.get_cuda_version()
-
-                runtime_version = ".".join([str(v) for v in list(runtime_version)[:2]])
-                driver_version = ".".join([str(v) for v in list(driver_version)][:2])
-
-                runtime_version = float(runtime_version)
-                driver_version = float(driver_version)
-
-                self.gpufit_available = True
-
-        else:
-            show_info("Pygpufit not available due to missing package")
-
-            import moltrack
-            src_dir = moltrack.__file__.replace(r"\moltrack\__init__.py", "")
-            show_info(f"Add pygpufit package to moltrack src directory [{src_dir}] to enable GPUFit.")
-
-        if self.gpufit_available:
-            if driver_version < runtime_version:
-                show_info("Pygpufit may not work due to mismatched CUDA driver and runtime versions")
-                show_info(f"GPUFit runtime: {runtime_version}, driver: {driver_version}")
-            else:
-                show_info("GPUFit available")
-                show_info(f"GPUFit runtime: {runtime_version}, driver: {driver_version}")
-
-            self.gui.smlm_fit_mode.addItem("GPUFit")
+        if CUDA_AVAILABLE:
+            self.gui.smlm_fit_mode.addItem("Picasso GPU")
             self.gui.smlm_fit_mode.setCurrentIndex(1)

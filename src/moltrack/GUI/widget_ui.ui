@@ -681,76 +681,12 @@
              </item>
              <item row="0" column="1">
               <widget class="QComboBox" name="cellpose_model">
-               <item>
-                <property name="text">
-                 <string>cyto</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>nuclei</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>tissuenet</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>livecell</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>cyto2</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>general</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>bact_phase_omni</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>bact_fluor_omni</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>worm_omni</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>worm_bact_omni</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>worm_high_res_omni</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>cyto2_omni</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>plant_omni</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>custom</string>
-                </property>
-               </item>
+
+                <item><property name="text"><string>cpsam_v2</string></property></item>
+                <item><property name="text"><string>cpsam</string></property></item>
+                <item><property name="text"><string>cpdino</string></property></item>
+                <item><property name="text"><string>cpdino-vitb</string></property></item>
+                <item><property name="text"><string>custom</string></property></item>
               </widget>
              </item>
              <item row="1" column="0">

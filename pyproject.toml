@@ -17,36 +17,34 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Image Processing",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.12,<3.13"
 dependencies = [
-    "napari[all]==0.5.0",
+    "napari[pyqt6]==0.9.2",
     "bactfit >= 0.1.6",
     "numpy",
     "magicgui",
     "qtpy",
     "scipy",
     "pyqtgraph",
-    "picassosr==0.8.0",
+    "picassosr>=0.11.3,<0.12",
     "pandas",
     "matplotlib >= 3.7.0",
-    "scipy",
     "opencv-python",
     "tqdm",
-    "originpro",
-    "pyqt5-tools",
+    "originpro; sys_platform == 'win32'",
     "torch",
     "torchvision",
-    "cellpose == 3.0.1",
-    "omnipose",
-    "trackpy",
+    "cellpose>=4.2,<5",
+    "molcore[all] @ git+https://github.com/piedrro/molcore.git",
+    "trackpy>=0.7,<0.8",
     "shapely",
     "astropy",
     "mat4py",
+    "appdirs",
+
 ]
 
 [project.optional-dependencies]
@@ -56,8 +54,11 @@ testing = [
     "pytest-cov",  # https://pytest-cov.readthedocs.io/en/latest/
     "pytest-qt",  # https://pytest-qt.readthedocs.io/en/latest/
     "napari",
-    "pyqt5",
+    "pyqt6",
 ]
+
+[project.scripts]
+dev = "moltrack._dev:main"
 
 [project.entry-points."napari.manifest"]
 napari-moltrack = "moltrack:napari.yaml"
@@ -69,24 +70,26 @@ napari-moltrack = "moltrack:napari.yaml"
 "User Support" = "https://github.com/piedrro/napari-moltrack/issues"
 
 [build-system]
-requires = ["setuptools>=42.0.0", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.dynamic]
-version = {attr = "moltrack.__init__.__version__"}
+version = {attr = "moltrack.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["moltrack*"]
+exclude = ["moltrack.dev*", "moltrack._tests*"]
 
 [tool.setuptools.package-data]
-"*" = ["*.yaml","*.dll"]
+"*" = ["*.yaml"]
 
 [tool.black]
 line-length = 79
-target-version = ['py39', 'py310', 'py311']
+target-version = ['py312']
 
 [tool.ruff]
 line-length = 79
@@ -129,4 +132,13 @@ exclude = [
     "venv",
     "*vendored*",
     "*_vendor*",
+]
+
+[dependency-groups]
+dev = ["pytest", "pytest-cov", "pytest-qt", "pre-commit", "ruff"]
+
+[tool.uv]
+required-environments = [
+    "sys_platform == 'win32' and platform_machine == 'AMD64'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
 ]

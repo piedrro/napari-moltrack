@@ -10,7 +10,7 @@ import pyqtgraph as pg
 import yaml
 from bactfit.cell import CellList, ModelCell
 from napari.utils.notifications import show_info
-from PyQt5.QtWidgets import QFileDialog
+from qtpy.QtWidgets import QFileDialog
 
 from moltrack.funcs.compute_utils import Worker
 

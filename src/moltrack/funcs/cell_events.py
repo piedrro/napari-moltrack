@@ -54,6 +54,8 @@ class _cell_events:
         face_color = [1, 1, 1, 0]
         edge_color = [1, 1, 1, 0.5]
         edge_width = 1
+        ndim = np.asarray(shapes[0]).shape[-1] if shapes is not None and len(shapes) else 2
+        units = ("pixel",) * (ndim - 2) + ("nm", "nm")
 
         if shapes is not None:
             self.cellLayer = self.viewer.add_shapes(
@@ -64,6 +66,8 @@ class _cell_events:
                 face_color=face_color,
                 edge_color=edge_color,
                 edge_width=edge_width,
+                scale=scale,
+                units=units,
             )
         else:
             self.cellLayer = self.viewer.add_shapes(
@@ -72,6 +76,8 @@ class _cell_events:
                 face_color=face_color,
                 edge_color=edge_color,
                 edge_width=edge_width,
+                scale=scale,
+                units=units,
             )
 
         if self.gui.show_shapes.isChecked() == False:
@@ -82,7 +88,6 @@ class _cell_events:
 
         self.viewer.scale_bar.visible = True
         self.cellLayer.scale = scale
-        self.viewer.scale_bar.unit = "nm"
 
         self.cellLayer.refresh()
         self.viewer.reset_view()

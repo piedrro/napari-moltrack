@@ -75,20 +75,23 @@ class _segmentation_events:
                 pixel_size = 1
 
         scale = [pixel_size, pixel_size]
+        ndim = np.asarray(shapes[0]).shape[-1] if shapes is not None and len(shapes) else 2
+        units = ("pixel",) * (ndim - 2) + ("nm", "nm")
 
         if shapes is not None:
             self.segLayer = self.viewer.add_shapes(name="Segmentations",
-                shape_type="polygon", opacity=0.5, face_color="red", edge_color="black", edge_width=1, data=shapes, )
+                shape_type="polygon", opacity=0.5, face_color="red", edge_color="black", edge_width=1, data=shapes,
+                scale=scale, units=units, )
         else:
             self.segLayer = self.viewer.add_shapes(name="Segmentations",
-                shape_type="polygon", opacity=0.5, face_color="red", edge_color="black", edge_width=1, )
+                shape_type="polygon", opacity=0.5, face_color="red", edge_color="black", edge_width=1,
+                scale=scale, units=units, )
 
         if self.gui.show_shapes.isChecked() == False:
             if self.segLayer in self.viewer.layers:
                 self.viewer.layers.remove(self.segLayer)
 
         self.segLayer.scale = scale
-        self.viewer.scale_bar.unit = "nm"
         self.segLayer.refresh()
         self.viewer.reset_view()
 

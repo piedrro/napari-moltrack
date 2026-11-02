@@ -5,7 +5,6 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
-import trackpy
 from napari.utils.notifications import show_info
 from shapely.geometry import LineString, Point, Polygon
 
@@ -134,176 +133,23 @@ class _trackstats_utils:
 
 
     @staticmethod
-    def get_track_stats(df, min_track_length = 4,
-                        rolling_window_size = 4,
-                        shape_data=None):
+    def get_track_stats(df, min_track_length=4, rolling_window_size=4, shape_data=None):
+        from moltrack.backend import track_statistics
 
-        stats = {}
-
-        try:
-
-            pixel_size = df["pixel_size (um)"].values[0]
-            time_step = df["exposure_time (s)"].values[0]
-
-            # Convert columns to numpy arrays for faster computation
-            x = df['x'].values
-            y = df['y'].values
-
-            if "sigma" in df.columns:
-                sigma_data = df["sigma"].values[:].copy()
-            else:
-                sigma_data = None
-
-            # Calculate the displacements using numpy diff
-            x_disp = np.diff(x, prepend=x[0]) * pixel_size
-            y_disp = np.diff(y, prepend=y[0]) * pixel_size
-
-            stats["step_size"] = np.sqrt(x_disp ** 2 + y_disp ** 2)
-
-            # Calculate the MSD using numba
-            max_lag = len(x)
-            fps = 1 / time_step
-            msd_data = trackpy.motion.msd(df, pixel_size, fps, max_lag-1)
-            msd_list = msd_data["msd"].tolist()[:max_lag]
-            msd_list = [0] + msd_list
-            stats["msd"] = msd_list
-
-            # Calculate speed
-            speed = np.sqrt(x_disp ** 2 + y_disp ** 2) / time_step
-            stats["speed"] = speed
-
-            # Create time array
-            time = np.arange(0, max_lag) * time_step
-            stats["time"] = time
-
-            min_track_length += 1
-
-            if len(time) >= min_track_length and len(msd_list) >= min_track_length:  # Ensure there are enough points to fit
-
-                # skip the first point as it is zero
-                Dtime = np.array(time[1:min_track_length])
-                Dmsd = np.array(msd_list[1:min_track_length])
-
-                slope, intercept = np.polyfit(Dtime,Dmsd, 1)
-                D = slope / 4
-                stats["D"] = D
-
-                #Correct D* for localization error, if available
-
-                if sigma_data is not None:
-                    sigma_window = sigma_data[1:min_track_length]
-                    mean_sigma = np.mean(sigma_window)
-
-                    D_star = D - mean_sigma**2 /time_step
-
-                    stats["D*"] = D_star
-                else:
-                    stats["D*"] = np.nan
-
-                roll_D, roll_Dstar = _trackstats_utils.calculate_rolling_diffusion(time,msd_list,time_step,
-                                                                                   sigma_data,
-                                                                                   window_size=rolling_window_size)
-                if len(roll_D) > 0:
-                    stats["rD"] = roll_D
-                else:
-                    stats["rD"] = np.nan
-
-                if len(roll_Dstar) > 0:
-                    stats["rD*"] = roll_Dstar
-                else:
-                    stats["rD*"] = np.nan
-
-            else:
-                stats["D"] = np.nan
-                stats["D*"] = np.nan
-
-            try:
-                track_angles = _trackstats_utils.calculate_track_angles(np.array([x, y]).T)
-
-                if len(track_angles) == len(x):
-                    stats["angle"] = track_angles
-            except:
-                pass
-
-            shape_stats = _trackstats_utils.get_track_shape_stats(df, shape_data, pixel_size)
-
-            if shape_stats != {}:
-                stats = {**stats, **shape_stats}
-            else:
-                shape_stats_cols = ["membrane_distance", "centroid_distance",
-                                    "midline_distance", "cell_pole_distance"]
-
-                shape_stats_cols = [col for col in shape_stats_cols if col in df.columns]
-                df.drop(columns=shape_stats_cols, inplace=True)
-
-            # append shape stats to df
-            for key, value in stats.items():
-                df[key] = value
-
-        except:
-            print(traceback.format_exc())
-
+        df = df.sort_values('frame', kind='stable').reset_index(drop=True).copy()
+        if df.empty:
+            return df
+        pixel_size = float(df['pixel_size (um)'].iloc[0])
+        stats = track_statistics(df, pixel_size=pixel_size,
+            time_step=float(df['exposure_time (s)'].iloc[0]),
+            fit_lags=min_track_length, rolling_window=rolling_window_size)
+        stats['angle'] = _trackstats_utils.calculate_track_angles(df[['x', 'y']].to_numpy())
+        stats.update(_trackstats_utils.get_track_shape_stats(df, shape_data, pixel_size))
+        for name, value in stats.items():
+            df[name] = value
         return df
 
 
-    @staticmethod
-    def calculate_rolling_diffusion(time_array, msd_array, time_step,
-                                   sigma_array=None, window_size=4):
-
-        # Ensure inputs are numpy arrays for easier slicing
-        time_array = np.array(time_array)
-        msd_array = np.array(msd_array)
-        if sigma_array is not None:
-            sigma_array = np.array(sigma_array)
-
-        # Initialize lists to store results
-        roll_D = []
-        roll_Dstar = []
-
-        # Calculate rolling D and D* over the specified window
-        for i in range(len(time_array)):
-
-            try:
-
-                start = i - window_size//2
-                end = i + window_size//2
-
-                if start < 0:
-                    start = 0
-                if end > len(time_array):
-                    end = len(time_array)
-
-                window_time = time_array[start:end].copy()
-                window_msd = msd_array[start:end].copy()
-
-                slope, intercept = np.polyfit(window_time, window_msd, 1)
-                D = slope / 4
-
-                roll_D.append(D)
-
-                if sigma_array is not None:
-
-                    try:
-
-                        sigma_window = sigma_array[start:end].copy()
-                        mean_sigma = np.mean(sigma_window)
-
-                        Dstar = D - mean_sigma ** 2 / time_step
-
-                        roll_Dstar.append(Dstar)
-
-                    except:
-                        roll_Dstar.append(np.nan)
-
-                else:
-                    roll_Dstar.append(np.nan)
-
-            except:
-                roll_D.append(np.nan)
-                roll_Dstar.append(np.nan)
-
-
-        return roll_D, roll_Dstar
 
     def compute_track_stats(self, track_data, shape_data, progress_callback=None):
 
@@ -506,5 +352,3 @@ class _trackstats_utils:
         except:
             print(traceback.format_exc())
             self.update_ui()
-
-

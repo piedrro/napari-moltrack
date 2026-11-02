@@ -15,33 +15,33 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_compl
 from multiprocessing import cpu_count, Manager
 
 def create_cell_model(length=10, width=5, margin = 1):
-    
+
     cell_model = {}
-    
+
     x0 = y0 = width+margin
-    
+
     # Define the coordinates of the line
     midline_x_coords = [x0, x0 + length]
     midline_y_coords = [y0, y0]
-    midline_coords = list(zip(midline_x_coords, 
+    midline_coords = list(zip(midline_x_coords,
                               midline_y_coords))
     midline = LineString(midline_coords)
-    
+
     polygon = midline.buffer(width)
     polygon_coords = np.array(polygon.exterior.coords)
-    
-    
+
+
     y0 = width+margin
     x0 = margin
     centerline_x_coords = [x0, x0 + length + (width*2)]
     centerline_y_coords = [y0, y0]
-    centerline_coords = list(zip(centerline_x_coords, 
+    centerline_coords = list(zip(centerline_x_coords,
                                  centerline_y_coords))
     centerline_coords = np.array(centerline_coords)
     centerline = LineString(centerline_coords)
-    
+
     centerline = BactFit.resize_line(centerline,100)
-    
+
     cell_model['midline'] = midline
     cell_model['polygon'] = polygon
     cell_model['centerline'] = centerline
@@ -55,42 +55,42 @@ def get_polylocs(polygons, locs):
     coords = np.stack([locs["x"], locs["y"]], axis=1)
     points = [Point(coord) for coord in coords]
     spatial_index = STRtree(points)
-    
+
     polylocs = []
-    
+
     for polygon_index, polygon in enumerate(polygons):
-    
+
         possible_points = spatial_index.query(polygon)
-    
+
         polygon_point_indices = []
-    
+
         for point_index in possible_points:
-    
+
             point = points[point_index]
-    
+
             if polygon.contains(point):
-    
+
                 polygon_point_indices.append(point_index)
-    
+
         if len(polygon_point_indices) > 0:
-    
+
             polygon_locs = locs[polygon_point_indices]
-    
+
             polygon_locs = pd.DataFrame(polygon_locs)
-    
+
             if "cell_index" in polygon_locs.columns:
                 polygon_locs = polygon_locs.drop(columns=["cell_index"])
             if "segmentation_index" in polygon_locs.columns:
                 polygon_locs = polygon_locs.drop(columns=["segmentation_index"])
-    
+
             polygon_locs["cell_index"] = polygon_index
             polygon_locs = polygon_locs.to_records(index=False)
-    
+
             polylocs.append(polygon_locs)
-            
+
     if len(polylocs) > 0:
         polylocs = np.hstack(polylocs).view(np.recarray).copy()
-        
+
     return polylocs
 
 
@@ -185,44 +185,44 @@ def find_centerline(midline, width, smooth=True):
 
 
 def get_render_jobs():
-    
+
     total_locs = 0
 
     locs = pd.read_csv("cell_tracks.csv")
     locs = locs.to_records(index=False)
-    
+
     with open('cell_shapes.json') as f:
         cell_shapes = json.load(f)
-    
+
     cell_model = create_cell_model()
-    
+
     polygons = [Polygon(coords) for coords in cell_shapes["polygon_coords"]]
     midlines = [LineString(coords) for coords in cell_shapes["midline_coords"]]
     widths = [width for width in cell_shapes["width"]]
-    
+
     locs = get_polylocs(polygons, locs)
-    
+
     polygon_indexes = np.unique(locs["cell_index"])
-    
+
     render_jobs = []
-    
+
     for index in polygon_indexes:
-        
+
         polygon = polygons[index]
         midline = midlines[index]
         width = widths[index]
         polylocs = locs[locs["cell_index"] == index]
-        
+
         render_jobs.append({"polygon": polygon,
                             "midline": midline,
                             "width": width,
                             "polylocs": polylocs,
                             "cell_model":cell_model})
-        
+
         total_locs += len(polylocs)
-    
+
     return render_jobs, total_locs
-    
+
 def split_linestring(linestring, num_segments):
     points = [linestring.interpolate(float(i) / num_segments, normalized=True) for i in range(num_segments + 1)]
     return [LineString([points[i], points[i + 1]]) for i in range(num_segments)]
@@ -274,7 +274,7 @@ def transform_locs(dat, progress_list=[], n_segments=1000, reflect = True):
 
                 # Find the nearest segment to each point
                 closest_segment_index = tree.nearest(point)
-                
+
                 nearest_segment = source_segments[closest_segment_index]
 
                 segment_start = np.array(nearest_segment.coords[0])
@@ -284,31 +284,31 @@ def transform_locs(dat, progress_list=[], n_segments=1000, reflect = True):
                 # Compute the signed distance from the point to the nearest segment
                 distance = point.distance(nearest_segment)
                 distance_sign = np.sign(np.cross(segment_vector, point_vector))
-                
+
                 # if distance > target_width:
                 #     distance=target_width
 
                 index_list = [closest_segment_index, abs(n_segments-closest_segment_index)]
                 # index_list = [closest_segment_index]
-                
+
                 sign_list = [-1,1]
                 # sign_list = [distance_sign]
-                
+
                 for segment_index in index_list:
-                    
+
                     for sign in sign_list:
-                        
+
                         signed_distance = distance*sign
                         # Compute the new distance in the target coordinate system
                         new_distance = target_width * (signed_distance / source_width)
-                        
+
                         # Calculate the new coordinates by moving perpendicular to the target segment at the new distance
                         segment_start_target = np.array(target_segments[segment_index].coords[0])
                         perp_vector = target_perpendicular_vectors[segment_index]
                         new_point_coords = segment_start_target + perp_vector * new_distance
 
                         if target_polygon.contains(Point(new_point_coords)):
-                            
+
                             tloc = loc.copy()
                             tloc["x"] = new_point_coords[0]
                             tloc["y"] = new_point_coords[1]
@@ -344,22 +344,22 @@ name_list = cell_shapes["name"]
 cells = []
 
 for cell_index, name in enumerate(name_list):
-    
+
     cell_index = name_list.index(name)
-    
+
     midline_coords = [""]
-    
+
     cell_dict = {}
     for key,value in cell_shapes.items():
         cell_dict[key]=value[cell_index]
-        
+
     cell_dict["cell_index"] = cell_index
-        
+
     cell = Cell(cell_dict)
     cells.append(cell)
 
 cells = CellList(cells)
-    
+
 cells.add_localisations(locs)
 model = ModelCell(length=10, width=5)
 
@@ -424,7 +424,7 @@ model = ModelCell(length=10, width=5)
 #     plt.imshow(heatmap.T, extent=extent, origin='lower')
 #     plt.plot(*polygon.exterior.xy)
     #remove tick lines
-    
+
 
     # plt.scatter(points[:,0], points[:,1])
     # plt.plot(*polygon.exterior.xy)
@@ -435,13 +435,3 @@ model = ModelCell(length=10, width=5)
 # dat = render_jobs[0]
 #
 # transformed_locs = transform_locs(dat)
-
-
-
-
-
-
-
-
-
-

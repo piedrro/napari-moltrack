@@ -5,7 +5,7 @@ import traceback
 import numpy as np
 import pandas as pd
 from napari.utils.notifications import show_info
-from PyQt5.QtWidgets import QFileDialog
+from qtpy.QtWidgets import QFileDialog
 
 
 class _traces_utils:
@@ -148,4 +148,3 @@ class _traces_utils:
 
         except:
             print(traceback.format_exc())
-

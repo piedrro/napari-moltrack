@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 from napari.utils.notifications import show_info
-from PyQt5.QtWidgets import QFileDialog
+from qtpy.QtWidgets import QFileDialog
 from pyqtgraph import LegendItem
 
 

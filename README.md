@@ -6,11 +6,22 @@
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-moltrack)](https://napari-hub.org/plugins/napari-moltrack)
 
 A user-friendly SMLM analysis platfrom for napari, which includes single molecule localisation, tracking, and analysis features. 
-Based on established python packages such as **Picasso**, **GPUfit** and **Trackpy**.
+Based on established python packages such as **MolCore**, **Picasso** and **Trackpy**.
 This plugin was designed to detect/track single molecules inside cells, but can be used for any other SMLM/tracking application.
 
 All functions are parallelised/GPU accelerated where possible to increase performance.
 Multiple datasets can be loaded and processed in parallel.
+
+The processing backend uses MolCore for movie reading, localisation, tracking,
+rendering, filtering, clustering, drift correction, photometry and trajectory
+statistics. The existing MolTrack controls and project dictionaries are retained.
+Picasso GPU fitting appears in the existing fitting selector when Picasso detects
+a CUDA device; otherwise Picasso CPU fitting is available. The custom MolTrack
+detector remains available through a MolCore backend extension.
+
+Development uses Python 3.12, napari 0.9.2 and PyQt6 via QtPy. Segmentation uses
+Cellpose 4 SAM/DINO models or compatible custom weights. DINO models require the
+upstream `dinov3` package. Built-in segmentation weights download on first use.
 
 Single molecule localisations can be filtered by their properties (e.g. photons, width, etc.) and can be rendered as a super resolution image.
 

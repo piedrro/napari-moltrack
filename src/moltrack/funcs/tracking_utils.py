@@ -5,7 +5,6 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
-import trackpy as tp
 from napari.utils.notifications import show_info
 from shapely.geometry import Point
 from shapely.strtree import STRtree
@@ -218,141 +217,63 @@ class _tracking_utils:
 
 
     def link_locs(self, f, search_range, pos_columns=None,
-            t_column='frame', progress_callback = None, **kwargs):
+                  t_column='frame', progress_callback=None, **kwargs):
+        from moltrack.backend import link_locs
 
-        from trackpy.linking.linking import (
-            coords_from_df,
-            guess_pos_columns,
-            link_iter,
-            pandas_sort,
-        )
-
-        if pos_columns is None:
-            pos_columns = guess_pos_columns(f)
-
-        # copy the dataframe
-        f = f.copy()
-        # coerce t_column to integer type (use np.int64 to avoid 32-bit on windows)
-        if not np.issubdtype(f[t_column].dtype, np.integer):
-            f[t_column] = f[t_column].astype(np.int64)
-        # sort on the t_column
-        pandas_sort(f, t_column, inplace=True)
-
-        coords_iter = coords_from_df(f, pos_columns, t_column)
-        ids = []
-
-        n_iter = 0
-        for t, coords in coords_iter:
-            n_iter += 1
-
-        coords_iter = coords_from_df(f, pos_columns, t_column)
-
-        for i, _ids in link_iter(coords_iter, search_range, **kwargs):
-            ids.extend(_ids)
-
-            if progress_callback is not None:
-                progress = int(i / n_iter * 100)
-                progress_callback.emit(progress)
-
-        f['particle'] = ids
-
-        return f
+        if pos_columns not in (None, ['x', 'y'], ['y', 'x']):
+            raise ValueError("Tracking requires x/y positions")
+        rows = f.rename(columns={t_column: 'frame'}) if t_column != 'frame' else f
+        result = link_locs(rows, search_range, memory=kwargs.pop('memory', 0),
+                           progress_callback=progress_callback,
+                           cancel_event=getattr(self, 'stop_event', None), **kwargs)
+        return result.rename(columns={'frame': t_column}) if t_column != 'frame' else result
 
 
     def detect_tracks(self, loc_data, progress_callback=None):
+        from concurrent.futures import CancelledError
 
         segchannel = self.gui.tracking_segmentations.currentText()
         search_range = float(self.gui.trackpy_search_range.value())
         memory = int(self.gui.trackpy_memory.value())
-        min_track_length = int(self.gui.min_track_length.value())
-
-        track_data = []
-
+        minimum = int(self.gui.min_track_length.value())
+        output, partitions = [], []
         for dat in loc_data:
-            try:
-                dataset = dat["dataset"]
-                channel = dat["channel"]
-                pixel_size_nm = float(self.dataset_dict[dataset]["pixel_size"])
-                exposure_time_ms = float(self.dataset_dict[dataset]["exposure_time"])
-                locs = dat["localisations"]
-
-
-                pixel_size_um = pixel_size_nm * 1e-3
-                exposure_time_s = exposure_time_ms * 1e-3
-
-                if segchannel in ["Segmentations", "Cells"]:
-                    locs, segcol = self.detect_seglocs(dataset, channel, segchannel)
-                    columns = list(locs.dtype.names)
-                    locdf = pd.DataFrame(locs, columns=columns)
-                    self.tracking_segchannel = segchannel
-                    self.tracking_segcol = segcol
-                else:
-                    columns = list(locs.dtype.names)
-                    locdf = pd.DataFrame(locs, columns=columns)
-                    segcol ="segmentation_index"
-                    locdf[segcol] = 0
-                    self.tracking_segchannel = None
-                    self.tracking_segcol = None
-
-                n_segmentations = len(locdf[segcol].unique())
-                tp.quiet()
-
-                if n_segmentations == 1:
-
-                    tracks_df = self.link_locs(locdf, search_range=search_range,
-                        memory=memory, progress_callback=progress_callback)
-                    tracks_df = tracks_df.sort_values(by=[segcol, "particle", "frame"])
-                    tracks_df.drop(columns=[segcol], inplace=True)
-
-                else:
-
-                    seg_tracks = []
-                    track_index = 1
-
-                    for seg_index, group in locdf.groupby(segcol):
-
-                        seg_track = self.link_locs(group.copy(), search_range=search_range,
-                            memory=memory)
-
-                        particle_array = seg_track["particle"].values
-                        particle_array = particle_array + track_index
-                        seg_track["particle"] = particle_array
-                        track_index = np.max(particle_array) + 1
-
-                        seg_tracks.append(seg_track.copy())
-
-                        if progress_callback is not None:
-                            progress = int(len(seg_tracks) / n_segmentations * 100)
-                            progress_callback.emit(progress)
-
-                    tracks_df = pd.concat(seg_tracks, ignore_index=True)
-                    tracks_df = tracks_df.sort_values(by=[segcol,"particle", "frame"])
-
-                tracks_df.reset_index(drop=True, inplace=True)
-                tracks_df = tp.filter_stubs(tracks_df, min_track_length).reset_index(drop=True)
-
-                self.tracks = tracks_df
-
-                track_index = 1
-                for particle, group in tracks_df.groupby("particle"):
-                    tracks_df.loc[group.index, "particle"] = track_index
-                    track_index += 1
-
-                tracks_df = tracks_df.sort_values(by=["particle", "frame"])
-
-                tracks_df["pixel_size (um)"] = pixel_size_um
-                tracks_df["exposure_time (s)"] = exposure_time_s
-
-                track_data.append(tracks_df)
-
-
-            except:
-                print(traceback.format_exc())
-
-        if len(track_data) > 0:
-            track_data = pd.concat(track_data, ignore_index=True)
-
-        return track_data
+            if getattr(self, 'stop_event', None) is not None and self.stop_event.is_set():
+                raise CancelledError()
+            dataset, channel = dat['dataset'], dat['channel']
+            partitions.append((dataset, channel))
+            if segchannel in ('Segmentations', 'Cells'):
+                locs, segcol = self.detect_seglocs(dataset, channel, segchannel)
+                self.tracking_segchannel, self.tracking_segcol = segchannel, segcol
+            else:
+                locs, segcol = dat['localisations'], None
+                self.tracking_segchannel = self.tracking_segcol = None
+            rows = pd.DataFrame(locs)
+            groups = list(rows.groupby(segcol)) if segcol and len(rows) else [(None, rows)]
+            linked, offset = [], 0
+            for _, group in groups:
+                if group.empty:
+                    continue
+                tracks = self.link_locs(group, search_range=search_range, memory=memory,
+                    min_length=minimum, progress_callback=progress_callback)
+                if tracks.empty:
+                    continue
+                tracks['particle'] += offset
+                offset = int(tracks.particle.max())
+                linked.append(tracks)
+            tracks = pd.concat(linked, ignore_index=True) if linked else rows.iloc[:0].copy()
+            if 'particle' not in tracks:
+                tracks['particle'] = pd.Series(dtype='int64')
+            tracks['dataset'], tracks['channel'] = dataset, channel
+            metadata = self.dataset_dict[dataset]
+            tracks['pixel_size (um)'] = float(metadata['pixel_size']) * 1e-3
+            tracks['exposure_time (s)'] = float(metadata['exposure_time']) * 1e-3
+            output.append(tracks.sort_values(['particle', 'frame']))
+        if getattr(self, 'stop_event', None) is not None and self.stop_event.is_set():
+            raise CancelledError()
+        self._tracking_partitions = partitions
+        return pd.concat(output, ignore_index=True) if output else pd.DataFrame(
+            columns=['dataset', 'channel', 'particle', 'frame', 'x', 'y'])
 
 
     def track_particles(self, loc_data, stats = True, progress_callback=None):
@@ -368,51 +289,24 @@ class _tracking_utils:
 
 
     def process_tracking_results(self, track_data):
-        try:
-            if track_data is None:
-                return
-
-            remove_unlinked = self.gui.remove_unlinked.isChecked()
-            layers_names = [layer.name for layer in self.viewer.layers]
-            total_tracks = 0
-
-            for (dataset, channel), tracks in track_data.groupby(["dataset", "channel"]):
-
-                tracks = tracks.to_records(index=False)
-
-                if dataset not in self.tracking_dict.keys():
-                    self.tracking_dict[dataset] = {}
-                if channel not in self.tracking_dict[dataset].keys():
-                    self.tracking_dict[dataset][channel] = {}
-
-                self.tracking_dict[dataset][channel] = {"tracks": tracks}
-
-                n_tracks = len(np.unique(tracks["particle"]))
-                total_tracks += n_tracks
-
-                if remove_unlinked:
-                    loc_dict = self.localisation_dict[dataset][channel]
-
-                    locs = loc_dict["localisations"]
-                    n_locs = len(locs)
-                    n_filtered = len(tracks)
-
-                    n_removed = n_locs - n_filtered
-
-                    if n_removed > 0:
-                        show_info(f"Removed {n_removed} unlinked localisations")
-                        loc_dict["localisations"] = tracks
-
-            if len(track_data) > 0:
-                self.gui.locs_export_data.clear()
-                self.gui.locs_export_data.addItems(["Localisations", "Tracks"])
-                self.gui.heatmap_data.clear()
-                self.gui.heatmap_data.addItems(["Localisations", "Tracks"])
-
-                show_info(f"Tracking complete, {total_tracks} tracks found")
-
-        except:
-            print(traceback.format_exc())
+        if track_data is None or self.stop_event.is_set():
+            return
+        partitions = getattr(self, '_tracking_partitions', list(
+            track_data.groupby(['dataset', 'channel']).groups))
+        total_tracks = 0
+        for dataset, channel in partitions:
+            selected = track_data[(track_data.dataset == dataset) & (track_data.channel == channel)]
+            tracks = selected.to_records(index=False)
+            self.tracking_dict.setdefault(dataset, {})[channel] = {'tracks': tracks}
+            total_tracks += selected.particle.nunique()
+            if self.gui.remove_unlinked.isChecked():
+                self.localisation_dict[dataset][channel]['localisations'] = tracks.copy()
+        if len(track_data):
+            self.gui.locs_export_data.clear()
+            self.gui.locs_export_data.addItems(['Localisations', 'Tracks'])
+            self.gui.heatmap_data.clear()
+            self.gui.heatmap_data.addItems(['Localisations', 'Tracks'])
+        show_info(f'Tracking complete, {total_tracks} tracks found')
 
     def tracking_finished(self):
 
@@ -581,7 +475,7 @@ class _tracking_utils:
                         self.track_layer = self.viewer.add_tracks(
                             render_tracks, name="Tracks",scale=scale,
                             colormap=cmap_name, properties=properties,
-                            color_by="track_id",)
+                            color_by="track_id", units=("pixel", "nm", "nm"),)
 
                         self.viewer.reset_view()
                         self.track_layer.mouse_double_click_callbacks.append(self.select_track)
@@ -608,14 +502,15 @@ class _tracking_utils:
                     self.track_layer.selected_data = []
 
                     self.viewer.scale_bar.visible = True
-                    self.viewer.scale_bar.unit = "nm"
+                    self.track_layer.units = ("pixel", "nm", "nm")
 
             if remove_tracks:
                 try:
                     if "Tracks" in layer_names:
                         self.track_layer.selected_data = []
                         self.viewer.layers.remove(self.track_layer)
-                        self.track_layer = self.viewer.add_tracks(np.array([[0,0,0,0]]), name="Tracks")
+                        self.track_layer = self.viewer.add_tracks(np.array([[0,0,0,0]]), name="Tracks",
+                            units=("pixel", "nm", "nm"))
                 except:
                     print(traceback.format_exc())
 

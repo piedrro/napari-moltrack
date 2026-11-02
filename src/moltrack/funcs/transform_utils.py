@@ -1,5 +1,4 @@
 import json
-import math
 import os
 import traceback
 from datetime import datetime
@@ -11,93 +10,12 @@ from napari.utils.notifications import show_info
 from qtpy.QtWidgets import QFileDialog
 
 from moltrack.funcs.compute_utils import Worker
+from moltrack.backend import transform_image, transform_locs
+from molcore.alignment import fit_transform
 
 
-def transform_image(img, transform_matrix,
-        progress_callback=None):
-
-    w, h = img.shape[-2:]
-
-    n_frames = img.shape[0]
-    n_segments = math.ceil(n_frames / 100)
-    image_splits = np.array_split(img, n_segments)
-
-    transformed_image = []
-
-    iter = 0
-
-    transform_matrix = np.array(transform_matrix, dtype=np.float64)
-
-    if transform_matrix.shape == (2, 3):
-        transform_mode = "affine"
-    elif transform_matrix.shape == (3, 3):
-        transform_mode = "homography"
-    else:
-        show_info("Transformation matrix is wrong shape, should be (2,3) or (3,3)")
-        return
-
-    for index, image in enumerate(image_splits):
-
-        image = np.moveaxis(image, 0, -1)
-
-        if transform_mode == "homography":
-            image = cv2.warpPerspective(image, transform_matrix, (h, w),
-                borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
-        elif transform_mode == "affine":
-            image = cv2.warpAffine(image, transform_matrix, (h, w),
-                borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
-
-        transformed_image.append(image)
-        iter += 250
-        progress = int((iter / n_frames) * 100)
-
-        if progress_callback is not None:
-            progress_callback(progress)
-
-    transformed_image = np.dstack(transformed_image)
-    transformed_image = np.moveaxis(transformed_image, -1, 0)
-
-    return transformed_image
 
 
-def transform_locs(locs, transform_matrix, progress_callback=None):
-
-    try:
-
-        n_points = len(locs)
-        transformed_locs = np.recarray((n_points,), dtype=locs.dtype)
-        transform_matrix = np.array(transform_matrix, dtype=np.float64)
-
-        if transform_matrix.shape == (2, 3):
-            transform_mode = "affine"
-        elif transform_matrix.shape == (3, 3):
-            transform_mode = "homography"
-        else:
-            raise ValueError("Transformation matrix is wrong shape, should be (2, 3) or (3, 3)")
-
-        for i in range(n_points):
-            point = np.array([locs.x[i], locs.y[i]])
-
-            if transform_mode == "homography":
-                point_homogeneous = np.append(point, 1)
-                transformed_point = np.dot(transform_matrix, point_homogeneous)
-                transformed_locs.x[i] = transformed_point[0] / transformed_point[2]
-                transformed_locs.y[i] = transformed_point[1] / transformed_point[2]
-            elif transform_mode == "affine":
-                point_homogeneous = np.append(point, 1)
-                transformed_point = np.dot(transform_matrix, point_homogeneous)
-                transformed_locs.x[i] = transformed_point[0]
-                transformed_locs.y[i] = transformed_point[1]
-
-            if progress_callback is not None:
-                progress = int(((i + 1) / n_points) * 100)
-                progress_callback(progress)
-
-    except:
-        print(traceback.format_exc())
-        return None
-
-    return transformed_locs
 
 
 
@@ -202,26 +120,10 @@ class _transform_utils:
                     dst_points = np.float32([dst_points[m.queryIdx] for m in matches]).reshape(-1, 2)
                     src_points = np.float32([src_points[m.trainIdx] for m in matches]).reshape(-1, 2)
 
-                    if len(dst_points) == 1 or len(dst_points) == 2:
-
-                        dst_point = dst_points[0]
-                        src_point = src_points[0]
-
-                        # Calculate translation vector
-                        tx = dst_point[0] - src_point[0]
-                        ty = dst_point[1] - src_point[1]
-
-                        # Translation matrix
-                        self.transform_matrix = np.float32([[1, 0, tx], [0, 1, ty]])
-                        print(f"Affine Transform Matrix:\n {self.transform_matrix}")
-
-                    elif len(dst_points) == 3:
-                        self.transform_matrix = cv2.getAffineTransform(src_points, dst_points)
-                        print(f"Affine Transform Matrix:\n {self.transform_matrix}")
-
-                    elif len(dst_points) > 3:
-                        self.transform_matrix, _ = cv2.findHomography(src_points, dst_points, cv2.RANSAC, 5.0)
-                        print(f"Homography Transform Matrix:\n {self.transform_matrix}")
+                    model = 'translation' if len(src_points) < 3 else (
+                        'affine' if len(src_points) == 3 else 'homography')
+                    self.transform_matrix, _, _ = fit_transform(
+                        src_points, dst_points, model=model, ransac_threshold=5.)
 
                     if self.gui.save_tform.isChecked():
                         self.save_transform_matrix()
@@ -296,7 +198,7 @@ class _transform_utils:
                     if len(tracks) > 0:
                         transformed_tracks = transform_locs(tracks, self.transform_matrix, progress_callback=transform_progress)
                         if transformed_tracks is not None:
-                            self.localisation_dict[dataset_name][channel_name]["tracks"] = transformed_tracks
+                            self.tracking_dict[dataset_name][channel_name]["tracks"] = transformed_tracks
 
         except:
             print(traceback.format_exc())

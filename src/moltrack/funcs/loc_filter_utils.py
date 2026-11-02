@@ -5,9 +5,9 @@ import pandas as pd
 from napari.utils.notifications import show_info
 from shapely.geometry import Point, Polygon
 from shapely.strtree import STRtree
-from sklearn.cluster import DBSCAN
 
 from moltrack.funcs.compute_utils import Worker
+from moltrack.backend import filter_locs, merge_locs
 
 
 class _loc_filter_utils:
@@ -377,18 +377,8 @@ class _loc_filter_utils:
 
                         n_locs = len(locs)
 
-                        criterion_data = locs[criterion]
-
-                        if subtract_background:
-                            bg_criterion = criterion + "_bg"
-                            if bg_criterion in columns:
-                                bg_values = locs[bg_criterion]
-                                criterion_data = criterion_data - bg_values
-
-                        keep_indices = np.where((criterion_data > min_value) &
-                                                (criterion_data < max_value))[0]
-
-                        locs = locs[keep_indices]
+                        locs = filter_locs(locs, criterion, min_value, max_value,
+                            subtract_background=subtract_background)
 
                         n_filtered = len(locs)
 
@@ -532,74 +522,18 @@ class _loc_filter_utils:
         self.draw_localisations()
 
 
-    def compute_merge_localisations(self, dataset, locs, min_distance=1,
-            progress_callback=None):
-
-        merged_locs = []
-
-        try:
-            locs = pd.DataFrame(locs)
-
-            locs_channels = locs["channel"].unique()
-            n_channels = len(locs_channels)
-
-            if n_channels > 1:
-                for frame, frame_locs in locs.groupby("frame"):
-
-                    try:
-
-                        if len(frame_locs) == 0:
-                            continue
-
-                        cluster_dataset = np.vstack((frame_locs.x, frame_locs.y)).T
-
-                        # Apply DBSCAN
-                        dbscan = DBSCAN(eps=min_distance, min_samples=2, n_jobs=-1)
-                        dbscan.fit(cluster_dataset)
-
-                        # Get the labels assigned by DBSCAN
-                        labels = dbscan.labels_
-
-                        # Add the labels to the original dataframe
-                        frame_locs['cluster_label'] = labels
-
-                        # Separate the clustered data from the noise
-                        clustered_data = frame_locs[labels != -1]
-                        non_clustered_data = frame_locs[labels == -1]
-
-                        # Keep only the first instance of each cluster
-                        clustered_data = clustered_data.drop_duplicates(subset='cluster_label', keep='first')
-
-                        merged_frame_locs = pd.concat([clustered_data, non_clustered_data])
-
-                        merged_locs.append(merged_frame_locs)
-
-                    except:
-                        print(traceback.format_exc())
-
-                merged_locs = pd.concat(merged_locs)
-
-                if len(merged_locs) > 0:
-
-                    dataset_channels = list(self.dataset_dict[dataset]["images"].keys())
-
-                    for channel in dataset_channels:
-
-                        merged_locs["channel"] = channel
-
-                        mlocs = merged_locs.to_records(index=False)
-
-                        if channel not in self.localisation_dict[dataset].keys():
-                            self.localisation_dict[dataset][channel] = self.localisation_dict[dataset][locs_channels[0]].copy()
-
-                        loc_dict = self.localisation_dict[dataset][channel]
-                        loc_dict["localisations"] = mlocs
-                        self.localisation_dict[dataset][channel] = loc_dict
-
-        except:
-            print(traceback.format_exc())
-
-        return merged_locs
+    def compute_merge_localisations(self, dataset, locs, min_distance=1, progress_callback=None):
+        data = pd.DataFrame(locs)
+        if data.empty or data.channel.nunique() < 2:
+            return data
+        merged = merge_locs(data, min_distance, progress_callback)
+        for channel in self.dataset_dict[dataset]['images']:
+            result = merged.copy()
+            result['channel'] = channel
+            entry = self.localisation_dict[dataset].setdefault(channel,
+                self.localisation_dict[dataset][data.channel.iloc[0]].copy())
+            entry['localisations'] = result.to_records(index=False)
+        return merged
 
     def merge_localisations(self):
 
@@ -623,4 +557,3 @@ class _loc_filter_utils:
         except:
             print(traceback.format_exc())
             self.update_ui()
-

@@ -3,9 +3,11 @@ import traceback
 from functools import partial
 
 import napari
+from molcore import ContrastSettings
+from molcore.contrast import autocontrast
 import numpy as np
 from napari.utils.notifications import show_info
-from PyQt5.QtWidgets import (
+from qtpy.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
@@ -401,6 +403,7 @@ class _events_utils:
                         "locs_pixstats_compute", "tracks_pixstats_compute",
                         "import_project", "export_project",
                         "merge_locs","update_pixel_size",
+                        "picasso_undrift", "aim_undrift",
                         ]
 
             progressbars = ["import_progressbar", "cellpose_progressbar",
@@ -439,12 +442,12 @@ class _events_utils:
         contrast_limits = None
 
         try:
-            autocontrast = True
+            compute_contrast = True
 
             if dataset in self.contrast_dict.keys():
                 if channel in self.contrast_dict[dataset].keys():
                     if ("contrast_limits" in self.contrast_dict[dataset][channel].keys()):
-                        autocontrast = False
+                        compute_contrast = False
 
                         contrast_limits = self.contrast_dict[dataset][channel]["contrast_limits"]
                         gamma = self.contrast_dict[dataset][channel]["gamma"]
@@ -453,11 +456,11 @@ class _events_utils:
                             self.image_layer.gamma = gamma
                             self.image_layer.contrast_limits = contrast_limits
 
-            if autocontrast is True:
+            if compute_contrast is True:
                 full_range = [np.min(image), np.max(image)]
 
                 if max(full_range) > min(full_range):
-                    contrast_limits = np.percentile(image[:10].copy(), [0.1, 99.99])
+                    contrast_limits = autocontrast(image[:10], settings=ContrastSettings(percentiles=(0.1, 99.99), max_frames=None, max_pixels_per_frame=None)).limits
 
                     gamma = 1.0
                     if contrast_limits[1] > contrast_limits[0]:
@@ -511,7 +514,9 @@ class _events_utils:
                 self.viewer.layers.remove(self.segmentation_layer)
 
             self.segmentation_layer = self.viewer.add_image(self.segmentation_image,
-                name="Segmentation Image", visible=True, blending="opaque", )
+                name="Segmentation Image", visible=True, blending="opaque",
+                units=("pixel",) * (self.segmentation_image.ndim - 2) + ("nm", "nm"),
+                scale=scale, )
 
             self.viewer.reset_view()
 
@@ -521,7 +526,7 @@ class _events_utils:
 
             self.viewer.scale_bar.visible = True
             self.segmentation_layer.scale = scale
-            self.viewer.scale_bar.unit = "nm"
+            self.segmentation_layer.units = (*self.segmentation_layer.units[:-2], "nm", "nm")
 
             self.segmentation_layer.refresh()
 
@@ -561,7 +566,8 @@ class _events_utils:
 
                         if hasattr(self, "image_layer") == False:
                             self.image_layer = self.viewer.add_image(image, name=image_name,
-                                colormap="gray", blending="opaque", visible=True, scale=scale, )
+                                colormap="gray", blending="opaque", visible=True, scale=scale,
+                                units=("pixel",) * (image.ndim - 2) + ("nm", "nm"), )
 
                             self.viewer.reset_view()
 
@@ -576,7 +582,7 @@ class _events_utils:
 
                         self.viewer.scale_bar.visible = True
                         self.image_layer.scale = scale
-                        self.viewer.scale_bar.unit = "nm"
+                        self.image_layer.units = (*self.image_layer.units[:-2], "nm", "nm")
 
                         self.image_layer_auto_contrast(image, dataset_name, channel_name)
                         self.image_layer.refresh()
@@ -707,7 +713,7 @@ class _events_utils:
                                     self.loc_layer = self.viewer.add_points(render_locs, ndim=2,
                                         border_color="red", face_color=[0, 0, 0, 0], opacity=vis_opacity,
                                         name="localisations", symbol=symbol, size=vis_size, border_width=vis_border_width,
-                                        scale=scale, )
+                                        scale=scale, units=("nm", "nm"), )
 
                                     update_vis = True
 
@@ -725,7 +731,7 @@ class _events_utils:
 
                                 self.loc_layer.scale = scale
                                 self.viewer.scale_bar.visible = True
-                                self.viewer.scale_bar.unit = "nm"
+                                self.loc_layer.units = (*self.loc_layer.units[:-2], "nm", "nm")
 
                                 if update_vis:
                                     if self.verbose:
@@ -972,4 +978,3 @@ class _events_utils:
         if import_data == "Cells":
             self.gui.shapes_import_mode.clear()
             self.gui.shapes_import_mode.addItems(["JSON"])
-

@@ -14,13 +14,12 @@ import mat4py
 import numpy as np
 import pandas as pd
 import tifffile
-from astropy.io import fits
 from napari.utils.notifications import show_info
-from PIL import Image
 from qtpy.QtWidgets import QApplication, QFileDialog
 from shapely.geometry import Polygon
 
 from moltrack.funcs.compute_utils import Worker
+from moltrack.backend import read_movie, image_source
 
 
 def crop_frame(image, crop_mode):
@@ -54,51 +53,12 @@ def import_image_data(dat, progress_dict={}, index=0):
         channel_name = dat["channel_name"]
         import_mode = dat["import_mode"]
 
-        base, ext = os.path.splitext(path)
+        def report(progress):
+            progress_dict[index] = progress
 
-        image_dict = {}
-        images = []
-
-        if ext.lower() == ".tif":
-            with Image.open(path) as image:
-                n_frames = image.n_frames
-
-                if import_limit != "None":
-                    if import_limit.isdigit():
-                        import_limit = int(import_limit)
-                        if n_frames > import_limit:
-                            n_frames = import_limit
-
-                for frame_index in range(n_frames):
-                    image.seek(frame_index)
-                    img_frame = np.array(image)
-
-                    img_frame = crop_frame(img_frame, crop_mode)
-
-                    images.append(img_frame)
-
-                    progress = int(((frame_index + 1) / n_frames) * 100)
-                    progress_dict[index] = progress
-
-        elif ext.lower() == ".fits":
-            with fits.open(path) as hdul:
-                n_frames = hdul[0].data.shape[0]
-
-                if import_limit != "None":
-                    if import_limit.isdigit():
-                        import_limit = int(import_limit)
-                        if n_frames > import_limit:
-                            n_frames = import_limit
-
-                for frame_index in range(n_frames):
-                    img_frame = hdul[0].data[frame_index]
-
-                    img_frame = crop_frame(img_frame, crop_mode)
-
-                    images.append(img_frame)
-
-                    progress = int(((frame_index + 1) / n_frames) * 100)
-                    progress_dict[index] = progress
+        limit = int(import_limit) if str(import_limit).isdigit() else None
+        images = read_movie(path, limit=limit,
+            crop=lambda frame: crop_frame(frame, crop_mode), progress_callback=report)
 
         if len(images) > 0:
             images = np.stack(images, axis=0)
@@ -138,42 +98,11 @@ def import_image_data(dat, progress_dict={}, index=0):
 class _import_utils:
 
     def get_image_info(self, path):
-        if self.verbose:
-            print(f"Getting image info for {path}")
-
-        base, ext = os.path.splitext(path)
-
-        if ext.lower() == ".tif":
-            image_size = os.path.getsize(path)  # Get file size directly
-
-            with tifffile.TiffFile(path) as tif:
-                n_frames = len(tif.pages)  # Number of pages (frames)
-                page_shape = tif.pages[0].shape  # Dimensions of the first page
-                dtype = tif.pages[0].dtype  # Data type of the first page
-
-            image_shape = (n_frames, page_shape[0], page_shape[1])
-
-        elif ext.lower() == ".fits":
-            image_size = os.path.getsize(path)
-
-            with fits.open(path, mode="readonly", ignore_missing_end=True) as hdul:
-                header = hdul[0].header
-
-                # Extract shape information from the header
-                if header["NAXIS"] == 3:
-                    image_shape = (header["NAXIS3"], header["NAXIS2"], header["NAXIS1"],)
-                else:
-                    image_shape = (header["NAXIS2"], header["NAXIS1"])
-
-                n_frames = image_shape[0] if len(image_shape) == 3 else 1
-                page_shape = (image_shape[1:] if len(image_shape) == 3 else image_shape)
-
-                # Determine the data type from BITPIX
-                bitpix_to_dtype = {8: np.dtype("uint8"), 16: np.dtype("uint16"), 32: np.dtype("uint32"), -32: np.dtype("float32"), -64: np.dtype("float64"), }
-
-                dtype = bitpix_to_dtype[header["BITPIX"]]
-
-        return n_frames, image_shape, dtype, image_size
+        source = image_source(path)
+        try:
+            return len(source), source.shape, source.dtype, os.path.getsize(path)
+        finally:
+            source.close()
 
     def format_import_path(self, path):
         try:

@@ -3,7 +3,7 @@ import traceback
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
-from PyQt5.QtGui import QColor
+from qtpy.QtGui import QColor
 
 
 class _trackplot_utils:
