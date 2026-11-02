@@ -39,7 +39,7 @@ def test_widget_initializes_with_current_napari(qtbot, monkeypatch):
         assert [
             widget.gui.cellpose_model.itemText(i)
             for i in range(widget.gui.cellpose_model.count())
-        ] == ["cpsam_v2", "cpsam", "cpdino", "cpdino-vitb", "custom"]
+        ] == ["cyto3", "cyto2", "cyto", "nuclei", "custom"]
     finally:
         viewer.close()
 
@@ -123,7 +123,7 @@ def test_cellpose_gui_returns_molcore_masks(monkeypatch):
     host.stop_event = threading.Event()
     text = lambda value: SimpleNamespace(text=lambda: str(value))
     host.gui = SimpleNamespace(
-        cellpose_model=SimpleNamespace(currentText=lambda: 'cpsam_v2'),
+        cellpose_model=SimpleNamespace(currentText=lambda: 'cyto3'),
         cellpose_diameter_label=text(15), cellpose_flowthresh_label=text(.4),
         cellpose_maskthresh_label=text(0), cellpose_minsize_label=text(15),
         cellpose_invert_images=SimpleNamespace(isChecked=lambda: False))

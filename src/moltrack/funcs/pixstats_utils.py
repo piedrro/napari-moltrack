@@ -150,8 +150,17 @@ class _pixstats_utils:
                 calculate_fret = False
                 self.gui.tracks_pixstats_fret.setChecked(False)
 
-        worker = Worker(self.compute_pixstats, pixstats_data, mode, calculate_fret,
-            spot_size, spot_shape,background_buffer, background_width)
+        if hasattr(self, 'session'):
+            from moltrack.model_processing import PhotometrySettings, ProcessingRequest, compute_worker, prepare
+            partitions = tuple(pixstats_data.groupby(['dataset', 'channel'], sort=False).groups)
+            settings = PhotometrySettings(spot_size=spot_size, spot_shape=spot_shape,
+                background_buffer=background_buffer, background_width=background_width,
+                tracks=mode == 'tracks', calculate_fret=calculate_fret)
+            worker = Worker(compute_worker, prepare(self.session,
+                ProcessingRequest('photometry', partitions, settings)), self.stop_event)
+        else:
+            worker = Worker(self.compute_pixstats, pixstats_data, mode, calculate_fret,
+                spot_size, spot_shape,background_buffer, background_width)
 
         worker.signals.progress.connect(progressbar)
         worker.signals.result.connect(self.process_pixstats_result)
@@ -179,6 +188,11 @@ class _pixstats_utils:
 
 
     def process_pixstats_result(self, result):
+        from moltrack.model_processing import PendingOperation
+        if isinstance(result, PendingOperation):
+            from moltrack.funcs.compute_utils import publish_model_result
+            publish_model_result(self, result)
+            return
 
         pixstats_data, mode = result
 

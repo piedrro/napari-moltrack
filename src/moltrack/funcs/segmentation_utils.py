@@ -13,10 +13,53 @@ from moltrack.funcs.compute_utils import Worker
 
 class _segmentation_utils:
 
+    def _capture_cellpose_settings(self):
+        import torch
+        from molcore import CellposeSettings
+        model = self.gui.cellpose_model.currentText()
+        if model == 'custom':
+            model = getattr(self, 'cellpose_custom_model_path', '')
+            if not os.path.isfile(model):
+                raise ValueError('Please select Cellpose 3 custom weights')
+        return CellposeSettings(pretrained_model=model,
+            diameter=float(self.gui.cellpose_diameter_label.text()) or None,
+            flow_threshold=float(self.gui.cellpose_flowthresh_label.text()),
+            cellprob_threshold=float(self.gui.cellpose_maskthresh_label.text()),
+            min_size=int(self.gui.cellpose_minsize_label.text()), gpu=torch.cuda.is_available(),
+            invert=self.gui.cellpose_invert_images.isChecked())
+
+    def _prepare_model_segmentation(self, mode):
+        from moltrack.model_processing import ProcessingRequest, SegmentationSettings, prepare
+        dataset = self.gui.cellpose_dataset.currentText()
+        channel = self.gui.cellpose_channel.currentText()
+        if dataset == 'Segmentation Image':
+            # Older in-memory images are imported once; every inference uses the
+            # persistent source binding, including ordinary segmentation imports.
+            binding = self.session.annotations.get('segmentation_image_binding')
+            source = getattr(self, 'segmentation_image', None)
+            if binding is None or getattr(self, '_segmentation_source', None) is not source:
+                from moltrack.model_io import import_images
+                image = np.asarray(source)
+                if image.ndim == 2:
+                    image = image[None]
+                dataset, channel = 'Segmentation Image', 'Segmentation Image'
+                import_images(self.session, [dict(dataset_name=dataset, channel_name=channel,
+                    source_images=image, path='', pixel_size=self.segmentation_image_pixel_size,
+                    exposure_time=1, multichannel_mode='None', role='segmentation_image')])
+                binding = dataset, channel
+                self.session.annotations['segmentation_image_binding'] = binding
+                self._segmentation_source = source
+            dataset, channel = binding
+        frame = int(self.viewer.dims.current_step[0]) if mode == 'active' else None
+        if len(self.session._view(dataset, channel)) == 1:
+            frame = 0 if mode == 'active' else None
+        return prepare(self.session, ProcessingRequest('segmentation', ((dataset, channel),),
+            SegmentationSettings(self._capture_cellpose_settings(), frame_index=frame)))
+
     def load_cellpose_model(self, path=None):
         if not isinstance(path, str):
             path, _ = QFileDialog.getOpenFileName(self, 'Open File',
-                os.path.expanduser('~/Desktop'), 'Cellpose 4 weights (*)')
+                os.path.expanduser('~/Desktop'), 'Cellpose 3 weights (*)')
         if path and os.path.isfile(path):
             self.cellpose_custom_model_path = path
             self.gui.cellpose_model.setCurrentText('custom')
@@ -73,6 +116,19 @@ class _segmentation_utils:
 
         try:
 
+            if hasattr(self, 'session'):
+                from moltrack.model_processing import compute_worker
+                prepared = self._prepare_model_segmentation(mode)
+                self.update_ui(init=True)
+                self.worker = Worker(compute_worker, prepared, self.stop_event)
+                self.worker.signals.result.connect(self.process_cellpose_result)
+                self.worker.signals.finished.connect(self.run_cellpose_finished)
+                self.worker.signals.error.connect(self.update_ui)
+                self.worker.signals.progress.connect(partial(self.moltrack_progress,
+                    progress_bar=self.gui.cellpose_progressbar))
+                self.threadpool.start(self.worker)
+                return
+
             images = self.get_segmentation_images(mode = mode)
 
             if len(images) > 0:
@@ -93,6 +149,22 @@ class _segmentation_utils:
     def process_cellpose_result(self, result):
 
         try:
+
+            from moltrack.model_processing import PendingOperation
+            if isinstance(result, PendingOperation):
+                from moltrack.funcs.compute_utils import publish_model_result
+                if not publish_model_result(self, result):
+                    return
+                shapes = []
+                for dataset, channel, segmentations in result.results:
+                    view = result.prepared.session._view(dataset, channel)
+                    for segmentation in segmentations.values():
+                        frame = None if result.prepared.request.settings.frame_index is not None else view.channel_index(segmentation.frame)
+                        shapes.extend(self.mask_to_shape(segmentation.labels, frame=frame))
+                dataset = result.prepared.request.partitions[0][0]
+                pixel_size = result.prepared.session.metadata(dataset)['pixel_size']
+                self.initialise_segLayer(shapes, pixel_size)
+                return
 
             layer_names = [layer.name for layer in self.viewer.layers]
 
@@ -173,7 +245,7 @@ class _segmentation_utils:
         if model == 'custom':
             model = getattr(self, 'cellpose_custom_model_path', '')
             if not os.path.isfile(model):
-                raise ValueError('Please select Cellpose 4 custom weights')
+                raise ValueError('Please select Cellpose 3 custom weights')
         settings = CellposeSettings(pretrained_model=model,
             diameter=float(self.gui.cellpose_diameter_label.text()) or None,
             flow_threshold=float(self.gui.cellpose_flowthresh_label.text()),

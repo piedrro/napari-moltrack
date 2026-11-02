@@ -21,6 +21,13 @@ from molcore.alignment import fit_transform
 
 class _transform_utils:
 
+    def _publish_registration_result(self, pending):
+        from moltrack.funcs.compute_utils import publish_model_result
+        if publish_model_result(self, pending):
+            self.draw_localisations(update_vis=True)
+            self.draw_tracks()
+            show_info("Transformation complete")
+
     def update_fret_transform_target_channel(self):
 
         try:
@@ -137,7 +144,8 @@ class _transform_utils:
         self.update_ui()
         self.update_active_image()
         self.gui.fret_tform_progressbar.setValue(0)
-        show_info("Transformation complete")
+        if not hasattr(self, 'session'):
+            show_info("Transformation complete")
 
     def _apply_fret_transform_matrix(self, progress_callback):
 
@@ -217,7 +225,21 @@ class _transform_utils:
                     else:
                         self.update_ui(init=True)
 
-                        worker = Worker(self._apply_fret_transform_matrix)
+                        if hasattr(self, 'session'):
+                            from moltrack.model_processing import ProcessingRequest, RegistrationSettings, compute_worker, prepare
+                            target = self.gui.tform_apply_target.currentText().lower()
+                            channels = ('donor', 'dd', 'da') if 'donor' in target else ('acceptor', 'aa', 'ad')
+                            partitions = tuple((d, c) for d in self.session.datasets()
+                                for c in self.session.channels(d) if c.lower() in channels)
+                            if not partitions:
+                                self.update_ui()
+                                return
+                            settings = RegistrationSettings(tuple(tuple(map(float, row)) for row in self.transform_matrix))
+                            worker = Worker(compute_worker, prepare(self.session,
+                                ProcessingRequest('registration', partitions, settings)), self.stop_event)
+                            worker.signals.result.connect(self._publish_registration_result)
+                        else:
+                            worker = Worker(self._apply_fret_transform_matrix)
                         worker.signals.progress.connect(partial(self.moltrack_progress,
                             progress_bar=self.gui.fret_tform_progressbar, ))
                         worker.signals.finished.connect(self._apply_fret_transform_matrix_finished)

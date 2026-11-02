@@ -199,11 +199,15 @@ class _import_utils:
         if result['import_mode'].lower() == 'segmentation image':
             job = result['jobs'][0]
             from moltrack.model_io import import_images
-            from moltrack.session import ProjectSession
-            temporary = ProjectSession()
-            descriptor = dict(job, multichannel_mode='None', channel_name='Segmentation Image')
-            import_images(temporary, [descriptor])
-            self.segmentation_image = temporary.image(job['dataset_name'], 'Segmentation Image')[:]
+            if not hasattr(self, 'session'):
+                from moltrack.session import ProjectSession
+                self.session = ProjectSession()
+            descriptor = dict(job, dataset_name='Segmentation Image', multichannel_mode='None', channel_name='Segmentation Image', role='segmentation_image')
+            import_images(self.session, [descriptor])
+            binding = 'Segmentation Image', 'Segmentation Image'
+            self.session.annotations['segmentation_image_binding'] = binding
+            self.segmentation_image = self.session.image(*binding)[:]
+            self._segmentation_source = self.segmentation_image
             self.segmentation_image_pixel_size = float(job['pixel_size'])
         else:
             self.populate_import_dataset_dict(result['jobs'])

@@ -12,8 +12,8 @@
 
 ## Global Constraints
 
-- Work in napari-moltrack; do not modify the adjacent molcore repository implicitly.
-- Use supported public molcore APIs.
+- User authorized concrete molcore improvements when they improve this backend; test/review shared API changes and coordinate the verified dependency revision.
+- Use supported public molcore APIs. Align Cellpose controls/settings with the user's Cellpose 3 update and existing updated dependency lock.
 - Preserve GUI workflows, scientific formulas, metadata, timing, ordering, ROI/filter semantics, and legacy project usability.
 - One authoritative scientific model; no mirrored mutable dictionary stores or mutable compatibility proxies.
 - GUI pixel calibration is nm; exposure controls are ms; statistics use um and s.

@@ -11,7 +11,23 @@ from moltrack.backend import localize_movie
 from moltrack.funcs.compute_utils import Worker
 
 
+def _compute_detection(prepared, cancel_event, progress_callback=None):
+    from moltrack.model_processing import compute
+
+    return compute(prepared, progress=progress_callback, cancel_event=cancel_event)
+
+
 class _picasso_detect_utils:
+    def _publish_picasso_result(self, pending):
+        from moltrack.model_processing import publish
+
+        try:
+            publish(self.session, pending, cancel_event=self.stop_event)
+        except CancelledError:
+            pass
+        except Exception as exc:
+            show_info(f"Localization result was not applied: {exc}")
+
     def _picasso_wrapper_finished(self):
 
         try:
@@ -101,13 +117,37 @@ class _picasso_detect_utils:
                     else:
                         channel_list = [channel_name]
 
-                    self.worker = Worker(self._picasso_wrapper,
-                        detect=detect, fit=fit,
-                        dataset_list=dataset_list,
-                        channel_list=channel_list,
-                        detect_mode=detect_mode,
-                        fit_mode=fit_mode,
-                        frame_index=frame_index)
+                    if hasattr(self, 'session'):
+                        from moltrack.model_processing import DetectionSettings, ProcessingRequest, prepare
+
+                        roi = self.generate_roi()
+                        frozen_roi = tuple(
+                            ((dataset, channel), tuple(tuple(point) for point in points))
+                            for dataset, channels in roi.items()
+                            for channel, points in channels.items()
+                        )
+                        settings = DetectionSettings(
+                            detect=detect, fit=fit, frame_index=frame_index,
+                            threshold=float(self.gui.smlm_threshold.value()),
+                            box_size=int(self.gui.picasso_box_size.value()),
+                            roi=frozen_roi,
+                            remove_overlapping=self.gui.picasso_remove_overlapping.isChecked(),
+                            detect_mode=detect_mode,
+                            kernel_size=int(self.gui.moltrack_kernel_size.text()),
+                            fit_mode=fit_mode,
+                        )
+                        request = ProcessingRequest('detect', tuple(
+                            (dataset, channel) for dataset in dataset_list for channel in channel_list
+                        ), settings)
+                        prepared = prepare(self.session, request)
+                        stop_event = self.stop_event
+                        self.worker = Worker(_compute_detection, prepared, stop_event)
+                        self.worker.signals.result.connect(self._publish_picasso_result)
+                    else:
+                        self.worker = Worker(self._picasso_wrapper,
+                            detect=detect, fit=fit, dataset_list=dataset_list,
+                            channel_list=channel_list, detect_mode=detect_mode,
+                            fit_mode=fit_mode, frame_index=frame_index)
 
                     self.worker.signals.progress.connect(partial(self.moltrack_progress,
                         progress_bar=self.gui.picasso_progressbar))

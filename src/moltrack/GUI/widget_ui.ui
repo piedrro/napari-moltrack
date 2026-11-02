@@ -682,10 +682,10 @@
              <item row="0" column="1">
               <widget class="QComboBox" name="cellpose_model">
 
-                <item><property name="text"><string>cpsam_v2</string></property></item>
-                <item><property name="text"><string>cpsam</string></property></item>
-                <item><property name="text"><string>cpdino</string></property></item>
-                <item><property name="text"><string>cpdino-vitb</string></property></item>
+                <item><property name="text"><string>cyto3</string></property></item>
+                <item><property name="text"><string>cyto2</string></property></item>
+                <item><property name="text"><string>cyto</string></property></item>
+                <item><property name="text"><string>nuclei</string></property></item>
                 <item><property name="text"><string>custom</string></property></item>
               </widget>
              </item>

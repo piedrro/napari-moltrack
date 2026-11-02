@@ -81,7 +81,7 @@ class MolTrack(QWidget, gui, *subclasses):
         self.gui = gui()
         self.gui.setupUi(self)
         self.gui.cellpose_model.clear()
-        self.gui.cellpose_model.addItems(["cpsam_v2", "cpsam", "cpdino", "cpdino-vitb", "custom"])
+        self.gui.cellpose_model.addItems(["cyto3", "cyto2", "cyto", "nuclei", "custom"])
 
         from moltrack.__init__ import __version__ as version
         show_info(f"napari-moltrack version: {version}")

@@ -293,6 +293,19 @@ class _tracking_utils:
 
 
     def process_tracking_results(self, track_data):
+        from moltrack.model_processing import PendingOperation
+        if isinstance(track_data, PendingOperation):
+            from moltrack.funcs.compute_utils import publish_model_result
+            if not publish_model_result(self, track_data):
+                return
+            total = sum(len(value[0]) for _, _, value in track_data.results)
+            if total:
+                self.gui.locs_export_data.clear()
+                self.gui.locs_export_data.addItems(['Localisations', 'Tracks'])
+                self.gui.heatmap_data.clear()
+                self.gui.heatmap_data.addItems(['Localisations', 'Tracks'])
+            show_info(f'Tracking complete, {total} tracks found')
+            return
         if track_data is None or self.stop_event.is_set():
             return
         partitions = getattr(self, '_tracking_partitions', list(
@@ -361,7 +374,25 @@ class _tracking_utils:
                 self.gui.trackplot_focus.setChecked(False)
                 self.gui.trackplot_focus.blockSignals(False)
 
-                worker = Worker(self.track_particles, loc_data)
+                if hasattr(self, 'session'):
+                    from moltrack.model_processing import (
+                        ProcessingRequest, TrackingSettings, compute_worker, prepare,
+                    )
+                    segchannel = self.gui.tracking_segmentations.currentText()
+                    segmented = segchannel in ('Segmentations', 'Cells')
+                    shapes = self.get_shapes(segchannel, flipxy=True, polygon=False) if segmented else []
+                    polygons = tuple(tuple(tuple(map(float, point)) for point in shape) for shape in (shapes or []))
+                    settings = TrackingSettings(
+                        search_range=float(self.gui.trackpy_search_range.value()),
+                        memory=int(self.gui.trackpy_memory.value()),
+                        min_length=int(self.gui.min_track_length.value()),
+                        remove_unlinked=self.gui.remove_unlinked.isChecked(),
+                        polygons=polygons,
+                        segmentation_column=segchannel[:-1].lower() + '_index' if segmented else None)
+                    request = ProcessingRequest('tracking', tuple((d['dataset'], d['channel']) for d in loc_data), settings)
+                    worker = Worker(compute_worker, prepare(self.session, request), self.stop_event)
+                else:
+                    worker = Worker(self.track_particles, loc_data)
                 worker.signals.result.connect(self.process_tracking_results)
                 worker.signals.finished.connect(self.tracking_finished)
                 worker.signals.progress.connect(partial(self.moltrack_progress,

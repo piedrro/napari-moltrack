@@ -143,6 +143,17 @@ class _picasso_render_utils:
     def draw_picasso_render(self, data):
 
         try:
+            from moltrack.model_processing import PendingOperation
+            if isinstance(data, PendingOperation):
+                from moltrack.funcs.compute_utils import publish_model_result
+                if not publish_model_result(self, data):
+                    return
+                images = [result.image for _, _, result in data.results]
+                image = self.create_rgb_render(images)
+                dataset, channel = data.prepared.request.partitions[0]
+                pixel_size = data.prepared.session.metadata(dataset)['pixel_size']
+                oversampling = data.prepared.request.settings.oversampling
+                data = image, pixel_size, oversampling
             image, pixel_size, oversampling = data
 
             scale = [pixel_size / oversampling, pixel_size / oversampling]
@@ -225,14 +236,14 @@ class _picasso_render_utils:
 
                 self.update_ui(init=True)
 
-                worker = Worker(
-                    self.render_picasso_locs,
-                    loc_data=loc_data,
-                    image_shape=image_shape,
-                    blur_method=blur_method,
-                    min_blur_width=min_blur_width,
-                    pixel_size=pixel_size,
-                )
+                if hasattr(self, 'session'):
+                    from moltrack.model_processing import ProcessingRequest, RenderingSettings, compute_worker, prepare
+                    request = ProcessingRequest('render', tuple((d['dataset'], d['channel']) for d in loc_data),
+                        RenderingSettings(blur_method=blur_method, min_blur_width=min_blur_width))
+                    worker = Worker(compute_worker, prepare(self.session, request), self.stop_event)
+                else:
+                    worker = Worker(self.render_picasso_locs, loc_data=loc_data, image_shape=image_shape,
+                        blur_method=blur_method, min_blur_width=min_blur_width, pixel_size=pixel_size)
                 worker.signals.result.connect(self.draw_picasso_render)
                 worker.signals.finished.connect(self.picasso_render_finished)
                 self.threadpool.start(worker)

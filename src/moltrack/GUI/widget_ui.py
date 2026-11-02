@@ -2497,10 +2497,10 @@ class Ui_Frame(object):
         self.label_136.setText(_translate("Frame", "Channel"))
         self.label_102.setText(_translate("Frame", "Cellpose/Omnipose Settings"))
         self.label_104.setText(_translate("Frame", "Model"))
-        self.cellpose_model.setItemText(0, _translate("Frame", "cpsam_v2"))
-        self.cellpose_model.setItemText(1, _translate("Frame", "cpsam"))
-        self.cellpose_model.setItemText(2, _translate("Frame", "cpdino"))
-        self.cellpose_model.setItemText(3, _translate("Frame", "cpdino-vitb"))
+        self.cellpose_model.setItemText(0, _translate("Frame", "cyto3"))
+        self.cellpose_model.setItemText(1, _translate("Frame", "cyto2"))
+        self.cellpose_model.setItemText(2, _translate("Frame", "cyto"))
+        self.cellpose_model.setItemText(3, _translate("Frame", "nuclei"))
         self.cellpose_model.setItemText(4, _translate("Frame", "custom"))
 
 

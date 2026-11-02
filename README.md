@@ -20,8 +20,8 @@ a CUDA device; otherwise Picasso CPU fitting is available. The custom MolTrack
 detector remains available through a MolCore backend extension.
 
 Development uses Python 3.12, napari 0.9.2 and PyQt6 via QtPy. Segmentation uses
-Cellpose 4 SAM/DINO models or compatible custom weights. DINO models require the
-upstream `dinov3` package. Built-in segmentation weights download on first use.
+Cellpose 3 models (cyto3, cyto2, cyto and nuclei) or compatible custom weights.
+Built-in segmentation weights download on first use.
 
 Single molecule localisations can be filtered by their properties (e.g. photons, width, etc.) and can be rendered as a super resolution image.
 

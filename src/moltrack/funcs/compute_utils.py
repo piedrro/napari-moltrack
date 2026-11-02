@@ -7,6 +7,21 @@ from qtpy.QtCore import Signal, Slot
 from qtpy.QtCore import QObject, QRunnable
 
 
+def publish_model_result(host, pending):
+    """GUI result boundary shared by scientific processing controls."""
+    from concurrent.futures import CancelledError
+    from napari.utils.notifications import show_info
+    from moltrack.model_processing import publish
+    try:
+        publish(host.session, pending, cancel_event=host.stop_event)
+        return True
+    except CancelledError:
+        return False
+    except Exception as exc:
+        show_info(f"Processing result was not applied: {exc}")
+        return False
+
+
 class _compute_utils:
 
 

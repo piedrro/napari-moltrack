@@ -169,9 +169,12 @@ tests in the existing Python 3.12 verification environment before code changes.
 
 ## Constraints, non-goals, and implementation decisions
 
-Work in napari-moltrack; do not modify the adjacent molcore repository implicitly.
-Use supported public molcore APIs. If an indispensable capability is missing,
-document the exact gap before expanding dependency/repository scope.
+User update: molcore now uses Cellpose 3; align controls and verification with
+the updated lock (Cellpose 3.0.9, molcore a385ea6 or a later verified revision).
+The user also authorized molcore updates when they improve the MolTrack backend.
+Use supported public APIs; concrete missing shared capabilities may be added to
+molcore with focused tests and independent review. Coordinate dependency revisions
+and preserve unrelated changes in either repository.
 Do not redesign controls, replace Qt/napari, change scientific formulas, discard
 metadata, add mirrored mutable stores, or claim a partial bridge completes the
 migration. Exact module names, container layout, and cache granularity are

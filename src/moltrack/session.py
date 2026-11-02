@@ -340,4 +340,10 @@ class ProjectSession:
                 labels = labels.astype(object).copy()
                 labels.loc[missing] = data.loc[missing, "track_id"]
             data["particle"] = labels
+        # Scientific track IDs are global. Legacy GUI labels remain per partition
+        # and may differ from independent imported particle labels.
+        for track_id in pd.unique(data["track_id"]):
+            parameters = self.model.tracks.metadata[int(track_id)].get("parameters", {})
+            if "particle" in parameters:
+                data.loc[data.track_id == track_id, "particle"] = parameters["particle"]
         return data.drop(columns=ORIGIN, errors="ignore")
