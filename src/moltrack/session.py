@@ -61,9 +61,68 @@ class ProjectSession:
     def partition(self, dataset: str, channel: str) -> tuple[str, str]:
         return self._partitions[dataset][channel]
 
+    def publish_acquisitions(self, acquisitions, bindings):
+        """Publish a complete GUI import, preserving this session and model.
+
+        Source additions and binding validation run against a detached model.
+        The prepared registry is assigned only after its scientific transaction
+        succeeds; no fallible operation remains after model publication.
+        """
+
+        def prepare(model):
+            staged = ProjectSession(model)
+            staged._partitions = deepcopy(self._partitions)
+            for acquisition in acquisitions:
+                model.add_acquisition(acquisition)
+            for binding in bindings:
+                staged.bind(*binding)
+            return staged._partitions
+
+        partitions = transact(self.model, prepare)
+        self._partitions = partitions
+
     def _view(self, dataset, channel):
         acquisition, name = self.partition(dataset, channel)
         return self.model.acquisitions[acquisition].channels[name]
+
+    def image(self, dataset, channel, *, space="corrected"):
+        acquisition, name = self.partition(dataset, channel)
+        return self.model.transforms.view(acquisition, name, space=space)
+
+    def metadata(self, dataset):
+        acquisitions = [
+            self.model.acquisitions[a]
+            for a, _ in self._partitions[dataset].values()
+        ]
+        first = acquisitions[0]
+        return dict(
+            deepcopy(first.metadata),
+            pixel_size=first.pixel_size,
+            exposure_time=first.metadata.get("exposure_s", 0) * 1000,
+        )
+
+    def update_metadata(self, dataset, **values):
+        for acquisition in dict.fromkeys(
+            a for a, _ in self._partitions[dataset].values()
+        ):
+            current = self.model.acquisitions[acquisition]
+            metadata = dict(current.metadata)
+            metadata.update(
+                {
+                    k: deepcopy(v)
+                    for k, v in values.items()
+                    if k != "pixel_size"
+                }
+            )
+            kwargs = {"metadata": metadata}
+            if "pixel_size" in values:
+                kwargs["pixel_size"] = values["pixel_size"]
+            if "exposure_time" in values:
+                metadata["exposure_s"] = values["exposure_time"] / 1000
+                kwargs["timestamps"] = (
+                    np.arange(len(current.source)) * metadata["exposure_s"]
+                )
+            self.model.update_acquisition(acquisition, **kwargs)
 
     def _incoming(self, dataset, channel, rows):
         data = deepcopy(pd.DataFrame(rows))

@@ -43,56 +43,8 @@ def crop_frame(image, crop_mode):
 
 
 def import_image_data(dat, progress_dict={}, index=0):
-    try:
-        path = dat["path"]
-        path_index = dat["path_index"]
-        crop_mode = dat["import_crop_mode"]
-        import_limit = dat["import_limit"]
-        frame_averaging = dat["frame_averaging"]
-        multichannel_mode = dat["multichannel_mode"]
-        channel_name = dat["channel_name"]
-        import_mode = dat["import_mode"]
-
-        def report(progress):
-            progress_dict[index] = progress
-
-        limit = int(import_limit) if str(import_limit).isdigit() else None
-        images = read_movie(path, limit=limit,
-            crop=lambda frame: crop_frame(frame, crop_mode), progress_callback=report)
-
-        if len(images) > 0:
-            images = np.stack(images, axis=0)
-
-            if import_mode != "Segmentation Image":
-                if multichannel_mode == "None":
-                    image_dict = {channel_name: images}
-                if multichannel_mode == "FRET":
-                    donor, acceptor = np.split(images, 2, axis=-1)
-                    image_dict = {"Donor": donor, "Acceptor": acceptor}
-                if multichannel_mode == "ALEX":
-                    donor, acceptor = np.split(images, 2, axis=-1)
-                    DD, DA = donor[::2], donor[1::2]
-                    AD, AA = acceptor[::2], acceptor[1::2]
-                    image_dict = {"DD": DD, "DA": DA, "AD": AD, "AA": AA}
-                if multichannel_mode == "Multi File":
-                    chanel_name = os.path.basename(path)
-                    image_dict = {chanel_name: images}
-            else:
-                image_dict = {"Segmentation Image": images}
-
-            if frame_averaging == True:
-                for channel in image_dict.keys():
-                    image = image_dict[channel]
-                    image = np.mean(image, axis=0)
-                    image = np.expand_dims(image, axis=0)
-                    image_dict[channel] = image
-
-            dat["images"] = image_dict
-
-    except:
-        print(traceback.format_exc())
-
-    return dat
+    from moltrack.model_io import prepare_image
+    return prepare_image(dat, progress_callback=lambda progress: progress_dict.__setitem__(index, progress))
 
 
 class _import_utils:
@@ -228,75 +180,11 @@ class _import_utils:
         return results
 
     def populate_import_dataset_dict(self, import_list):
-        try:
-
-            clear_images = self.gui.import_clear.isChecked()
-            concat_images = self.gui.import_concatenate.isChecked()
-
-            if self.verbose:
-                print("Populating dataset dict")
-
-            if clear_images == True:
-                self.dataset_dict = {}
-
-            import_dict = {}
-
-            for import_data in import_list:
-                if type(import_data) == dict:
-                    if "images" in import_data.keys():
-                        dataset_name = import_data["dataset_name"]
-                        image_dict = import_data["images"]
-
-                        if image_dict != {}:
-                            if dataset_name not in import_dict:
-                                import_dict[dataset_name] = import_data
-                            else:
-                                for channel in image_dict.keys():
-                                    import_dict[dataset_name]["images"][channel] = image_dict[channel]
-
-
-            if concat_images == True:
-                dataset_list = list(import_dict.keys())
-
-                image_list = []
-                path_list = []
-                pixel_size_list = []
-                exposure_time_list = []
-
-                for dataset_name in dataset_list:
-                    image_dict = import_dict[dataset_name].pop("images")
-
-                    dataset_channel = list(image_dict.keys())[0]
-                    dataset_image = image_dict[dataset_channel]
-
-                    dataset_path = import_dict[dataset_name].pop("path")
-                    dataset_pixel_size = import_dict[dataset_name].pop("pixel_size")
-                    dataset_exposure_time = import_dict[dataset_name].pop("exposure_time")
-
-                    dataset_path = [dataset_path] * dataset_image.shape[0]
-
-                    image_list.append(dataset_image)
-                    path_list.extend(dataset_path)
-                    pixel_size_list.append(dataset_pixel_size)
-                    exposure_time_list.append(dataset_exposure_time)
-
-                image_list = np.concatenate(image_list, axis=0)
-
-                if dataset_list[0] not in self.dataset_dict.keys():
-                    self.dataset_dict[dataset_list[0]] = {"path": path_list,
-                                                          "pixel_size": pixel_size_list[0],
-                                                          "exposure_time": exposure_time_list[0],
-                                                          "images": {dataset_channel: image_list}, }
-
-            else:
-                dataset_list = list(import_dict.keys())
-
-                for dataset_name in dataset_list:
-                    dataset_dict = import_dict.pop(dataset_name)
-                    self.dataset_dict[dataset_name] = dataset_dict
-
-        except:
-            print(traceback.format_exc())
+        from moltrack.model_io import import_images
+        from moltrack.session import ProjectSession
+        target = ProjectSession() if self.gui.import_clear.isChecked() else self.session
+        import_images(target, import_list, concatenate=self.gui.import_concatenate.isChecked())
+        self.session = target
 
     def import_data(self, progress_callback=None, paths=[], import_mode="data", import_jobs = None):
 
@@ -305,14 +193,20 @@ class _import_utils:
 
         results = self.process_compute_jobs(import_jobs, progress_callback=progress_callback)
 
-        if import_mode.lower() != "segmentation image":
-            self.populate_import_dataset_dict(results)
+        return dict(jobs=results, import_mode=import_mode)
+
+    def publish_image_import(self, result):
+        if result['import_mode'].lower() == 'segmentation image':
+            job = result['jobs'][0]
+            from moltrack.model_io import import_images
+            from moltrack.session import ProjectSession
+            temporary = ProjectSession()
+            descriptor = dict(job, multichannel_mode='None', channel_name='Segmentation Image')
+            import_images(temporary, [descriptor])
+            self.segmentation_image = temporary.image(job['dataset_name'], 'Segmentation Image')[:]
+            self.segmentation_image_pixel_size = float(job['pixel_size'])
         else:
-            if len(results) > 0:
-                if type(results[0]) == dict:
-                    if "images" in results[0].keys():
-                        self.segmentation_image = results[0]["images"]["Segmentation Image"]
-                        self.segmentation_image_pixel_size = float(results[0]["pixel_size"])
+            self.populate_import_dataset_dict(result['jobs'])
 
     def import_data_finished(self):
         self.populate_dataset_selectors()
@@ -357,7 +251,9 @@ class _import_utils:
             if paths != []:
                 self.update_ui(init=True)
 
-                self.worker = Worker(self.import_data, paths=paths, import_mode=import_mode)
+                import_jobs = self.populate_import_jobs(paths=paths)
+                self.worker = Worker(self.import_data, import_jobs=import_jobs, import_mode=import_mode)
+                self.worker.signals.result.connect(self.publish_image_import)
                 self.worker.signals.progress.connect(partial(self.moltrack_progress, progress_bar=self.gui.import_progressbar, ))
                 self.worker.signals.finished.connect(self.import_data_finished)
                 self.worker.signals.error.connect(self.update_ui)
@@ -498,13 +394,8 @@ class _import_utils:
 
                         if set(["dataset","channel","frame","x","y"]).issubset(locs_cols):
 
-                            if import_dataset not in self.localisation_dict.keys():
-                                self.localisation_dict[import_dataset] = {}
-                            if import_channel not in self.localisation_dict[import_dataset].keys():
-                                self.localisation_dict[import_dataset][import_channel] = {}
-
-                            locdict = self.localisation_dict[import_dataset][import_channel]
-                            locdict["localisations"] = locs
+                            from moltrack.model_io import import_rows
+                            import_rows(self.session, import_dataset, import_channel, locs)
 
                             imported_locs = self.get_locs(import_dataset, import_channel)
                             show_info(f"Imported {len(imported_locs)} localisations")
@@ -524,12 +415,8 @@ class _import_utils:
                         locs_cols = locs.dtype.names
                         if set(["dataset","channel","particle", "frame","x","y"]).issubset(locs_cols):
 
-                            if import_dataset not in self.tracking_dict.keys():
-                                self.tracking_dict[import_dataset] = {}
-                            if import_channel not in self.tracking_dict[import_dataset].keys():
-                                self.tracking_dict[import_dataset][import_channel] = {}
-
-                            self.tracking_dict[import_dataset][import_channel]["tracks"] = locs
+                            from moltrack.model_io import import_rows
+                            import_rows(self.session, import_dataset, import_channel, locs, tracks=True)
                             self.draw_tracks()
 
                             imported_tracks = self.get_tracks(import_dataset, import_channel)

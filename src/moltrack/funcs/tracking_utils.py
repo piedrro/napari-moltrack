@@ -125,6 +125,10 @@ class _tracking_utils:
             print(traceback.format_exc())
 
     def get_tracks(self, dataset, channel, return_dict=False, include_metadata=True):
+        if hasattr(self, 'session'):
+            from moltrack.model_views import gui_query
+            return gui_query(self.session, dataset, channel, tracks=True, return_dict=return_dict, include_metadata=include_metadata)
+
 
 
         order = ["dataset", "channel", "group", "particle",

@@ -130,3 +130,56 @@ def test_active_image_sets_spatial_units_and_preserves_frame_units(shape):
     if len(shape) == 3:
         assert str(host.image_layer.units[0]) == "pixel"
     np.testing.assert_allclose(host.image_layer.scale[-2:], [120, 120])
+
+
+def test_model_backed_active_image_and_pixel_size():
+    from moltrack.model_io import import_images
+    from moltrack.model_views import legacy_snapshot
+    from moltrack.session import ProjectSession
+
+    class Host(_events_utils):
+        @property
+        def dataset_dict(self):
+            return legacy_snapshot(self.session, "images")
+
+    host = Host()
+    host.session = ProjectSession()
+    import_images(
+        host.session,
+        [
+            dict(
+                dataset_name="a",
+                path="camera",
+                source_images=np.arange(200).reshape(2, 10, 10),
+                pixel_size=100,
+                exposure_time=20,
+                multichannel_mode="None",
+                channel_name="image",
+            )
+        ],
+    )
+    host.viewer = ViewerModel()
+    host.contrast_dict = {}
+    selector = SimpleNamespace(
+        blockSignals=lambda value: None,
+        clear=lambda: None,
+        addItems=lambda values: None,
+        setCurrentIndex=lambda index: None,
+    )
+    host.gui = SimpleNamespace(
+        show_data=SimpleNamespace(isChecked=lambda: True),
+        moltrack_dataset_selector=selector,
+        moltrack_channel_selector=selector,
+    )
+    for name in (
+        "update_contrast_dict",
+        "draw_localisations",
+        "draw_tracks",
+        "update_overlay_text",
+    ):
+        setattr(host, name, lambda: None)
+    host.update_active_image(dataset="a", channel="image")
+    assert host.image_layer.data.shape == (2, 10, 10)
+    host.session.update_metadata("a", pixel_size=120)
+    host.update_active_image(dataset="a", channel="image")
+    np.testing.assert_allclose(host.image_layer.scale[-2:], [120, 120])

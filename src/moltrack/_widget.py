@@ -111,6 +111,21 @@ class MolTrack(QWidget, gui, *subclasses):
 
         self.import_dev_data()
 
+    @property
+    def dataset_dict(self):
+        from moltrack.model_views import legacy_snapshot
+        return legacy_snapshot(self.session, 'images')
+
+    @property
+    def localisation_dict(self):
+        from moltrack.model_views import legacy_snapshot
+        return legacy_snapshot(self.session, 'localisations')
+
+    @property
+    def tracking_dict(self):
+        from moltrack.model_views import legacy_snapshot
+        return legacy_snapshot(self.session, 'tracks')
+
     def import_dev_data(self):
 
         moltrack_root = os.path.dirname(os.path.abspath(__file__))
@@ -198,10 +213,9 @@ class MolTrack(QWidget, gui, *subclasses):
         self.tracks_pixstats_canvas.ui.roiBtn.hide()
         self.tracks_pixstats_canvas.ui.menuBtn.hide()
 
-        self.dataset_dict = {}
+        from moltrack.session import ProjectSession
+        self.session = ProjectSession()
         self.segmentation_dict = {}
-        self.localisation_dict = {}
-        self.tracking_dict = {}
         self.contrast_dict = {}
         self.diffusion_dict = {}
 

@@ -206,6 +206,10 @@ class _loc_filter_utils:
 
     def get_locs(self, dataset, channel,
             return_dict = False, include_metadata=True):
+        if hasattr(self, 'session'):
+            from moltrack.model_views import gui_query
+            return gui_query(self.session, dataset, channel, tracks=False, return_dict=return_dict, include_metadata=include_metadata)
+
 
         order = ["dataset", "channel", "group", "particle", "frame",
                  "cell_index", "segmentation_index",

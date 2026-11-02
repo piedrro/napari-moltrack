@@ -27,7 +27,7 @@ class _events_utils:
         if dataset == "" or dataset not in self.dataset_dict.keys():
             return
 
-        self.dataset_dict[dataset]["pixel_size"] = pixel_size
+        self.session.update_metadata(dataset, pixel_size=pixel_size)
 
         self.update_active_image()
         self.draw_localisations()
@@ -457,10 +457,11 @@ class _events_utils:
                             self.image_layer.contrast_limits = contrast_limits
 
             if compute_contrast is True:
-                full_range = [np.min(image), np.max(image)]
+                sample = np.asarray(image[:10])
+                full_range = [np.min(sample), np.max(sample)]
 
                 if max(full_range) > min(full_range):
-                    contrast_limits = autocontrast(image[:10], settings=ContrastSettings(percentiles=(0.1, 99.99), max_frames=None, max_pixels_per_frame=None)).limits
+                    contrast_limits = autocontrast(sample, settings=ContrastSettings(percentiles=(0.1, 99.99), max_frames=None, max_pixels_per_frame=None)).limits
 
                     gamma = 1.0
                     if contrast_limits[1] > contrast_limits[0]:
