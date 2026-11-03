@@ -543,30 +543,39 @@ class _events_utils:
 
             if dataset_name in self.session.ordinary_datasets():
                 if self.session.ordinary_channels(dataset_name):
-                    image_dict = {c: self.session.image(dataset_name, c).as_dask() for c in self.session.ordinary_channels(dataset_name)}
+                    image_dict = dict.fromkeys(self.session.ordinary_channels(dataset_name))
 
                     if channel == None or channel not in image_dict.keys():
                         channel_name = (self.gui.moltrack_channel_selector.currentText())
                     else:
                         channel_name = channel
+                    if channel_name not in image_dict:
+                        channel_name = next(iter(image_dict))
 
                     self.update_contrast_dict()
 
                     self.active_dataset = dataset_name
                     self.active_channel = channel_name
 
-                    image_dict = {c: self.session.image(dataset_name, c).as_dask() for c in self.session.ordinary_channels(dataset_name)}
                     pixel_size = float(self.session.metadata(dataset_name)["pixel_size"])
                     scale = [pixel_size, pixel_size]
 
                     if channel_name in image_dict.keys():
-                        image = image_dict[channel_name]
+                        available = self.session.image_available(dataset_name, channel_name)
+                        if available:
+                            image = self.session.image(dataset_name, channel_name).as_dask()
+                        else:
+                            import dask.array as da
+                            view = self.session.image(dataset_name, channel_name)
+                            image = da.zeros(view.shape, chunks=(1, *view.shape[1:]), dtype=np.uint8)
                         image_name = f"{dataset_name}[{channel_name}]"
+                        if not available:
+                            image_name += " (images unavailable)"
 
                         if hasattr(self, "image_layer") == False:
                             self.image_layer = self.viewer.add_image(image, name=image_name,
                                 colormap="gray", blending="opaque", visible=True, scale=scale,
-                                units=("pixel",) * (image.ndim - 2) + ("nm", "nm"), )
+                                units=("pixel",) * (image.ndim - 2) + ("nm", "nm"), contrast_limits=(0, 1) if not available else None, )
 
                             self.viewer.reset_view()
 
@@ -583,7 +592,11 @@ class _events_utils:
                         self.image_layer.scale = scale
                         self.image_layer.units = (*self.image_layer.units[:-2], "nm", "nm")
 
-                        self.image_layer_auto_contrast(image, dataset_name, channel_name)
+                        if available:
+                            self.image_layer_auto_contrast(image, dataset_name, channel_name)
+                        else:
+                            self.image_layer.contrast_limits = (0, 1)
+                            self.image_layer.gamma = 1
                         self.image_layer.refresh()
 
                         dataset_names = self.session.ordinary_datasets()

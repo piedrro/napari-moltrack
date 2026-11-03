@@ -28,6 +28,20 @@ class ProjectSession:
         self.annotations = {}
         self._partitions = {}
         self._analysis_cache = {}
+        self._project_resources = None
+
+    def close(self):
+        """Close lazy sources before releasing their extracted native payload."""
+        self.model.close()
+        if self._project_resources is not None:
+            self._project_resources.cleanup()
+            self._project_resources = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
 
     def datasets(self) -> tuple[str, ...]:
         return tuple(self._partitions)
@@ -89,6 +103,16 @@ class ProjectSession:
     def image(self, dataset, channel, *, space="corrected"):
         acquisition, name = self.partition(dataset, channel)
         return self.model.transforms.view(acquisition, name, space=space)
+
+    def image_available(self, dataset, channel):
+        """Descriptor-only availability query; never probes or fabricates pixels."""
+        from molcore import MissingSource
+
+        acquisition, _ = self.partition(dataset, channel)
+        source = self.model.acquisitions[acquisition].source
+        while hasattr(source, "source"):
+            source = source.source
+        return not isinstance(source, MissingSource)
 
     def metadata(self, dataset):
         acquisitions = [
@@ -266,21 +290,35 @@ class ProjectSession:
 
         return transact(self.model, replace)
 
-    def import_tracks(self, dataset, channel, rows) -> np.ndarray:
+    def import_tracks(
+        self, dataset, channel, rows, *, group_column=None
+    ) -> np.ndarray:
+        """Import independent tracks, separating grouping identity from labels."""
         acquisition, name = self.partition(dataset, channel)
         incoming = self._incoming(dataset, channel, rows)
-        if "particle" not in incoming:
+        group_column = "particle" if group_column is None else group_column
+        if group_column not in incoming:
             if len(incoming["frame"]):
                 raise ValueError(
-                    "Imported track rows require legacy particle labels"
+                    f"Imported track rows require grouping column {group_column}"
                 )
-            incoming["particle"] = np.array([], dtype=np.int64)
+            incoming[group_column] = np.array([], dtype=np.int64)
+        groups = incoming[group_column].copy()
+        if pd.isna(groups).any():
+            raise ValueError("Track grouping identities cannot be missing")
+        if "particle" not in incoming:
+            incoming["particle"] = groups.copy()
         if pd.isna(incoming["particle"]).any():
             raise ValueError("Track labels cannot be missing")
         # Independent imports always allocate fresh scientific identities.
         incoming.pop("id", None)
         incoming.pop("track_id", None)
         particles = incoming.pop("particle")
+        for group in pd.unique(groups):
+            if len(pd.unique(particles[groups == group])) != 1:
+                raise ValueError(
+                    "A track grouping identity requires one display particle label"
+                )
         incoming[ORIGIN] = np.full(len(incoming["frame"]), IMPORTED_TRACK)
 
         def replace(model):
@@ -295,8 +333,10 @@ class ProjectSession:
                 acquisition_id=acquisition, channel=name, **incoming
             )
             tracks = []
-            for particle in pd.unique(particles):
-                members = ids[particles == particle]
+            for group in pd.unique(groups):
+                selected = groups == group
+                members = ids[selected]
+                particle = particles[selected][0]
                 label = (
                     particle.item()
                     if isinstance(particle, np.generic)

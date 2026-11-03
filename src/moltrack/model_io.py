@@ -208,6 +208,81 @@ def import_images(session, jobs, *, concatenate=False):
 
 
 def import_rows(session, dataset, channel, rows, *, tracks=False):
+    """Import external file rows with fresh IDs, retaining source identities."""
+    import pandas as pd
+
+    rows = pd.DataFrame(rows).copy(deep=True)
+    group_column = None
+
+    def retain_identity(field, preferred):
+        name, suffix = preferred, 2
+        while name in rows:
+            name = f"{preferred}_{suffix}"
+            suffix += 1
+        rows[name] = rows.pop(field)
+        return name
+
+    if "id" in rows:
+        retain_identity("id", "source_localization_id")
+    if "localization_id" in rows:
+        retain_identity("localization_id", "source_localization_id")
+    if "track_id" in rows:
+        group_column = retain_identity("track_id", "source_track_id")
+        if tracks and "particle" not in rows:
+            rows["particle"] = rows[group_column]
     if tracks:
-        return session.import_tracks(dataset, channel, rows)
+        return session.import_tracks(
+            dataset, channel, rows, group_column=group_column
+        )
     return session.replace_localizations(dataset, channel, rows)
+
+
+def select_table_columns(data, columns):
+    """Keep chosen fields and the lossless repeated-import identity lineage."""
+    import re
+
+    return data[
+        [
+            name
+            for name in data
+            if columns is None
+            or name in columns
+            or re.fullmatch(
+                r"source_(?:localization|track)_id(?:_[0-9]+)?", name
+            )
+        ]
+    ]
+
+
+def save_project(session, path, *, include_images=True):
+    from .project_container import save_project as save
+
+    return save(session, path, include_images=include_images)
+
+
+def load_project(path, *, include_images=True):
+    from .project_container import load_project as load
+
+    return load(path, include_images=include_images)
+
+
+def from_legacy(project, *, include_images=True):
+    from .project_legacy import from_legacy as convert
+
+    return convert(project, include_images=include_images)
+
+
+def table_columns(rows):
+    """Detach chosen GUI fields into the typed public file-helper boundary."""
+    import pandas as pd
+
+    data = pd.DataFrame(rows)
+    result = {}
+    for name in data:
+        values = data[name].to_numpy(copy=True)
+        if values.dtype.kind == "O":
+            values = np.asarray(values.tolist())
+        if values.ndim != 1 or values.dtype.hasobject:
+            raise TypeError(f"Unsupported table column: {name}")
+        result[name] = values
+    return result

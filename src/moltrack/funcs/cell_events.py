@@ -30,7 +30,7 @@ class _cell_events:
             print(traceback.format_exc())
 
     def initialise_cellLayer(self, shapes=None,
-            shape_types=None, properties=None):
+            shape_types=None, properties=None, *, restore_annotations=None, prepared_layer=None):
 
         layer_names = [layer.name for layer in self.viewer.layers]
 
@@ -52,12 +52,16 @@ class _cell_events:
             scale = [1, 1]
 
         face_color = [1, 1, 1, 0]
+        if restore_annotations is not None:
+            scale = restore_annotations["scale"]
         edge_color = [1, 1, 1, 0.5]
         edge_width = 1
         ndim = np.asarray(shapes[0]).shape[-1] if shapes is not None and len(shapes) else 2
         units = ("pixel",) * (ndim - 2) + ("nm", "nm")
 
-        if shapes is not None:
+        if prepared_layer is not None:
+            self.cellLayer = self.viewer.add_layer(prepared_layer)
+        elif shapes is not None:
             self.cellLayer = self.viewer.add_shapes(
                 shapes,
                 properties=properties,
@@ -100,7 +104,8 @@ class _cell_events:
         self.store_cell_shapes(init=True)
 
         from moltrack.model_views import record_layer_annotations, connect_layer_annotations
-        record_layer_annotations(self.session, self.cellLayer, "cells")
+        if restore_annotations is None:
+            record_layer_annotations(self.session, self.cellLayer, "cells")
         connect_layer_annotations(self.session, self.cellLayer, "cells")
         self.update_segmentation_combos()
 

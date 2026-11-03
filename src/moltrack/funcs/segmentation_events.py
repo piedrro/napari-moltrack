@@ -57,7 +57,7 @@ class _segmentation_events:
         layer.bind_key("s", func=lambda event: self.modify_mode(mode="edit_midlines"), overwrite=True, )
         layer.bind_key("Escape", func=lambda event: self.modify_mode(mode="pan_zoom"), overwrite=True, )
 
-    def initialise_segLayer(self, shapes=None, pixel_size=None, *, model_mask_ids=()):
+    def initialise_segLayer(self, shapes=None, pixel_size=None, *, model_mask_ids=(), restore_annotations=None, prepared_layer=None):
         layer_names = [layer.name for layer in self.viewer.layers]
 
         if "Segmentations" in layer_names:
@@ -75,12 +75,16 @@ class _segmentation_events:
                 pixel_size = 1
 
         scale = [pixel_size, pixel_size]
+        if restore_annotations is not None:
+            scale = restore_annotations["scale"]
         ndim = np.asarray(shapes[0]).shape[-1] if shapes is not None and len(shapes) else 2
         units = ("pixel",) * (ndim - 2) + ("nm", "nm")
 
-        if shapes is not None:
+        if prepared_layer is not None:
+            self.segLayer = self.viewer.add_layer(prepared_layer)
+        elif shapes is not None:
             self.segLayer = self.viewer.add_shapes(name="Segmentations",
-                shape_type="polygon", opacity=0.5, face_color="red", edge_color="black", edge_width=1, data=shapes,
+                shape_type=restore_annotations["shape_types"] if restore_annotations is not None else "polygon", properties=restore_annotations.get("properties", {}) if restore_annotations is not None else {}, opacity=0.5, face_color="red", edge_color="black", edge_width=1, data=shapes,
                 scale=scale, units=units, )
         else:
             self.segLayer = self.viewer.add_shapes(name="Segmentations",
@@ -102,7 +106,8 @@ class _segmentation_events:
 
         self.register_shape_layer_keybinds(self.segLayer)
         from moltrack.model_views import record_layer_annotations, connect_layer_annotations
-        record_layer_annotations(self.session, self.segLayer, "segmentations", mask_ids=model_mask_ids)
+        if restore_annotations is None:
+            record_layer_annotations(self.session, self.segLayer, "segmentations", mask_ids=model_mask_ids)
         connect_layer_annotations(self.session, self.segLayer, "segmentations")
         self.update_segmentation_combos()
 

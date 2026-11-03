@@ -154,18 +154,52 @@ def gui_query(
     return gui_records(pd.concat(frames, ignore_index=True)) if frames else []
 
 
+def layer_annotations(layer, *, mask_ids=()):
+    """Detach display state without treating a save as a scientific edit."""
+    return {
+        "data": deepcopy(list(layer.data)),
+        "shape_types": list(layer.shape_type),
+        "properties": deepcopy(dict(layer.properties)),
+        "scale": list(layer.scale),
+        "mask_ids": list(mask_ids),
+    }
+
+
+def prepare_project_shape_layers(session):
+    """Build fallible napari geometry while the live project is untouched."""
+    from napari.layers import Shapes
+
+    layers = {}
+    for name, title in (
+        ("segmentations", "Segmentations"),
+        ("cells", "Cells"),
+    ):
+        annotation = session.annotations.get(name)
+        if annotation is None:
+            continue
+        ndim = len(annotation["scale"])
+        style = (
+            {"opacity": 0.5, "face_color": "red", "edge_color": "black"}
+            if name == "segmentations"
+            else {"face_color": [1, 1, 1, 0], "edge_color": [1, 1, 1, 0.5]}
+        )
+        layers[name] = Shapes(
+            data=deepcopy(annotation["data"]),
+            shape_type=annotation["shape_types"],
+            properties=deepcopy(annotation["properties"]),
+            scale=annotation["scale"],
+            units=("pixel",) * (ndim - 2) + ("nm", "nm"),
+            ndim=ndim,
+            name=title,
+            edge_width=1,
+            **style,
+        )
+    return layers
+
+
 def record_layer_annotations(session, layer, name, *, mask_ids=()):
     """Capture exact editable vertices, types, properties and display calibration."""
-    session.set_annotations(
-        name,
-        {
-            "data": deepcopy(list(layer.data)),
-            "shape_types": list(layer.shape_type),
-            "properties": deepcopy(dict(layer.properties)),
-            "scale": list(layer.scale),
-            "mask_ids": list(mask_ids),
-        },
-    )
+    session.set_annotations(name, layer_annotations(layer, mask_ids=mask_ids))
 
 
 def connect_layer_annotations(session, layer, name):

@@ -2,20 +2,18 @@ import concurrent.futures
 import json
 import multiprocessing
 import os
-import pickle
 import time
 import traceback
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import partial
 from multiprocessing import Manager
 
-import h5py
 import mat4py
 import numpy as np
 import pandas as pd
 import tifffile
 from napari.utils.notifications import show_info
-from qtpy.QtWidgets import QApplication, QFileDialog
+from qtpy.QtWidgets import QFileDialog
 from shapely.geometry import Polygon
 
 from moltrack.funcs.compute_utils import Worker
@@ -271,68 +269,25 @@ class _import_utils:
 
 
     def import_pos_out_locs(self, path, loc_cols=None):
-
-        try:
-
-            col_dict = {"FRAME": "frame",
-                        "XCENTER": "x", "YCENTER": "y",
-                        "BRIGHTNESS": "photons", "BG": "bg",
-                        "S_X": "sx", "S_Y": "sy",
-                        }
-
-            locs = pd.read_csv(path, sep="\t")
-            locs = locs.rename(columns=col_dict)
-
-            for col in locs.columns:
-                if col not in loc_cols:
-                    locs = locs.drop(col, axis=1)
-
-            locs_frames = np.array(locs["frame"].values)
-            locs_frames = locs_frames - 1
-            locs["frame"] = locs_frames
-
-        except:
-            locs = None
-
-        return locs
+        from molcore.files import read_table
+        from moltrack.model_io import select_table_columns
+        data = pd.DataFrame(read_table(path))
+        data["frame"] = data["frame"] - 1
+        return select_table_columns(data, loc_cols)
 
     def import_csv_locs(self, path, loc_cols):
-
-        print("importing csv locs")
-
-        try:
-
-            locs = pd.read_csv(path)
-
-            for col in locs.columns:
-                if col not in loc_cols:
-                    locs = locs.drop(col, axis=1)
-
-        except:
-            locs = None
-
-        return locs
+        from molcore.files import read_table
+        from moltrack.model_io import select_table_columns
+        data = pd.DataFrame(read_table(path))
+        return select_table_columns(data, loc_cols)
 
     def import_hdf5_locs(self, path, loc_cols):
-
-        try:
-
-            dtype = [('frame', '<u4'), ('x', '<f4'), ('y', '<f4'),
-                     ('photons', '<f4'), ('sx', '<f4'), ('sy', '<f4'),
-                     ('bg', '<f4'), ('lpx', '<f4'), ('lpy', '<f4'),
-                     ('ellipticity', '<f4'),('net_gradient', '<f4')]
-
-            with h5py.File(path, "r") as f:
-                locs = np.array(f["locs"], dtype=dtype).view(np.recarray)
-
-            locs = pd.DataFrame(locs)
-
-        except:
-            print(traceback.format_exc())
-            locs = None
-
-        return locs
-
+        from molcore.interop import read_picasso
+        from moltrack.model_io import select_table_columns
+        columns, metadata = read_picasso(path)
+        data = select_table_columns(pd.DataFrame(columns), loc_cols)
+        data.attrs["picasso_info"] = metadata
+        return data
 
     def import_localisations(self, import_dataset=None, import_channel=None,
             import_data=None, import_mode=None, path = None):
@@ -352,7 +307,7 @@ class _import_utils:
                 show_info("Localisation import requires image data to be loaded first")
                 return None
 
-            loc_cols = ["dataset", "channel", "group", "particle", "frame",
+            loc_cols = ["id", "localization_id", "source_localization_id", "track_id", "source_track_id", "dataset", "channel", "group", "particle", "frame",
                         "cell_index", "segmentation_index",
                         "x", "y", "photons", "bg", "sx", "sy", "lpx", "lpy",
                         "ellipticity", "net_gradient", "iterations",
@@ -388,9 +343,19 @@ class _import_utils:
                 locs = import_func(path, loc_cols)
 
                 if locs is not None:
+                    imported_metadata = locs.attrs.get("picasso_info")
                     locs["dataset"] = import_dataset
                     locs["channel"] = import_channel
                     locs = locs.to_records(index=False)
+                    if imported_metadata is not None:
+                        partitions = dict(self.session.annotations.get("partitions", {}))
+                        dataset_annotations = dict(partitions.get(import_dataset, {}))
+                        channel_annotations = dict(dataset_annotations.get(import_channel, {}))
+                        channel_annotations["picasso_info"] = imported_metadata
+                        dataset_annotations[import_channel] = channel_annotations
+                        partitions[import_dataset] = dataset_annotations
+                        self.session.set_annotations("partitions", partitions)
+
 
                     if import_data == "Localisations":
 
@@ -595,164 +560,66 @@ class _import_utils:
 
         self.moltrack_images_imported = True
 
-    def import_moltrack_project(self, viewer=None, path = None):
+    def import_moltrack_project(self, viewer=None, path=None):
+        from copy import deepcopy
+        from moltrack.model_io import load_project
+        from moltrack.model_views import prepare_project_shape_layers
 
+        candidate = None
         try:
-
             if path is None:
-                path = os.path.expanduser("~/Desktop")
-                path = QFileDialog.getOpenFileName(self, "Open file", path, "*.moltrack")[0]
-
-            if path == "":
-                return None
-
-            with open(path, 'rb') as f:
-                moltrack_project = pickle.load(f)
-
-            if "dataset_dict" in moltrack_project.keys():
-
-                self.moltrack_images_imported = False
-                import_images = self.gui.import_project_images.isChecked()
-
-                import_jobs = []
-
-                dataset_dict = moltrack_project["dataset_dict"]
-
-                for dataset_name, dataset_data in dataset_dict.items():
-
-                    if import_images == True:
-
-                        if "images" in dataset_data.keys():
-                            self.dataset_dict[dataset_name] = dataset_data
-                        else:
-                            path = dataset_data["path"]
-                            if os.path.exists(path):
-                                job = self.populate_import_jobs(paths = [path], **dataset_data)
-                                import_jobs.extend(job)
-                            else:
-                                print(f"Image not found: {path}")
-                    else:
-
-                        if "images" in dataset_data.keys():
-                            dataset_data.pop("images")
-
-                        if dataset_name not in self.dataset_dict.keys():
-                            self.dataset_dict[dataset_name] = dataset_data
-
-                if len(import_jobs) > 0:
-
-                    self.update_ui(init=True)
-
-                    self.worker = Worker(self.import_data,
-                        import_jobs=import_jobs, import_mode="data")
-                    self.worker.signals.progress.connect(partial(self.moltrack_progress,
-                        progress_bar=self.gui.import_progressbar, ))
-                    self.worker.signals.finished.connect(self.toggle_moltrack_images_imported)
-                    self.worker.signals.error.connect(self.update_ui)
-                    self.threadpool.start(self.worker)
-
-                else:
-                    self.moltrack_images_imported = True
-
-            # wait for import to finish
-            while self.moltrack_images_imported is False:
-                QApplication.processEvents()
-
-            self.import_data_finished()
-
-            for key, value in moltrack_project.items():
-
-                if key == "localisation_dict":
-
-                    try:
-
-                        self.localisation_dict = value
-
-                        dataset_list = list(self.localisation_dict.keys())
-                        channel_list = list(self.localisation_dict[dataset_list[0]].keys())
-
-                        self.draw_localisations()
-
-                        self.update_filter_criterion()
-                        self.update_criterion_ranges()
-
-                        self.update_ui()
-
-                        if len(channel_list) > 0:
-
-                            active_dataset = dataset_list[0]
-                            active_channel = channel_list[0]
-
-                            self.gui.moltrack_dataset_selector.setCurrentText(active_dataset)
-                            self.gui.moltrack_channel_selector.setCurrentText(active_channel)
-
-                    except:
-                        print(traceback.format_exc())
-
-                if key == "tracking_dict":
-
-                    try:
-
-                        self.tracking_dict = value
-
-                        dataset_list = list(self.tracking_dict.keys())
-
-                        if len(dataset_list) != 0:
-
-                            channel_list = list(self.tracking_dict[dataset_list[0]].keys())
-
-                            self.draw_tracks()
-
-                            self.update_track_filter_criterion()
-                            self.update_track_criterion_ranges()
-
-                            self.update_trackplot_options()
-                            self.plot_tracks(reset=True)
-
-                            if len(channel_list) > 0:
-
-                                active_dataset = dataset_list[0]
-                                active_channel = channel_list[0]
-
-                                self.gui.moltrack_dataset_selector.setCurrentText(active_dataset)
-                                self.gui.moltrack_channel_selector.setCurrentText(active_channel)
-
-
-                    except:
-                        print(traceback.format_exc())
-
-                if key == "segmentations":
-
-                    try:
-
-                        shapes = value["shapes"]
-                        pixel_size = value["pixel_size"]
-
-                        self.initialise_segLayer(shapes=shapes,
-                            pixel_size=pixel_size)
-
-                    except:
-                        print(traceback.format_exc())
-
-                if key == "cells":
-
-                    try:
-
-                        shapes = value["shapes"]
-                        shape_types = value["shape_types"]
-                        properties = value["properties"]
-                        pixel_size = value["pixel_size"]
-                        self.segmentation_image_pixel_size = pixel_size
-
-                        self.initialise_cellLayer(shapes=shapes,
-                            shape_types=shape_types,
-                            properties=properties)
-
-                    except:
-                        print(traceback.format_exc())
-
-            self.update_SMLM_combos()
-            self.update_segmentation_combos()
-
-        except:
+                path = QFileDialog.getOpenFileName(self, "Open file", os.path.expanduser("~/Desktop"), "*.moltrack")[0]
+            if not path:
+                return
+            # Decode and validate the entire candidate before touching live state.
+            candidate = load_project(path, include_images=self.gui.import_project_images.isChecked())
+            prepared_layers = prepare_project_shape_layers(candidate)
+        except Exception as error:
+            if candidate is not None:
+                candidate.close()
+            show_info(f"Could not load MolTrack project: {error}")
             print(traceback.format_exc())
+            return
+
+        previous = self.session
+        # Listeners capture a session owner. Fresh layers get fresh listeners.
+        for attribute in ("segLayer", "cellLayer", "segmentation_layer", "image_layer", "loc_layer", "track_layer"):
+            layer = getattr(self, attribute, None)
+            if layer is not None and layer in self.viewer.layers:
+                self.viewer.layers.remove(layer)
+            if hasattr(self, attribute):
+                delattr(self, attribute)
+        for attribute in ("segmentation_image", "_segmentation_source", "segmentation_image_pixel_size", "stored_cells"):
+            if hasattr(self, attribute):
+                delattr(self, attribute)
+        self.session = candidate
+        self.active_dataset = None
+        self.active_channel = None
+        self.contrast_dict = deepcopy(candidate.annotations.get("contrast", {}))
+        binding = candidate.annotations.get("segmentation_image_binding")
+        if binding is not None and candidate.image_available(*binding):
+            self.segmentation_image = candidate.image(*binding).as_dask()
+            self._segmentation_source = self.segmentation_image
+            self.segmentation_image_pixel_size = candidate.metadata(binding[0])["pixel_size"]
+        self.import_data_finished()
+        for name, method in (("segmentations", self.initialise_segLayer), ("cells", self.initialise_cellLayer)):
+            annotation = candidate.annotations.get(name)
+            if annotation is None:
+                continue
+            if name == "segmentations":
+                method(shapes=annotation["data"], pixel_size=annotation["scale"][-1], restore_annotations=annotation, prepared_layer=prepared_layers[name])
+            else:
+                method(shapes=annotation["data"], shape_types=annotation["shape_types"], properties=annotation["properties"], restore_annotations=annotation, prepared_layer=prepared_layers[name])
+        self.update_SMLM_combos()
+        self.update_segmentation_combos()
+        self.update_filter_criterion()
+        self.update_criterion_ranges()
+        self.update_track_filter_criterion()
+        self.update_track_criterion_ranges()
+        self.update_trackplot_options()
+        self.plot_tracks(reset=True)
+        self.update_ui()
+        previous.close()
+        for message in candidate.model.metadata.get("migration_report", []):
+            print(message)
+        show_info("MolTrack project loaded")

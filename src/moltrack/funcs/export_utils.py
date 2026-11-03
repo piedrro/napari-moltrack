@@ -1,19 +1,14 @@
 import concurrent
 import json
 import os
-import pickle
-import shutil
-import tempfile
 import traceback
 from functools import partial
 from pathlib import Path
 
 import cv2
-import h5py
 import numpy as np
 import pandas as pd
 import tifffile
-import yaml
 from bactfit import fileIO
 from napari.utils.notifications import show_info
 from qtpy.QtWidgets import QFileDialog
@@ -48,90 +43,25 @@ def initialise_data_export(loc_data):
 
 
 def export_localisation_data(loc_data):
-    try:
-        export_mode = loc_data["export_mode"]
-        export_path = loc_data["export_path"]
-        locs = loc_data["data"]
+    from molcore.files import write_table
+    from moltrack.model_io import table_columns
 
-        if export_mode == "CSV":
-            df = pd.DataFrame(locs)
-
-            df.to_csv(export_path, index=False)
-
-        elif export_mode == "POS.OUT":
-            localisation_data = pd.DataFrame(locs)
-
-            pos_locs = localisation_data[["frame", "x", "y", "photons", "bg", "sx", "sy", ]].copy()
-
-            pos_locs.dropna(axis=0, inplace=True)
-
-            pos_locs.columns = ["FRAME", "XCENTER", "YCENTER", "BRIGHTNESS", "BG", "S_X", "S_Y", ]
-
-            pos_locs.loc[:, "I0"] = 0
-            pos_locs.loc[:, "THETA"] = 0
-            pos_locs.loc[:, "ECC"] = pos_locs["S_X"] / pos_locs["S_Y"]
-            pos_locs.loc[:, "FRAME"] = pos_locs["FRAME"] + 1
-
-            pos_locs = pos_locs[["FRAME", "XCENTER", "YCENTER", "BRIGHTNESS", "BG", "I0", "S_X", "S_Y", "THETA", "ECC", ]]
-
-            pos_locs.to_csv(export_path, sep="\t", index=False)
-
-    except:
-        print(traceback.format_exc())
+    data = pd.DataFrame(loc_data["data"])
+    if loc_data["export_mode"] == "POS.OUT":
+        data = data[["frame", "x", "y", "photons", "bg", "sx", "sy"]].dropna().copy()
+        data["I0"] = 0
+        data["THETA"] = 0
+        data["ECC"] = data.sx / data.sy
+    write_table(loc_data["export_path"], table_columns(data))
 
 
 def export_picasso_localisation(loc_data):
-    try:
-        locs = loc_data["data"]
+    from molcore.files import write_table
+    from moltrack.model_io import table_columns
 
-        locs = pd.DataFrame(locs)
-
-        picasso_columns = ["frame", "y", "x", "photons", "sx", "sy", "bg", "lpx", "lpy", "ellipticity", "net_gradient", "group", "iterations", ]
-
-        for column in locs.columns:
-            if column not in picasso_columns:
-                locs.drop(column, axis=1, inplace=True)
-
-        locs = locs.to_records(index=False)
-
-        h5py_path = loc_data["hdf5_path"]
-        yaml_path = loc_data["info_path"]
-        info = loc_data["picasso_info"]
-
-        h5py_path = format_picasso_path(h5py_path)
-        yaml_path = format_picasso_path(yaml_path)
-
-        # Create temporary files
-        temp_h5py_path = tempfile.NamedTemporaryFile(delete=False).name
-        temp_yaml_path = tempfile.NamedTemporaryFile(delete=False).name
-
-        h5py_path.parent.mkdir(parents=True, exist_ok=True)
-        yaml_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Save to temporary HDF5 file
-        with h5py.File(temp_h5py_path, "w") as hdf_file:
-            hdf_file.create_dataset("locs", data=locs)
-
-        # Save to temporary YAML file
-        with open(temp_yaml_path, "w") as file:
-            yaml.dump_all(info, file, default_flow_style=False)
-
-        try:
-            shutil.move(temp_h5py_path, h5py_path)
-            shutil.move(temp_yaml_path, yaml_path)
-        except:
-            show_info("Could not move files to import directory. Saving to desktop instead.")
-
-            desktop_dir = os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop")
-
-            desktop_h5py_path = os.path.join(desktop_dir, h5py_path.name)
-            desktop_yaml_path = os.path.join(desktop_dir, yaml_path.name)
-
-            shutil.move(temp_h5py_path, desktop_h5py_path)
-            shutil.move(temp_yaml_path, desktop_yaml_path)
-
-    except Exception:
-        print(traceback.format_exc())
+    # The export dialog already selected these columns; retain arbitrary
+    # measurements instead of applying a second hard-coded field whitelist.
+    write_table(format_picasso_path(loc_data["hdf5_path"]), table_columns(loc_data["data"]), metadata=loc_data["picasso_info"])
 
 
 class _export_utils:
@@ -465,6 +395,10 @@ class _export_utils:
                         fitted = dat["fitted"]
 
                         picasso_info = self.get_picasso_info(import_path, image_shape, box_size)
+                        saved_info = self.session.annotations.get("partitions", {}).get(dataset_name, {}).get(channel_name, {}).get("picasso_info")
+                        if saved_info is not None:
+                            from copy import deepcopy
+                            picasso_info = deepcopy(saved_info)
 
                     export_loc_job = {"dataset_name": dataset_name,
                                       "channel_name": channel_name,
@@ -564,114 +498,38 @@ class _export_utils:
         except:
             self.update_ui()
 
-    def export_moltrack_project(self, viewer = None, path=None):
+    def export_moltrack_project(self, viewer=None, path=None):
+        from copy import deepcopy
+        from moltrack.model_io import save_project
+        from moltrack.model_views import layer_annotations
 
         try:
-
-            self.update_ui(init=True)
-
             if path is None:
-
-                dataset_list = list(self.dataset_dict.keys())
-
-                if len(dataset_list) > 0:
-                    path = self.session.metadata(dataset_list[0])["path"]
-
-                    if type(path) == list:
-                        path = path[0]
-
-                    directory = os.path.dirname(path)
-                    file_name = os.path.basename(path)
-                    base, ext = os.path.splitext(file_name)
-                    file_name = base + ".moltrack"
-                    export_path = os.path.join(directory, file_name)
-
-                else:
-                    desktop_dir = os.path.join(os.path.join(os.environ["USERPROFILE"]), "Desktop")
-                    file_name = "moltrack_project.moltrack"
-                    export_path = os.path.join(desktop_dir, file_name)
-
-                path = QFileDialog.getSaveFileName(self, "Export Moltrack Project", export_path, "(*.moltrack)")[0]
-
-            if path == "":
+                datasets = self.session.ordinary_datasets()
+                source = self.session.metadata(datasets[0]).get("path", "") if datasets else ""
+                if isinstance(source, list):
+                    source = source[0] if source else ""
+                proposed = str(Path(source).with_suffix(".moltrack")) if source else str(Path.home() / "Desktop" / "moltrack_project.moltrack")
+                path = QFileDialog.getSaveFileName(self, "Export Moltrack Project", proposed, "(*.moltrack)")[0]
+            if not path:
                 return
-
-            moltrack_project = {}
-
-            if hasattr(self, "dataset_dict"):
-
-                export_project_images = self.gui.export_project_images.isChecked()
-
-                moltrack_project["dataset_dict"] = {}
-
-                for dataset_name in self.dataset_dict.keys():
-
-                    dataset_dict = {}
-
-                    for key, value in self.dataset_dict[dataset_name].items():
-                        if key != "images" or export_project_images:
-                            if key == "images":
-                                print("Exporting images")
-
-                            dataset_dict[key] = value
-
-                    moltrack_project["dataset_dict"][dataset_name] = dataset_dict
-
-            if hasattr(self, "segmentation_layer"):
-
-                segmentation_image = self.segmentation_layer.data.copy()
-                scale = self.segmentation_layer.scale
-                pixel_size = scale[0]
-
-                moltrack_project["segmentation_image"] = {"data": segmentation_image,
-                                                          "pixel_size": pixel_size}
-
-            if hasattr(self, "localisation_dict"):
-
-                moltrack_project["localisation_dict"] = self.localisation_dict
-
-                print("localisation data added to moltrack project")
-
-            if hasattr(self,"tracking_dict"):
-
-                moltrack_project["tracking_dict"] = self.tracking_dict
-
-            if hasattr(self, "segLayer"):
-
-                shapes = self.segLayer.data.copy()
-                shape_types = self.segLayer.shape_type.copy()
-                scale = self.segLayer.scale
-                pixel_size = scale[0]
-
-                moltrack_project["segmentations"] = {"shapes": shapes,
-                                                    "shape_types": shape_types,
-                                                    "scale": scale,
-                                                    "pixel_size": pixel_size}
-
-            if hasattr(self, "cellLayer"):
-
-                shapes = self.cellLayer.data.copy()
-                shape_types = self.cellLayer.shape_type.copy()
-                properties = self.cellLayer.properties.copy()
-                scale = self.cellLayer.scale
-
-                moltrack_project["cells"] = {"shapes": shapes,
-                                             "shape_types": shape_types,
-                                             "properties": properties,
-                                             "scale": scale,
-                                             "pixel_size": scale[0],}
-
-            with open(path, "wb") as file:
-                pickle.dump(moltrack_project, file)
-
-            show_info("Moltrack project exported")
-
-            self.update_ui()
-
-        except:
+            self.update_ui(init=True)
+            self.update_contrast_dict()
+            self.session.annotations["contrast"] = deepcopy(self.contrast_dict)
+            for attribute, name in (("segLayer", "segmentations"), ("cellLayer", "cells")):
+                layer = getattr(self, attribute, None)
+                if layer is not None:
+                    # Capturing a display is not a geometry edit. Preserve native
+                    # masks already bound to the current exact layer vertices.
+                    mask_ids = self.session.annotations.get(name, {}).get("mask_ids", ())
+                    self.session.annotations[name] = layer_annotations(layer, mask_ids=mask_ids)
+            save_project(self.session, path, include_images=self.gui.export_project_images.isChecked())
+            show_info("MolTrack project exported")
+        except Exception as error:
+            show_info(f"Could not save MolTrack project: {error}")
             print(traceback.format_exc())
+        finally:
             self.update_ui()
-
 
     def export_bactfit(self):
 

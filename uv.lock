@@ -1242,7 +1242,7 @@ wheels = [
 [[package]]
 name = "molcore"
 version = "0.1.0"
-source = { git = "https://github.com/piedrro/molcore.git?rev=a6f58a353f38459533c3247053a69dc0a189cb46#a6f58a353f38459533c3247053a69dc0a189cb46" }
+source = { git = "https://github.com/piedrro/molcore.git?rev=1f6ea9a8b33796424566fd467567efdb00cac651#1f6ea9a8b33796424566fd467567efdb00cac651" }
 dependencies = [
     { name = "astropy" },
     { name = "dask", extra = ["array"] },
@@ -1415,7 +1415,7 @@ requires-dist = [
     { name = "magicgui" },
     { name = "mat4py" },
     { name = "matplotlib", specifier = ">=3.7.0" },
-    { name = "molcore", extras = ["all"], git = "https://github.com/piedrro/molcore.git?rev=a6f58a353f38459533c3247053a69dc0a189cb46" },
+    { name = "molcore", extras = ["all"], git = "https://github.com/piedrro/molcore.git?rev=1f6ea9a8b33796424566fd467567efdb00cac651" },
     { name = "napari", marker = "extra == 'testing'" },
     { name = "napari", extras = ["pyqt6"], specifier = "==0.9.2" },
     { name = "numpy" },
