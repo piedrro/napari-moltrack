@@ -16,6 +16,12 @@ class _bactfit_utils:
 
     def run_bactfit_results(self, celllist):
 
+        from moltrack.model_cells import validate_cells
+        try:
+            celllist = validate_cells(self.session, celllist)
+        except Exception as exc:
+            show_info(str(exc))
+            return
         if celllist is None:
             return
 
@@ -66,52 +72,37 @@ class _bactfit_utils:
         self.store_cell_shapes()
 
 
-    def run_bactfit(self, segmentations, progress_callback=None):
-
-        try:
-
-            min_radius = float(self.gui.fit_min_radius.value())
-            max_radius = float(self.gui.fit_max_radius.value())
-            max_error = float(self.gui.fit_max_error.value())
-
-            show_info("Building CellList")
-
-            celllist = data_to_cells(segmentations)
-
-            n_cells = len(celllist.data)
-
-            if n_cells == 0:
-                return None
-
-            show_info(f"BactFit Fitting {n_cells} cells")
-
-            celllist.optimise(max_radius=max_radius, min_radius=min_radius,
-                max_error=max_error, progress_callback=progress_callback)
-
-            error_list = [cell.fit_error for cell in celllist.data]
-            error_list = [error for error in error_list if error is not None]
-
-        except:
-            print(traceback.format_exc())
-            return None
-
-        return celllist
-
     def initialise_bactfit(self):
 
         if hasattr(self, "segLayer"):
 
-            segmentations = self.segLayer.data
+            segmentations = self.session.annotations.get("segmentations", {}).get("data", [])
 
             if len(segmentations) == 0:
                 return
 
             self.update_ui(init=True)
 
-            worker = Worker(self.run_bactfit, segmentations)
+            from moltrack.model_cells import prepare_cells
+            prepared = prepare_cells(self.session, {"segmentations": segmentations, "settings": {
+                "min_radius": float(self.gui.fit_min_radius.value()),
+                "max_radius": float(self.gui.fit_max_radius.value()),
+                "max_error": float(self.gui.fit_max_error.value())}}, cancel_event=self.stop_event)
+            worker = Worker(fit_cells_worker, prepared)
             worker.signals.progress.connect(partial(self.moltrack_progress,
                     progress_bar=self.gui.bactfit_progressbar))
             worker.signals.result.connect(self.run_bactfit_results)
             worker.signals.finished.connect(self.run_bactfit_finished)
-            self.worker.signals.error.connect(self.update_ui)
+            worker.signals.error.connect(self.update_ui)
             self.threadpool.start(worker)
+
+
+def fit_cells_worker(prepared, progress_callback=None):
+    from moltrack.model_cells import finish_cells
+    from moltrack.model_processing import _cancel
+    _cancel(prepared.cancel_event)
+    cells = data_to_cells(prepared.payload["segmentations"])
+    if not len(cells.data):
+        return finish_cells(prepared, None)
+    cells.optimise(**prepared.payload["settings"], progress_callback=progress_callback)
+    return finish_cells(prepared, cells)

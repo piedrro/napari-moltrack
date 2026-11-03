@@ -34,12 +34,11 @@ class _transform_utils:
             dataset = self.gui.tform_compute_dataset.currentText()
             channel = self.gui.tform_compute_channel.currentText()
 
-            if hasattr(self, "dataset_dict") == False:
+            if not hasattr(self, "session"):
                 return
 
-            if dataset in self.dataset_dict.keys():
-                dataset = self.dataset_dict[dataset]
-                channel_list = dataset["images"].keys()
+            if dataset in self.session.ordinary_datasets():
+                channel_list = self.session.ordinary_channels(dataset)
             else:
                 return
 
@@ -94,7 +93,7 @@ class _transform_utils:
     def compute_fret_transform_matrix(self):
 
         try:
-            if self.dataset_dict != {}:
+            if bool(self.session.ordinary_datasets()):
 
                 dataset_name = self.gui.tform_compute_dataset.currentText()
                 dst_channel = self.gui.tform_compute_channel.currentText()
@@ -152,7 +151,7 @@ class _transform_utils:
         show_info("Applying transform matrix...")
 
         try:
-            if self.dataset_dict != {}:
+            if bool(self.session.ordinary_datasets()):
 
                 target_channel = self.gui.tform_apply_target.currentText()
 
@@ -214,7 +213,7 @@ class _transform_utils:
     def apply_fret_transform_matrix(self):
 
         try:
-            if self.dataset_dict != {}:
+            if bool(self.session.ordinary_datasets()):
 
                 if hasattr(self, "transform_matrix") == False:
                     show_info("No transform matrix loaded.")
@@ -264,7 +263,7 @@ class _transform_utils:
 
                 dataset_name = self.gui.tform_compute_dataset.currentText()
 
-                path = self.dataset_dict[dataset_name]["path"]
+                path = self.session.metadata(dataset_name)["path"]
 
                 if type(path) == list:
                     path = path[0]

@@ -7,7 +7,8 @@ from shapely.geometry import Point, Polygon
 from shapely.strtree import STRtree
 
 from moltrack.funcs.compute_utils import Worker
-from moltrack.backend import filter_locs, merge_locs
+from moltrack.model_edits import compute_merge, prepare_merge, publish_merge
+from moltrack.model_views import refresh_row_projections
 
 
 class _loc_filter_utils:
@@ -120,230 +121,35 @@ class _loc_filter_utils:
 
 
     def remove_seglocs(self, viewer=None):
-
         try:
-
             segchannel = self.gui.remove_seglocs_segmentation.currentText()
             dataset = self.gui.remove_seglocs_dataset.currentText()
             channel = self.gui.remove_seglocs_channel.currentText()
-
             polygons = self.get_shapes(segchannel, flipxy=True, polygon=True)
-
-            if len(polygons) == 0:
+            if not polygons:
                 return
-
-            locs = self.get_locs(dataset, channel, return_dict=False)
-
-            n_locs = len(locs)
-            n_filtered = 0
-
-            if n_locs == 0:
-                return
-
-            filtered_locs = []
-
-            coords = np.stack([locs["x"], locs["y"]], axis=1)
-            points = [Point(coord) for coord in coords]
-
-            spatial_index = STRtree(points)
-
-            polygon_point_indices = []
-
-            for polygon_index, polygon in enumerate(polygons):
-
-                possible_points = spatial_index.query(polygon)
-
-                for point_index in possible_points:
-
-                    point = points[point_index]
-
-                    if polygon.contains(point):
-
-                        polygon_point_indices.append(point_index)
-
-            if len(polygon_point_indices) > 0:
-
-                polygon_locs = locs[polygon_point_indices].copy()
-
-                seg_name = segchannel[:-1].lower() + "_index"
-
-                polygon_locs = pd.DataFrame(polygon_locs)
-
-                if "cell_index" in polygon_locs.columns:
-                    polygon_locs = polygon_locs.drop(columns=["cell_index"])
-                if "segmentation_index" in polygon_locs.columns:
-                    polygon_locs = polygon_locs.drop(columns=["segmentation_index"])
-
-                polygon_locs[seg_name] = polygon_index
-                polygon_locs = polygon_locs.to_records(index=False)
-
-                filtered_locs.append(polygon_locs)
-
-            if len(filtered_locs) > 0:
-
-                filtered_locs = np.hstack(filtered_locs).view(np.recarray).copy()
-                filtered_locs = pd.DataFrame(filtered_locs)
-
-                for (dataset_name, channel_name), flocs in filtered_locs.groupby(["dataset", "channel"]):
-
-                    flocs = flocs.to_records(index=False)
-                    loc_dict = self.localisation_dict[dataset_name][channel_name]
-                    loc_dict["localisations"] = flocs
-                    n_filtered += len(flocs)
-
-            n_removed = n_locs - n_filtered
-            show_info(f"Removed {n_removed} localisations.")
-
-            self.draw_localisations()
+            removed = 0
+            column = segchannel[:-1].lower() + "_index"
+            for partition in self.session.selected_partitions(dataset, channel):
+                rows = self.session.query_localizations(*partition)
+                # Strict polygon interiors; first overlapping polygon wins.
+                labels = [next((i for i, poly in enumerate(polygons) if poly.contains(Point(x, y))), -1)
+                          for x, y in zip(rows.x, rows.y, strict=True)]
+                keep = np.asarray(labels) >= 0
+                self.session.retain_rows(*partition, rows.id.to_numpy()[keep])
+                self.session.update_measurements(rows.id.to_numpy()[keep], {column: np.asarray(labels)[keep]})
+                removed += int((~keep).sum())
+            show_info(f"Removed {removed} localisations.")
+            refresh_row_projections(self, localizations=True)
             self.update_filter_criterion()
             self.update_criterion_ranges()
-
-        except:
+        except Exception:
             print(traceback.format_exc())
 
-
-
-
-    def get_locs(self, dataset, channel,
-            return_dict = False, include_metadata=True):
-        if hasattr(self, 'session'):
-            from moltrack.model_views import gui_query
-            return gui_query(self.session, dataset, channel, tracks=False, return_dict=return_dict, include_metadata=include_metadata)
-
-
-        order = ["dataset", "channel", "group", "particle", "frame",
-                 "cell_index", "segmentation_index",
-                 "x", "y", "photons", "bg", "sx", "sy",
-                 "lpx", "lpy", "ellipticity", "net_gradient",
-                 "iterations","sigma",
-                 "pixel_mean", "pixel_median", "pixel_sum",
-                 "pixel_min", "pixel_max","pixel_std",
-                 "pixel_mean_bg", "pixel_median_bg", "pixel_sum_bg",
-                 "pixel_min_bg", "pixel_max_bg", "pixel_std_bg"]
-
-        loc_data = []
-
-        fitted = False
-        box_size = int(self.gui.picasso_box_size.value())
-        net_gradient = 0
-
-        try:
-
-            if dataset == "All Datasets":
-                dataset_list = list(self.localisation_dict.keys())
-            else:
-                dataset_list = [dataset]
-
-            group = 0
-
-            for dataset_name in dataset_list:
-
-                if dataset_name not in self.localisation_dict.keys():
-                    continue
-
-                if channel == "All Channels":
-                    channel_list = list(self.localisation_dict[dataset_name].keys())
-                else:
-                    channel_list = [channel]
-
-                for channel_name in channel_list:
-
-                    if channel_name not in self.localisation_dict[dataset_name].keys():
-                        continue
-
-                    loc_dict = self.localisation_dict[dataset_name][channel_name]
-
-                    if "localisations" in loc_dict.keys():
-
-                        locs = loc_dict["localisations"].copy()
-                        n_locs = len(locs)
-
-                        if n_locs > 0:
-
-                            locs = pd.DataFrame(locs)
-
-                            if include_metadata:
-                                if "dataset" not in locs.columns:
-                                    locs.insert(0, "dataset", dataset_name)
-                                if "channel" not in locs.columns:
-                                    locs.insert(1, "channel", channel_name)
-                                if len(dataset_list) > 1:
-                                    if "group" not in locs.columns:
-                                        locs.insert(2, "group", group)
-                                    else:
-                                        locs["group"] = group
-                            else:
-                                if "dataset" in locs.columns:
-                                    locs = locs.drop(columns=["dataset"])
-                                if "channel" in locs.columns:
-                                    locs = locs.drop(columns=["channel"])
-                                if "cell_index" in locs.columns:
-                                    locs = locs.drop(columns=["cell_index"])
-                                if "segmentation_index" in locs.columns:
-                                    locs = locs.drop(columns=["segmentation_index"])
-                                    if len(dataset_list) > 1:
-                                        if "group" not in locs.columns:
-                                            locs.insert(0, "group", group)
-                                        else:
-                                            locs["group"] = group
-
-                            mask = []
-
-                            for col in order:
-                                if col in locs.columns:
-                                    mask.append(col)
-
-                            locs = locs[mask]
-                            locs = locs.to_records(index=False)
-
-                            if return_dict == False:
-                                loc_data.append(locs)
-                            else:
-
-                                image_dict = self.dataset_dict[dataset_name]["images"]
-                                image_shape = list(image_dict[channel_name].shape)
-
-                                if "fitted" in loc_dict.keys():
-                                    fitted = loc_dict["fitted"]
-                                if "box_size" in loc_dict.keys():
-                                    box_size = loc_dict["box_size"]
-                                if "net_gradient" in loc_dict.keys():
-                                    net_gradient = loc_dict["net_gradient"]
-
-                                loc_dict = {"dataset": dataset_name,
-                                            "channel": channel_name,
-                                            "localisations": locs,
-                                            "image_shape": image_shape,
-                                            "fitted": fitted,
-                                            "box_size": box_size,
-                                            "net_gradient": net_gradient,
-                                            }
-                                loc_data.append(loc_dict)
-
-                            group += 1
-
-        except:
-            print(traceback.format_exc())
-
-        if return_dict == False:
-            if len(loc_data) == 0:
-                loc_data = []
-            elif len(loc_data) == 1:
-                loc_data = loc_data[0]
-            else:
-                name_list = [set(dat.dtype.names) for dat in loc_data]
-                common_names = list(set.intersection(*name_list))
-
-                if len(common_names) > 0:
-                    loc_data = [dat[common_names] for dat in loc_data]
-                    loc_data = np.hstack(loc_data).view(np.recarray).copy()
-                else:
-                    loc_data = []
-
-        return loc_data
-
-
-
+    def get_locs(self, dataset, channel, return_dict=False, include_metadata=True):
+        from moltrack.model_views import gui_query
+        return gui_query(self.session, dataset, channel, tracks=False,
+                         return_dict=return_dict, include_metadata=include_metadata)
 
     def pixseq_filter_localisations(self, viewer=None):
 
@@ -381,19 +187,31 @@ class _loc_filter_utils:
 
                         n_locs = len(locs)
 
-                        locs = filter_locs(locs, criterion, min_value, max_value,
-                            subtract_background=subtract_background)
+                        if min_value >= max_value:
+                            locs = locs[:0]
+                        elif subtract_background and criterion + "_bg" in locs.dtype.names:
+                            values = locs[criterion] - locs[criterion + "_bg"]
+                            locs = locs[np.isfinite(values) & (values > min_value) & (values < max_value)]
+                        else:
+                            from molcore import FilterSettings
+                            from molcore.filtering import filter_results
+                            result = filter_results(self.session.model,
+                                *self.session.partition(dataset_name, channel_name),
+                                settings=FilterSettings(metric=criterion,
+                                    minimum=np.nextafter(float(min_value), np.inf),
+                                    maximum=np.nextafter(float(max_value), -np.inf)))
+                            locs = locs[np.isin(locs["id"], result.selected_ids)]
 
                         n_filtered = len(locs)
 
                         if n_filtered < n_locs:
 
-                            n_removed = n_locs - n_filtered
+                            n_removed += n_locs - n_filtered
 
-                            loc_dict = self.localisation_dict[dataset_name][channel_name]
-                            loc_dict["localisations"] = locs
+                            self.session.retain_rows(dataset_name, channel_name, locs["id"])
 
-                            self.draw_localisations(update_vis=True)
+            if n_removed:
+                refresh_row_projections(self, localizations=True, update_vis=True)
 
             self.update_criterion_ranges()
             show_info(f"Filtered {n_removed} localisations.")
@@ -523,21 +341,14 @@ class _loc_filter_utils:
     def merge_localisations_finished(self):
 
         self.update_ui()
-        self.draw_localisations()
 
 
-    def compute_merge_localisations(self, dataset, locs, min_distance=1, progress_callback=None):
-        data = pd.DataFrame(locs)
-        if data.empty or data.channel.nunique() < 2:
-            return data
-        merged = merge_locs(data, min_distance, progress_callback)
-        for channel in self.dataset_dict[dataset]['images']:
-            result = merged.copy()
-            result['channel'] = channel
-            entry = self.localisation_dict[dataset].setdefault(channel,
-                self.localisation_dict[dataset][data.channel.iloc[0]].copy())
-            entry['localisations'] = result.to_records(index=False)
-        return merged
+    def process_merge_localisations(self, pending):
+        try:
+            publish_merge(self.session, pending)
+            refresh_row_projections(self, localizations=True)
+        except Exception as exc:
+            show_info(str(exc))
 
     def merge_localisations(self):
 
@@ -554,7 +365,9 @@ class _loc_filter_utils:
 
             self.update_ui(init=True)
 
-            worker = Worker(self.compute_merge_localisations, dataset, locs, min_distance)
+            prepared = prepare_merge(self.session, dataset, min_distance, cancel_event=self.stop_event)
+            worker = Worker(compute_merge, prepared)
+            worker.signals.result.connect(self.process_merge_localisations)
             worker.signals.finished.connect(self.merge_localisations_finished)
             self.threadpool.start(worker)
 

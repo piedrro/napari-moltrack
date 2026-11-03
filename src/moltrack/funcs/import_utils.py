@@ -205,7 +205,7 @@ class _import_utils:
             descriptor = dict(job, dataset_name='Segmentation Image', multichannel_mode='None', channel_name='Segmentation Image', role='segmentation_image')
             import_images(self.session, [descriptor])
             binding = 'Segmentation Image', 'Segmentation Image'
-            self.session.annotations['segmentation_image_binding'] = binding
+            self.session.set_annotations('segmentation_image_binding', binding)
             self.segmentation_image = self.session.image(*binding)[:]
             self._segmentation_source = self.segmentation_image
             self.segmentation_image_pixel_size = float(job['pixel_size'])
@@ -375,9 +375,9 @@ class _import_utils:
             if path is None:
                 path = os.path.expanduser("~/Desktop")
 
-                if hasattr(self, "dataset_dict"):
-                    if import_dataset in self.dataset_dict.keys():
-                        path = self.dataset_dict[import_dataset]["path"]
+                if hasattr(self, "session"):
+                    if import_dataset in self.session.ordinary_datasets():
+                        path = self.session.metadata(import_dataset)["path"]
                         if type(path) == list:
                             path = path[0]
 

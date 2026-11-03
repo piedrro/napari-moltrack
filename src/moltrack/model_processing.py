@@ -34,7 +34,7 @@ from .backend import (
     progress_adapter,
 )
 from .model_views import channel_rows
-from .session import ProjectSession
+from .session import ProjectSession, clear_statistics
 
 
 @dataclass(frozen=True)
@@ -324,16 +324,15 @@ def publish(session, pending, *, cancel_event=None):
             staged.replace_localizations(
                 dataset, channel, rows, frame_index=settings.frame_index
             )
+        clear_statistics(model)
         _cancel(cancel_event)
 
     transact(session.model, commit, expected=prepared.expected)
+    annotations = deepcopy(session.annotations.get("partitions", {}))
     for dataset, channel, _ in pending.results:
-        entry = (
-            session.annotations.setdefault("partitions", {})
-            .setdefault(dataset, {})
-            .setdefault(channel, {})
-        )
+        entry = annotations.setdefault(dataset, {}).setdefault(channel, {})
         entry.update(fitted=settings.fit, box_size=settings.box_size)
+    session.set_annotations("partitions", annotations)
 
 
 def compute_worker(prepared, cancel_event, progress_callback=None):
@@ -346,13 +345,7 @@ def compute_worker(prepared, cancel_event, progress_callback=None):
 def selected_partitions(
     session, dataset="All Datasets", channel="All Channels"
 ):
-    return tuple(
-        (d, c)
-        for d in session.datasets()
-        if dataset in ("All Datasets", d)
-        for c in session.channels(d)
-        if channel in ("All Channels", c)
-    )
+    return session.selected_partitions(dataset, channel)
 
 
 def _measure_partition(session, dataset, channel, settings, options):
@@ -690,7 +683,14 @@ def _publish_workflow(session, pending, *, cancel_event):
                 }
                 occupied = set(
                     pd.to_numeric(
-                        pd.Series(preserved.get("particle", [])),
+                        pd.Series(
+                            [
+                                model.tracks.metadata[int(track)][
+                                    "parameters"
+                                ].get("particle", int(track))
+                                for track in np.unique(preserved["track_id"])
+                            ]
+                        ),
                         errors="coerce",
                     ).dropna()
                 )
@@ -722,11 +722,15 @@ def _publish_workflow(session, pending, *, cancel_event):
                     model.localizations.delete(
                         detections[~np.isin(detections, linked)]
                     )
+            # App-captured settings use a per-acquisition namespace so native
+            # source cascade deletion removes provenance. Native photometry
+            # run records retain their own schema and are never overwritten.
             model.processing.settings.setdefault(
-                request.operation, {}
-            ).setdefault(acquisition, {})[name] = {
-                "settings": asdict(settings)
-            }
+                "moltrack_operations", {}
+            ).setdefault(acquisition, {}).setdefault(name, {})[
+                request.operation
+            ] = {"settings": asdict(settings)}
+        clear_statistics(model)
         _cancel(cancel_event)
 
     transact(session.model, commit, expected=prepared.expected)

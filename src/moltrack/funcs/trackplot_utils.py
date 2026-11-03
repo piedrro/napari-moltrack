@@ -25,9 +25,9 @@ class _trackplot_utils:
             track_distances = np.linalg.norm(track_coords - click_coords, axis=1)
             closest_distance = np.min(track_distances)
             loc_index = np.argmin(track_distances)
-            track_id = tracks.loc[loc_index].particle
+            track_id = tracks.loc[loc_index].track_id
 
-            particle_list = tracks.particle.unique().tolist()
+            particle_list = tracks.track_id.unique().tolist()
             slider_value = particle_list.index(track_id)
 
             self.gui.trackplot_slider.setValue(slider_value)
@@ -43,14 +43,14 @@ class _trackplot_utils:
 
             if hasattr(self, "trackplot_tracks"):
 
-                tracks = self.trackplot_tracks
+                tracks = self.init_trackplot_tracks(reset=False)
 
                 if isinstance(tracks, pd.DataFrame) == False:
                     return
 
-                if "particle" in tracks.columns:
+                if "track_id" in tracks.columns:
 
-                    particle_list = tracks.particle.unique().tolist()
+                    particle_list = tracks.track_id.unique().tolist()
                     n_tracks = len(particle_list) - 1
 
                     slider = self.gui.trackplot_slider
@@ -81,10 +81,10 @@ class _trackplot_utils:
             if isinstance(tracks, pd.DataFrame) == False:
                 return
 
-            particle_list = tracks.particle.unique().tolist()
-            track_id = particle_list[slider.value()]
+            particle_list = tracks.track_id.unique().tolist()
+            track_id = particle_list[min(slider.value(), len(particle_list)-1)]
 
-            slider_label.setText(str(track_id))
+            slider_label.setText(str(tracks.loc[tracks.track_id == track_id, "particle"].iloc[0]))
 
         except:
             print(traceback.format_exc())
@@ -295,18 +295,18 @@ class _trackplot_utils:
 
             if hasattr(self, "trackplot_tracks"):
 
-                tracks = self.trackplot_tracks
+                tracks = self.init_trackplot_tracks(reset=False)
 
                 if isinstance(tracks, pd.DataFrame) == False:
                     return trackplot_data
 
-                particle_list = tracks.particle.unique().tolist()
+                particle_list = tracks.track_id.unique().tolist()
                 slider = self.gui.trackplot_slider
-                track_id = particle_list[slider.value()]
+                track_id = particle_list[min(slider.value(), len(particle_list)-1)]
 
-                if "particle" in tracks.columns:
+                if "track_id" in tracks.columns:
 
-                    track_data = tracks[tracks.particle == track_id]
+                    track_data = tracks[tracks.track_id == track_id]
 
                     track_frames = track_data["frame"].values
                     track_center = track_data[["x", "y"]].mean().values
@@ -330,8 +330,8 @@ class _trackplot_utils:
                                 dataset = track_data["dataset"].values[0]
                                 channel = track_data["channel"].values[0]
 
-                                exposure_time_ms = self.dataset_dict[dataset]["exposure_time"]
-                                pixel_size = self.dataset_dict[dataset]["pixel_size"]
+                                exposure_time_ms = self.session.metadata(dataset)["exposure_time"]
+                                pixel_size = self.session.metadata(dataset)["pixel_size"]
                                 exposure_time_s = exposure_time_ms / 1000
 
                                 if "user_label" in track_data.columns:
@@ -377,7 +377,11 @@ class _trackplot_utils:
     def init_trackplot_tracks(self, reset = True):
 
         try:
-            if hasattr(self, "trackplot_tracks") == False or reset == True:
+            from molcore.staging import state_token
+            token = state_token(self.session.model)
+            selection = (self.gui.trackplot_dataset.currentText(), self.gui.trackplot_channel.currentText())
+            if not hasattr(self, "trackplot_tracks") or reset or getattr(self, "_trackplot_token", None) != (token, selection):
+                self._trackplot_token = (token, selection)
 
                 dataset = self.gui.trackplot_dataset.currentText()
                 channel = self.gui.trackplot_channel.currentText()
@@ -400,7 +404,7 @@ class _trackplot_utils:
 
         trackplot_metrics = None
 
-        if hasattr(self, "tracking_dict"):
+        if hasattr(self, "session"):
 
             if isinstance(self.trackplot_tracks, pd.DataFrame) == False:
                 return trackplot_metrics

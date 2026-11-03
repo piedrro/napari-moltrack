@@ -27,6 +27,7 @@ class ProjectSession:
         self.model = model if model is not None else Dataset()
         self.annotations = {}
         self._partitions = {}
+        self._analysis_cache = {}
 
     def datasets(self) -> tuple[str, ...]:
         return tuple(self._partitions)
@@ -102,27 +103,32 @@ class ProjectSession:
         )
 
     def update_metadata(self, dataset, **values):
-        for acquisition in dict.fromkeys(
-            a for a, _ in self._partitions[dataset].values()
-        ):
-            current = self.model.acquisitions[acquisition]
-            metadata = dict(current.metadata)
-            metadata.update(
-                {
-                    k: deepcopy(v)
-                    for k, v in values.items()
-                    if k != "pixel_size"
-                }
-            )
-            kwargs = {"metadata": metadata}
-            if "pixel_size" in values:
-                kwargs["pixel_size"] = values["pixel_size"]
-            if "exposure_time" in values:
-                metadata["exposure_s"] = values["exposure_time"] / 1000
-                kwargs["timestamps"] = (
-                    np.arange(len(current.source)) * metadata["exposure_s"]
+        def update(model):
+            for acquisition in dict.fromkeys(
+                a for a, _ in self._partitions[dataset].values()
+            ):
+                current = model.acquisitions[acquisition]
+                metadata = dict(current.metadata)
+                metadata.update(
+                    {
+                        k: deepcopy(v)
+                        for k, v in values.items()
+                        if k != "pixel_size"
+                    }
                 )
-            self.model.update_acquisition(acquisition, **kwargs)
+                kwargs = {"metadata": metadata}
+                if "pixel_size" in values:
+                    kwargs["pixel_size"] = values["pixel_size"]
+                if "exposure_time" in values:
+                    metadata["exposure_s"] = values["exposure_time"] / 1000
+                    kwargs["timestamps"] = (
+                        np.arange(len(current.source)) * metadata["exposure_s"]
+                    )
+                model.update_acquisition(acquisition, **kwargs)
+            clear_statistics(model)
+
+        transact(self.model, update)
+        self._analysis_cache.clear()
 
     def _incoming(self, dataset, channel, rows):
         data = deepcopy(pd.DataFrame(rows))
@@ -274,6 +280,7 @@ class ProjectSession:
         # Independent imports always allocate fresh scientific identities.
         incoming.pop("id", None)
         incoming.pop("track_id", None)
+        particles = incoming.pop("particle")
         incoming[ORIGIN] = np.full(len(incoming["frame"]), IMPORTED_TRACK)
 
         def replace(model):
@@ -288,8 +295,8 @@ class ProjectSession:
                 acquisition_id=acquisition, channel=name, **incoming
             )
             tracks = []
-            for particle in pd.unique(incoming["particle"]):
-                members = ids[incoming["particle"] == particle]
+            for particle in pd.unique(particles):
+                members = ids[particles == particle]
                 label = (
                     particle.item()
                     if isinstance(particle, np.generic)
@@ -340,10 +347,294 @@ class ProjectSession:
                 labels = labels.astype(object).copy()
                 labels.loc[missing] = data.loc[missing, "track_id"]
             data["particle"] = labels
+        data["particle"] = data["particle"].astype(object)
         # Scientific track IDs are global. Legacy GUI labels remain per partition
         # and may differ from independent imported particle labels.
         for track_id in pd.unique(data["track_id"]):
-            parameters = self.model.tracks.metadata[int(track_id)].get("parameters", {})
+            parameters = self.model.tracks.metadata[int(track_id)].get(
+                "parameters", {}
+            )
             if "particle" in parameters:
-                data.loc[data.track_id == track_id, "particle"] = parameters["particle"]
+                data.loc[data.track_id == track_id, "particle"] = parameters[
+                    "particle"
+                ]
         return data.drop(columns=ORIGIN, errors="ignore")
+
+    def ordinary_datasets(self):
+        """Dataset labels with a regular scientific image source."""
+        return tuple(d for d in self.datasets() if self.ordinary_channels(d))
+
+    def ordinary_channels(self, dataset):
+        return tuple(
+            c
+            for c in self.channels(dataset)
+            if self.model.acquisitions[
+                self.partition(dataset, c)[0]
+            ].metadata.get("role")
+            != "segmentation_image"
+        )
+
+    def selected_partitions(
+        self, dataset="All Datasets", channel="All Channels"
+    ):
+        return tuple(
+            (d, c)
+            for d in self.ordinary_datasets()
+            if dataset in ("All Datasets", d)
+            for c in self.ordinary_channels(d)
+            if channel in ("All Channels", c)
+        )
+
+    def delete_rows(self, dataset, channel, *, tracks=False, ids=None):
+        """Delete selected localization IDs, or only their track memberships.
+
+        Track deletion never removes detection rows. Imported track-only rows
+        are independent localizations and are removed with their membership.
+        """
+        rows = (self.query_tracks if tracks else self.query_localizations)(
+            dataset, channel, space="raw"
+        )
+        selected = (
+            rows.id.to_numpy()
+            if ids is None
+            else np.asarray(ids, dtype=np.uint64)
+        )
+        if not np.isin(selected, rows.id).all():
+            raise ValueError(
+                "IDs must belong to the selected partition and row kind"
+            )
+
+        def delete(model):
+            if tracks:
+                for track_id, group in rows.groupby("track_id", sort=False):
+                    remaining = group.id.to_numpy()[
+                        ~np.isin(group.id, selected)
+                    ]
+                    if len(remaining) != len(group):
+                        model.tracks.retain_members(int(track_id), remaining)
+            else:
+                model.localizations.delete(selected)
+            if tracks and len(selected):
+                native = model.localizations.query(ids=selected, space="raw")
+                if ORIGIN in native:
+                    imported = native["id"][native[ORIGIN] == IMPORTED_TRACK]
+                    model.localizations.delete(imported)
+            clear_statistics(model)
+
+        transact(self.model, delete)
+        self._analysis_cache.clear()
+
+    def retain_rows(self, dataset, channel, ids, *, tracks=False):
+        """Retain exactly these localization IDs within the selected row kind."""
+        rows = (self.query_tracks if tracks else self.query_localizations)(
+            dataset, channel, space="raw"
+        )
+        ids = np.asarray(ids, dtype=np.uint64)
+        if not np.isin(ids, rows.id).all():
+            raise ValueError(
+                "IDs must belong to the selected partition and row kind"
+            )
+        self.delete_rows(
+            dataset,
+            channel,
+            tracks=tracks,
+            ids=rows.id.to_numpy()[~np.isin(rows.id, ids)],
+        )
+
+    def update_measurements(self, ids, columns):
+        """Update numeric measurements by stable identity, atomically."""
+        transact(
+            self.model,
+            lambda model: model.localizations.update_measurements(
+                ids, **columns
+            ),
+        )
+        self._analysis_cache.clear()
+
+    def copy_rows(self, source, target, *, tracks=False):
+        """Replace target rows with independent copies and fresh scientific IDs."""
+        if source == target:
+            return
+        rows = (self.query_tracks if tracks else self.query_localizations)(
+            *source
+        )
+        binding = self.partition(*target)
+        incoming = rows.drop(
+            columns=[
+                "id",
+                "track_id",
+                "particle",
+                "dataset",
+                "channel",
+                "group",
+            ],
+            errors="ignore",
+        )
+        incoming = self.display_to_raw(*target, incoming)
+        columns = self._incoming(*target, incoming)
+        columns[ORIGIN] = np.full(
+            len(rows), IMPORTED_TRACK if tracks else DETECTION
+        )
+
+        def copy(model):
+            staged = ProjectSession(model)
+            staged.bind(*target, *binding)
+            staged.delete_rows(*target, tracks=tracks)
+            new_ids = model.localizations.add(
+                acquisition_id=binding[0], channel=binding[1], **columns
+            )
+            if tracks:
+                for track_id, group in rows.groupby("track_id", sort=False):
+                    meta = deepcopy(
+                        self.model.tracks.metadata[int(track_id)]["parameters"]
+                    )
+                    meta.update(
+                        origin=IMPORTED_TRACK, particle=group.particle.iloc[0]
+                    )
+                    model.tracks.add(
+                        new_ids[rows.track_id.to_numpy() == track_id],
+                        metadata=meta,
+                    )
+            clear_statistics(model)
+
+        transact(self.model, copy)
+        annotations = deepcopy(self.annotations.get("partitions", {}))
+        source_settings = annotations.get(source[0], {}).get(source[1], {})
+        annotations.setdefault(target[0], {})[target[1]] = deepcopy(
+            source_settings
+        )
+        self.set_annotations("partitions", annotations)
+        self._analysis_cache.clear()
+
+    def set_annotations(self, name: str, value: object):
+        """Store detached editable geometry and invalidate scientific dependents.
+
+        Vector annotations remain separate from raster masks. Editing a shape
+        invalidates its bound model masks; it never silently rasterizes polygons.
+        A model metadata token makes every prepared operation detect app edits.
+        """
+        if not isinstance(name, str) or not name:
+            raise ValueError("Annotation names must be nonempty strings")
+        detached = deepcopy(value)
+        previous = self.annotations.get(name, {})
+        mask_ids = set()
+        if name in ("segmentations", "cells"):
+            if isinstance(previous, dict):
+                mask_ids.update(previous.get("mask_ids", ()))
+            # Explicit incoming IDs bind newly published masks. Edits omit
+            # that binding, invalidating masks derived from the old vertices.
+            if isinstance(detached, dict):
+                mask_ids.difference_update(detached.get("mask_ids", ()))
+
+        def update(model):
+            for mask_id in mask_ids:
+                if mask_id in model.segmentations:
+                    model.remove_segmentation(mask_id)
+            if name in ("segmentations", "cells"):
+                clear_statistics(model)
+            model.metadata["moltrack_annotation_revision"] = (
+                model.metadata.get("moltrack_annotation_revision", 0) + 1
+            )
+
+        transact(self.model, update)
+        self.annotations[name] = detached
+        self._analysis_cache.clear()
+
+    def snapshot(self):
+        staged = ProjectSession(self.model.snapshot())
+        staged._partitions = deepcopy(self._partitions)
+        staged.annotations = deepcopy(self.annotations)
+        return staged
+
+    def analyze_tracks(
+        self,
+        *,
+        fit_lags=4,
+        rolling_window=4,
+        shape_data=None,
+        progress_callback=None,
+        cancel_event=None,
+    ):
+        from molcore.staging import state_token
+
+        from .model_analysis import analyze_tracks
+        from .model_processing import _cancel
+
+        _cancel(cancel_event)
+
+        geometry = tuple(
+            (key, tuple(shape.wkb for shape in value))
+            for key, value in (shape_data or {}).items()
+            if key in ("polygons", "midlines")
+        )
+        key = (fit_lags, rolling_window, geometry)
+        token = state_token(self.model)
+        cached = self._analysis_cache.get(key)
+        if cached is None or cached[0] != token:
+            rows = analyze_tracks(
+                self,
+                fit_lags=fit_lags,
+                rolling_window=rolling_window,
+                shape_data=shape_data,
+                progress_callback=progress_callback,
+                cancel_event=cancel_event,
+            )
+            self._analysis_cache[key] = (token, rows.copy(deep=True))
+        _cancel(cancel_event)
+        return self._analysis_cache[key][1].copy(deep=True)
+
+    def display_to_raw(self, dataset, channel, rows):
+        """Convert displayed points into the target source channel and frame."""
+        from molcore import CoordinateSpace
+
+        data = pd.DataFrame(rows).copy(deep=True)
+        columns = self._incoming(dataset, channel, data)
+        acquisition, name = self.partition(dataset, channel)
+        columns.update(
+            acquisition_id=np.full(len(data), acquisition),
+            channel=np.full(len(data), name),
+        )
+        x, y = self.model.transforms.convert_coordinates(
+            columns,
+            source_space=CoordinateSpace.CORRECTED,
+            target_space=CoordinateSpace.RAW,
+        )
+        data["x"], data["y"] = x, y
+        return data
+
+    def translate_image(self, dataset, channel, *, dx, dy):
+        """Compose a manual image translation as a source calibration."""
+        from molcore import Calibration
+
+        acquisition, name = self.partition(dataset, channel)
+        frame = int(self._view(dataset, channel).source_frames[0])
+
+        def update(model):
+            matrix = model.transforms.matrix(
+                acquisition, name, frame, space="registered"
+            )
+            translation = np.eye(3)
+            translation[:2, 2] = [dx, dy]
+            calibration = f"moltrack-translation:{acquisition}:{name}"
+            model.transforms.add_calibration(
+                Calibration(calibration, translation @ matrix)
+            )
+            model.transforms.select(acquisition, name, calibration)
+            clear_statistics(model)
+
+        transact(self.model, update)
+        self._analysis_cache.clear()
+
+
+def clear_statistics(model):
+    """Invalidate GUI-derived numeric statistics after their inputs change."""
+    from .model_analysis import STAT_COLUMNS
+
+    rows = model.localizations.query(space="raw")
+    columns = {
+        name: np.full(len(rows["id"]), np.nan)
+        for name in STAT_COLUMNS
+        if name in rows
+    }
+    if len(rows["id"]) and columns:
+        model.localizations.update_measurements(rows["id"], **columns)

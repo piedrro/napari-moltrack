@@ -14,7 +14,7 @@ class _traces_utils:
     def update_traces_export_options(self):
 
         try:
-            if hasattr(self, "tracking_dict"):
+            if hasattr(self, "session"):
 
                 dataset = self.gui.traces_export_dataset.currentText()
                 channel = self.gui.traces_export_channel.currentText()
@@ -48,8 +48,11 @@ class _traces_utils:
 
         json_path = None
 
-        if hasattr(self, "dataset_dict"):
-            path = self.dataset_dict[dataset]["path"]
+        if hasattr(self, "session"):
+            selected = self.session.ordinary_datasets()[0] if dataset == "All Datasets" else dataset
+            path = self.session.metadata(selected)["path"]
+            if isinstance(path, list):
+                path = path[0]
 
             base, ext = os.path.splitext(path)
             file_name = os.path.basename(base)
@@ -71,7 +74,7 @@ class _traces_utils:
 
         try:
 
-            if hasattr(self, "tracking_dict"):
+            if hasattr(self, "session"):
 
                 dataset = self.gui.traces_export_dataset.currentText()
                 channel = self.gui.traces_export_channel.currentText()
@@ -90,18 +93,21 @@ class _traces_utils:
                     show_info("No tracks found")
                     return
 
-                n_traces = len(np.unique(tracks["particle"]).copy())
-                json_dict = {"metadata": {}, "data": {dataset: []}}
+                n_traces = len(np.unique(tracks["track_id"]).copy())
+                json_dict = {"metadata": {}, "data": {}}
 
                 tracks = pd.DataFrame(tracks)
 
-                for (dataset_name,particle), track_data in tracks.groupby(["dataset", "particle"]):
+                for (dataset_name, channel_name, track_id), track_data in tracks.groupby(["dataset", "channel", "track_id"]):
 
                     track_data = track_data.sort_values("frame")
 
                     channel_list = track_data["channel"].unique()
 
-                    channel_dict = {"trace_dict": {}}
+                    label = track_data["particle"].iloc[0]
+                    if isinstance(label, np.generic):
+                        label = label.item()
+                    channel_dict = {"trace_dict": {}, "track_id": int(track_id), "particle": label}
 
                     for channel_name in channel_list:
 
@@ -139,7 +145,7 @@ class _traces_utils:
 
                             channel_dict["trace_dict"][metric_name] = list(data)
 
-                    json_dict["data"][dataset_name].append(channel_dict)
+                    json_dict["data"].setdefault(dataset_name, []).append(channel_dict)
 
                 with open(traces_path, "w") as f:
                     json.dump(json_dict, f)

@@ -61,6 +61,8 @@ def test_shape_layers_use_units_compatible_with_images(kind):
     from moltrack.funcs.segmentation_events import _segmentation_events
 
     host = _segmentation_events() if kind == "segmentations" else _cell_events()
+    from moltrack.session import ProjectSession
+    host.session = ProjectSession()
     host.viewer = ViewerModel()
     host.viewer.add_image(np.zeros((2, 10, 10)), units=("pixel", "nm", "nm"))
     host.segmentation_image_pixel_size = 100
@@ -102,7 +104,11 @@ def test_active_image_sets_spatial_units_and_preserves_frame_units(shape):
     host = _events_utils()
     host.viewer = ViewerModel()
     image = np.arange(np.prod(shape), dtype=float).reshape(shape)
-    host.dataset_dict = {"a": {"images": {"image": image}, "pixel_size": 100}}
+    from moltrack.session import ProjectSession
+    from moltrack.model_io import import_images
+    host.session = ProjectSession()
+    import_images(host.session, [dict(dataset_name="a", path="camera", source_images=image[None] if image.ndim == 2 else image,
+        pixel_size=100, exposure_time=20, multichannel_mode="None", channel_name="image")])
     host.contrast_dict = {}
     selector = SimpleNamespace(
         blockSignals=lambda value: None,
@@ -123,7 +129,7 @@ def test_active_image_sets_spatial_units_and_preserves_frame_units(shape):
     with warnings.catch_warnings():
         warnings.simplefilter("error", FutureWarning)
         host.update_active_image(dataset="a", channel="image")
-        host.dataset_dict["a"]["pixel_size"] = 120
+        host.session.update_metadata("a", pixel_size=120)
         host.update_active_image(dataset="a", channel="image")
 
     assert [str(unit) for unit in host.image_layer.units[-2:]] == ["nanometer"] * 2

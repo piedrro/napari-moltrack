@@ -142,9 +142,9 @@ class _export_utils:
         export_dir = None
         file_name = None
 
-        for dataset in self.dataset_dict.keys():
-            if "path" in self.dataset_dict[dataset]:
-                path = self.dataset_dict[dataset]["path"]
+        for dataset in self.session.ordinary_datasets():
+            if "path" in self.session.metadata(dataset):
+                path = self.session.metadata(dataset)["path"]
 
                 if type(path) == list:
                     path = path[0]
@@ -392,34 +392,11 @@ class _export_utils:
             self.gui.shapes_export_mode.addItems(["Binary Mask", "JSON", "Oufti/MicrobTracker Mesh"])
 
     def get_export_locs(self, dataset, channel):
-
-        locs = []
-        fitted = False
-        box_size = int(self.gui.picasso_box_size.value())
-        net_gradient = 1000
-
-        locs_export_data = self.gui.locs_export_data.currentText()
-
-        if dataset in self.localisation_dict.keys():
-            if channel in self.localisation_dict[dataset].keys():
-                loc_dict = self.localisation_dict[dataset][channel]
-
-                if "localisations" in loc_dict.keys():
-                    fitted = loc_dict["fitted"]
-                    box_size = loc_dict["box_size"]
-
-                    if "net_gradient" in loc_dict.keys():
-                        net_gradient = loc_dict["net_gradient"]
-
-                    locs = loc_dict["localisations"]
-
-                if locs_export_data == "Tracks":
-                    if dataset in self.tracking_dict.keys():
-                        locs = self.tracking_dict[dataset]
-                    else:
-                        locs = []
-
-        return locs, fitted, box_size, net_gradient
+        from moltrack.model_views import gui_records
+        annotations = self.session.annotations.get("partitions", {}).get(dataset, {}).get(channel, {})
+        query = self.session.query_tracks if self.gui.locs_export_data.currentText() == "Tracks" else self.session.query_localizations
+        locs = gui_records(query(dataset, channel))
+        return locs, annotations.get("fitted", False), annotations.get("box_size", self.gui.picasso_box_size.value()), annotations.get("net_gradient", 1000)
 
     def get_picasso_info(self, import_path,
             image_shape, box_size):
@@ -460,8 +437,8 @@ class _export_utils:
                 n_data = len(data)
 
                 if n_data > 0:
-                    import_path = self.dataset_dict[dataset_name]["path"]
-                    image_dict = self.dataset_dict[dataset_name]["images"]
+                    import_path = self.session.metadata(dataset_name)["path"]
+                    image_dict = {c: self.session.image(dataset_name, c).as_dask() for c in self.session.ordinary_channels(dataset_name)}
                     image_shape = image_dict[channel_name].shape
 
                     if type(import_path) == list:
@@ -546,9 +523,9 @@ class _export_utils:
 
     def initialise_export_locs(self, event=None, export_dataset="", export_channel=""):
         try:
-            if (export_dataset == "" or export_dataset not in self.dataset_dict.keys()):
+            if (export_dataset == "" or export_dataset not in self.session.ordinary_datasets()):
                 export_dataset = self.gui.locs_export_dataset.currentText()
-            if (export_channel == "" or export_channel not in self.dataset_dict[export_dataset]["images"].keys()):
+            if (export_channel == "" or export_channel not in {c: self.session.image(export_dataset, c).as_dask() for c in self.session.ordinary_channels(export_dataset)}.keys()):
                 export_channel = self.gui.locs_export_channel.currentText()
 
             export_data = self.gui.locs_export_data.currentText()
@@ -598,7 +575,7 @@ class _export_utils:
                 dataset_list = list(self.dataset_dict.keys())
 
                 if len(dataset_list) > 0:
-                    path = self.dataset_dict[dataset_list[0]]["path"]
+                    path = self.session.metadata(dataset_list[0])["path"]
 
                     if type(path) == list:
                         path = path[0]
@@ -730,7 +707,7 @@ class _export_utils:
                 show_info("No cells found")
                 return
 
-            path = self.dataset_dict[dataset]["path"]
+            path = self.session.metadata(dataset)["path"]
 
             if type(path) == list:
                 path = path[0]

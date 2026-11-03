@@ -87,13 +87,6 @@ class _pixstats_utils:
 
         if mode == "tracks":
 
-            if hasattr(self, "tracking_dict") == False:
-                show_info("No tracking data found")
-                return None
-            if self.tracking_dict == {}:
-                show_info("No tracking data found")
-                return None
-
             pixstats_data = self.get_tracks(dataset="All Datasets", channel= "All Channels")
 
             progressbar = partial(self.moltrack_progress,
@@ -107,13 +100,6 @@ class _pixstats_utils:
             calculate_fret = self.gui.tracks_pixstats_fret.isChecked()
 
         if mode == "locs":
-
-            if hasattr(self, "localisation_dict") == False:
-                show_info("No localisations data found")
-                return None
-            if self.localisation_dict == {}:
-                show_info("No localisations data found")
-                return None
 
             pixstats_data = self.get_locs(dataset="All Datasets", channel= "All Channels")
 

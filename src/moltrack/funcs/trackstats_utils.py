@@ -1,6 +1,5 @@
 import traceback
 import warnings
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from functools import partial
 
 import numpy as np
@@ -132,64 +131,6 @@ class _trackstats_utils:
         return shape_stats
 
 
-    @staticmethod
-    def get_track_stats(df, min_track_length=4, rolling_window_size=4, shape_data=None):
-        from moltrack.backend import track_statistics
-
-        df = df.sort_values('frame', kind='stable').reset_index(drop=True).copy()
-        if df.empty:
-            return df
-        pixel_size = float(df['pixel_size (um)'].iloc[0])
-        stats = track_statistics(df, pixel_size=pixel_size,
-            time_step=float(df['exposure_time (s)'].iloc[0]),
-            fit_lags=min_track_length, rolling_window=rolling_window_size)
-        stats['angle'] = _trackstats_utils.calculate_track_angles(df[['x', 'y']].to_numpy())
-        stats.update(_trackstats_utils.get_track_shape_stats(df, shape_data, pixel_size))
-        for name, value in stats.items():
-            df[name] = value
-        return df
-
-
-
-    def compute_track_stats(self, track_data, shape_data, progress_callback=None):
-
-        try:
-
-            min_track_length = self.gui.trackstats_adc_track_length.value()
-            rolling_window_size = self.gui.trackstats_roll_window_size.value()
-
-            tracks_with_stats = []
-
-            if type(track_data) == np.recarray:
-                track_data = pd.DataFrame(track_data)
-
-            with ProcessPoolExecutor() as executor:
-
-                #split by dataset, channel and particle into list
-                stats_jobs = [dat[1] for dat in track_data.groupby(["dataset", "channel", "particle"])]
-
-                n_processed = 0
-
-                futures = [executor.submit(_trackstats_utils.get_track_stats, df,
-                    min_track_length, rolling_window_size, shape_data) for df in stats_jobs]
-
-                for future in as_completed(futures):
-                    n_processed += 1
-                    if progress_callback is not None:
-                        progress = int(n_processed / len(stats_jobs) * 100)
-                        progress_callback.emit(progress)
-
-            tracks_with_stats = [future.result() for future in futures if future.result() is not None]
-
-        except:
-            print(traceback.format_exc())
-
-        if len(tracks_with_stats) > 0:
-            track_data = pd.concat(tracks_with_stats, ignore_index=True)
-
-        return track_data
-
-
     def compute_track_stats_finished(self):
 
         self.update_diffusion_range()
@@ -210,25 +151,12 @@ class _trackstats_utils:
         if track_data is None:
             return
 
-        remove_unlinked = self.gui.remove_unlinked.isChecked()
-        layers_names = [layer.name for layer in self.viewer.layers]
-        total_tracks = 0
-
-        for (dataset, channel), tracks in track_data.groupby(["dataset", "channel"]):
-            tracks = tracks.to_records(index=False)
-
-            if dataset not in self.tracking_dict.keys():
-                self.tracking_dict[dataset] = {}
-            if channel not in self.tracking_dict[dataset].keys():
-                self.tracking_dict[dataset][channel] = {}
-
-            self.tracking_dict[dataset][channel] = {"tracks": tracks}
-
-            n_tracks = len(np.unique(tracks["particle"]))
-            total_tracks += n_tracks
-
-        return tracks
-
+        from moltrack.model_analysis import publish_analysis
+        try:
+            return publish_analysis(self.session, track_data)
+        except Exception as exc:
+            show_info(str(exc))
+            return None
 
 
     def get_trackstats_polygons(self, type, flipxy=False):
@@ -307,48 +235,24 @@ class _trackstats_utils:
 
 
     def initialise_track_stats(self):
-
         try:
-
-            if hasattr(self, "tracking_dict"):
-
-                tracks = self.get_tracks("All Datasets", "All Channels")
-                segchannel = self.tracking_segchannel
-                segcol = self.tracking_segcol
-
-                if self.tracking_segchannel in ["Segmentations", "Cells"]:
-                    shape_data = self.get_trackstats_polygons(segchannel, flipxy=True)
-                    shape_data["segcol"] = segcol
-                else:
-                    shape_data = None
-
-                if len(tracks) == 0:
-                    show_info("No tracks found")
-                    return
-
-                self.update_ui(init=True)
-
-                tracks = pd.DataFrame(tracks)
-                tracks["pixel_size (um)"] = 0.0
-                tracks["exposure_time (s)"] = 0.0
-
-                for dataset, data in tracks.groupby("dataset"):
-                    pixel_size_nm = float(self.dataset_dict[dataset]["pixel_size"])
-                    exposure_time_ms = float(self.dataset_dict[dataset]["exposure_time"])
-                    pixel_size_um = pixel_size_nm * 1e-3
-                    exposure_time_s = exposure_time_ms * 1e-3
-                    tracks.loc[data.index, "pixel_size (um)"] = pixel_size_um
-                    tracks.loc[data.index, "exposure_time (s)"] = exposure_time_s
-
-                tracks = tracks.to_records(index=False)
-
-                worker = Worker(self.compute_track_stats, tracks, shape_data)
-                worker.signals.result.connect(self.process_track_stats_result)
-                worker.signals.finished.connect(self.compute_track_stats_finished)
-                worker.signals.progress.connect(partial(self.moltrack_progress,
-                    progress_bar=self.gui.track_stats_progressbar))
-                self.threadpool.start(worker)
-
-        except:
+            from moltrack.model_analysis import prepare_analysis, compute_analysis
+            if not len(self.get_tracks("All Datasets", "All Channels")):
+                show_info("No tracks found")
+                return
+            shape_data = None
+            if self.tracking_segchannel in ("Segmentations", "Cells"):
+                shape_data = self.get_trackstats_polygons(self.tracking_segchannel, flipxy=True)
+            prepared = prepare_analysis(self.session,
+                fit_lags=self.gui.trackstats_adc_track_length.value(),
+                rolling_window=self.gui.trackstats_roll_window_size.value(), shape_data=shape_data,
+                cancel_event=self.stop_event)
+            self.update_ui(init=True)
+            worker = Worker(compute_analysis, prepared)
+            worker.signals.result.connect(self.process_track_stats_result)
+            worker.signals.finished.connect(self.compute_track_stats_finished)
+            worker.signals.progress.connect(partial(self.moltrack_progress, progress_bar=self.gui.track_stats_progressbar))
+            self.threadpool.start(worker)
+        except Exception:
             print(traceback.format_exc())
             self.update_ui()

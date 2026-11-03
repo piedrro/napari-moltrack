@@ -215,7 +215,6 @@ class MolTrack(QWidget, gui, *subclasses):
 
         from moltrack.session import ProjectSession
         self.session = ProjectSession()
-        self.segmentation_dict = {}
         self.contrast_dict = {}
         self.diffusion_dict = {}
 
@@ -482,8 +481,9 @@ class MolTrack(QWidget, gui, *subclasses):
 
             cell_stats = []
 
-            for dataset, dataset_dict in self.dataset_dict.items():
-                channel_dict = dataset_dict.get('images', {})
+            for dataset in self.session.ordinary_datasets():
+                channel_dict = {channel: self.session.image(dataset, channel).as_dask()
+                                for channel in self.session.ordinary_channels(dataset)}
 
                 for channel, image_stack in channel_dict.items():
 
@@ -541,7 +541,6 @@ class MolTrack(QWidget, gui, *subclasses):
         # self.plot_cell_heatmap()
         # self.plot_cell_render()
         # print(True)
-        # self.tracking_dict = {}
 
         # self.populate_dataset_selectors()
 

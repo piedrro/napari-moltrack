@@ -64,10 +64,10 @@ class _cell_heatmap_utils:
             dataset = self.gui.heatmap_dataset.currentText()
             channel = self.gui.heatmap_channel.currentText()
 
-            if hasattr(self, "tracking_dict") == False:
+            if hasattr(self, "session") == False:
                 return
 
-            if self.tracking_dict is None:
+            if self.session is None:
                 return
 
             tracks = self.get_tracks(dataset, channel)
@@ -106,23 +106,30 @@ class _cell_heatmap_utils:
             self.heatmap_canvas.clear()
             self.plot_heatmap()
             self.update_ui()
-            show_info("Cell heatmap computed.")
+            if self._heatmap_is_current():
+                show_info("Cell heatmap computed.")
 
         except:
             print(traceback.format_exc())
 
-    def cell_heatmap_compute(self, celllist, model,method,
-            progress_callback=None):
-
+    def process_cell_heatmap(self, pending):
+        from molcore.staging import state_token
+        from moltrack.model_cells import validate_cells
         try:
+            self.celllist = validate_cells(self.session, pending)
+            self._heatmap_token = state_token(self.session.model)
+        except Exception as exc:
+            show_info(str(exc))
 
-            celllist.transform_cells(model,method = method,
-                progress_callback=progress_callback)
-
-            self.celllist = celllist
-
-        except:
-            print(traceback.format_exc())
+    def _heatmap_is_current(self):
+        from molcore.staging import state_token
+        if getattr(self, "_heatmap_token", None) != state_token(self.session.model):
+            self.heatmap_image = None
+            self.heatmap_locs = None
+            self.heatmap_polygon = None
+            self.heatmap_canvas.clear()
+            return False
+        return True
 
     def populate_celllist(self):
 
@@ -153,14 +160,14 @@ class _cell_heatmap_utils:
 
             data_type = self.gui.heatmap_data.currentText()
             compute_method = self.gui.heatmap_compute_method.currentText()
-            datasets = self.dataset_dict.keys()
+            datasets = self.session.ordinary_datasets()
 
             if "angular" in compute_method.lower():
                 method = "angular"
             else:
                 method = "perpendicular"
 
-            pixel_size_nm = list(set([self.dataset_dict[dataset]["pixel_size"] for dataset in datasets]))
+            pixel_size_nm = list(set([self.session.metadata(dataset)["pixel_size"] for dataset in datasets]))
             pixel_size_um = pixel_size_nm[0] / 1000
 
             model_length = model_length_um / pixel_size_um
@@ -191,7 +198,10 @@ class _cell_heatmap_utils:
 
             show_info(f"Computing cell heatmap for {n_cells} cells")
 
-            worker = Worker(self.cell_heatmap_compute, celllist, model, method)
+            from moltrack.model_cells import prepare_cells
+            prepared = prepare_cells(self.session, {"celllist": celllist, "model": model, "method": method}, cancel_event=self.stop_event)
+            worker = Worker(cell_heatmap_worker, prepared)
+            worker.signals.result.connect(self.process_cell_heatmap)
             worker.signals.finished.connect(self.cell_heatmap_compute_finished)
             worker.signals.progress.connect(partial(self.moltrack_progress,
                 progress_bar=self.gui.heatmap_progressbar, ))
@@ -204,6 +214,10 @@ class _cell_heatmap_utils:
 
 
     def plot_heatmap(self):
+
+        if not self._heatmap_is_current():
+            self.update_ui()
+            return
 
         try:
 
@@ -318,6 +332,10 @@ class _cell_heatmap_utils:
 
     def export_cell_heatmap(self):
 
+        if not self._heatmap_is_current():
+            self.update_ui()
+            return
+
         try:
 
             if hasattr(self, "heatmap_image") == False:
@@ -330,8 +348,8 @@ class _cell_heatmap_utils:
 
             mode = self.gui.heatmap_mode.currentText()
 
-            dataset_list = list(self.dataset_dict.keys())
-            path = self.dataset_dict[dataset_list[0]]["path"]
+            dataset_list = list(self.session.ordinary_datasets())
+            path = self.session.metadata(dataset_list[0])["path"]
 
             if type(path) == list:
                 path = path[0]
@@ -355,6 +373,10 @@ class _cell_heatmap_utils:
 
     def export_heatmap_locs(self):
 
+        if not self._heatmap_is_current():
+            self.update_ui()
+            return
+
         try:
 
             self.update_ui(init=True)
@@ -370,8 +392,8 @@ class _cell_heatmap_utils:
                 show_info("No heatmap localisations to export")
                 return
 
-            dataset_list = list(self.dataset_dict.keys())
-            path = self.dataset_dict[dataset_list[0]]["path"]
+            dataset_list = list(self.session.ordinary_datasets())
+            path = self.session.metadata(dataset_list[0])["path"]
 
             if type(path) == list:
                 path = path[0]
@@ -418,7 +440,7 @@ class _cell_heatmap_utils:
 
                 locs = locs.to_records(index=False)
 
-                import_path = self.dataset_dict[dataset_name]["path"]
+                import_path = self.session.metadata(dataset_name)["path"]
 
                 box_size = int(self.gui.picasso_box_size.value())
                 picasso_info = self.get_picasso_info(import_path, image_shape, box_size)
@@ -463,3 +485,12 @@ class _cell_heatmap_utils:
             self.update_ui()
 
         self.update_ui()
+
+
+def cell_heatmap_worker(prepared, progress_callback=None):
+    from moltrack.model_cells import finish_cells
+    from moltrack.model_processing import _cancel
+    _cancel(prepared.cancel_event)
+    cells = prepared.payload["celllist"]
+    cells.transform_cells(prepared.payload["model"], method=prepared.payload["method"], progress_callback=progress_callback)
+    return finish_cells(prepared, cells)

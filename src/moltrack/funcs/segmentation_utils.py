@@ -47,7 +47,7 @@ class _segmentation_utils:
                     source_images=image, path='', pixel_size=self.segmentation_image_pixel_size,
                     exposure_time=1, multichannel_mode='None', role='segmentation_image')])
                 binding = dataset, channel
-                self.session.annotations['segmentation_image_binding'] = binding
+                self.session.set_annotations('segmentation_image_binding', binding)
                 self._segmentation_source = source
             dataset, channel = binding
         frame = int(self.viewer.dims.current_step[0]) if mode == 'active' else None
@@ -73,7 +73,7 @@ class _segmentation_utils:
 
         images = []
 
-        if self.dataset_dict != {} or hasattr(self, "segmentation_image"):
+        if bool(self.session.ordinary_datasets()) or hasattr(self, "segmentation_image"):
 
             dataset = self.gui.cellpose_dataset.currentText()
             channel = self.gui.cellpose_channel.currentText()
@@ -96,7 +96,7 @@ class _segmentation_utils:
                         else:
                             images = [data]
             else:
-                data = self.dataset_dict[dataset]["images"][channel]
+                data = {c: self.session.image(dataset, c).as_dask() for c in self.session.ordinary_channels(dataset)}[channel]
                 if mode == "active":
                     if len(data.shape) == 3:
                         if current_frame < data.shape[0]:
@@ -163,7 +163,8 @@ class _segmentation_utils:
                         shapes.extend(self.mask_to_shape(segmentation.labels, frame=frame))
                 dataset = result.prepared.request.partitions[0][0]
                 pixel_size = result.prepared.session.metadata(dataset)['pixel_size']
-                self.initialise_segLayer(shapes, pixel_size)
+                mask_ids = [mask.id for _, _, masks in result.results for mask in masks.values()]
+                self.initialise_segLayer(shapes, pixel_size, model_mask_ids=mask_ids)
                 return
 
             layer_names = [layer.name for layer in self.viewer.layers]
@@ -185,7 +186,7 @@ class _segmentation_utils:
                 if dataset == "Segmentation Image":
                     pixel_size = self.segmentation_image_pixel_size
                 else:
-                    pixel_size = self.dataset_dict[dataset]["pixel_size"]
+                    pixel_size = self.session.metadata(dataset)["pixel_size"]
 
                 self.initialise_segLayer(shapes, pixel_size)
 

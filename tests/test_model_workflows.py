@@ -465,6 +465,7 @@ def test_gui_workflows_capture_detached_requests(operation):
     }
     host = types.get(operation, _tracking_utils)()
     host.session = make_session()
+    host.session.update_metadata("a", pixel_size=100.)
     host.session.annotations["partitions"] = {"a": {"image": {"fitted": True}}}
     if operation == "registration":
         host.session.bind("a", "Donor", "camera", "image")
@@ -754,7 +755,7 @@ def test_processing_settings_publish_with_results():
     assert "photometry" not in session.model.processing.settings
     proc.publish(session, pending)
     assert (
-        session.model.processing.settings["photometry"]["camera"]["image"][
+        session.model.processing.settings["moltrack_operations"]["camera"]["image"]["photometry"][
             "settings"
         ]["spot_size"]
         == 5

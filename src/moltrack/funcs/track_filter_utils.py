@@ -34,7 +34,7 @@ class _track_filter_utils:
 
         try:
 
-            if hasattr(self, "tracking_dict"):
+            if hasattr(self, "session"):
 
                 dataset = self.gui.track_filter_dataset.currentText()
                 channel = self.gui.track_filter_channel.currentText()
@@ -127,7 +127,7 @@ class _track_filter_utils:
 
             tracks = pd.DataFrame(tracks)
 
-            for (dataset, channel, particle), track in tracks.groupby(['dataset', 'channel', 'particle']):
+            for (dataset, channel, particle), track in tracks.groupby(['dataset', 'channel', 'track_id']):
 
                 try:
 
@@ -187,16 +187,13 @@ class _track_filter_utils:
 
         if mode == "stats":
             if len(stats) > 0:
-                stats = pd.DataFrame(stats, columns=['dataset', 'channel', 'particle', 'stat'])
+                stats = pd.DataFrame(stats, columns=['dataset', 'channel', 'track_id', 'stat'])
 
             return stats
 
         else:
-            if len(filtered_tracks) > 0:
-                filtered_tracks = pd.concat(filtered_tracks)
-                n_removed = len(tracks) - len(filtered_tracks)
-
-                return filtered_tracks, n_removed
+            result = pd.concat(filtered_tracks) if filtered_tracks else pd.DataFrame(tracks).iloc[:0]
+            return result, len(tracks) - len(result)
 
 
     def plot_track_filter_graph(self, values):
@@ -264,10 +261,13 @@ class _track_filter_utils:
 
             filtered_tracks, n_removed = self.track_statistics_filtering(mode="tracks")
 
-            for (dataset, channel), tracks in filtered_tracks.groupby(['dataset', 'channel']):
-
-                tracks = tracks.to_dict('records')
-                self.tracking_dict[dataset][channel]['tracks'] = tracks
+            dataset = self.gui.track_filter_dataset.currentText()
+            channel = self.gui.track_filter_channel.currentText()
+            for partition in self.session.selected_partitions(dataset, channel):
+                rows = filtered_tracks
+                if len(rows):
+                    rows = rows[(rows.dataset == partition[0]) & (rows.channel == partition[1])]
+                self.session.retain_rows(*partition, rows.id.to_numpy() if "id" in rows else [], tracks=True)
 
             self.draw_tracks()
             self.update_track_criterion_ranges()

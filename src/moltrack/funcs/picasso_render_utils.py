@@ -215,12 +215,12 @@ class _picasso_render_utils:
                 image_shape = loc_data[0]["image_shape"]
                 if dataset != "All Datasets":
                     pixel_size = float(
-                        self.dataset_dict[dataset]["pixel_size"]
+                        self.session.metadata(dataset)["pixel_size"]
                     )
                 else:
-                    dataset_name = list(self.dataset_dict.keys())[0]
+                    dataset_name = list(self.session.ordinary_datasets())[0]
                     pixel_size = float(
-                        self.dataset_dict[dataset_name]["pixel_size"]
+                        self.session.metadata(dataset_name)["pixel_size"]
                     )
 
                 if blur_method == "One-Pixel-Blur":

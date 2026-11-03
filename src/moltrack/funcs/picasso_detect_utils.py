@@ -70,7 +70,7 @@ class _picasso_detect_utils:
     def init_picasso(self, detect = False, fit = False):
 
         try:
-            if self.dataset_dict != {}:
+            if bool(self.session.ordinary_datasets()):
 
                 detect_mode = self.gui.smlm_detect_mode.currentText()
                 fit_mode = self.gui.smlm_fit_mode.currentText()
@@ -97,17 +97,16 @@ class _picasso_detect_utils:
                         frame_index = None
 
                     if dataset_name == "All Datasets":
-                        dataset_list = list(self.dataset_dict.keys())
+                        dataset_list = list(self.session.ordinary_datasets())
                     else:
                         dataset_list = [dataset_name]
 
                     if channel_name == "All Channels":
 
                         channel_list = []
-                        for dataset_name in self.dataset_dict.keys():
+                        for dataset_name in self.session.ordinary_datasets():
                             try:
-                                image_dict = self.dataset_dict[dataset_name]["images"]
-                                channel_list.append(set(image_dict.keys()))
+                                channel_list.append(set(self.session.ordinary_channels(dataset_name)))
                             except:
                                 pass
 
@@ -136,8 +135,8 @@ class _picasso_detect_utils:
                             kernel_size=int(self.gui.moltrack_kernel_size.text()),
                             fit_mode=fit_mode,
                         )
-                        request = ProcessingRequest('detect', tuple(
-                            (dataset, channel) for dataset in dataset_list for channel in channel_list
+                        request = ProcessingRequest('detect', self.session.selected_partitions(
+                            self.gui.picasso_dataset.currentText(), self.gui.picasso_channel.currentText()
                         ), settings)
                         prepared = prepare(self.session, request)
                         stop_event = self.stop_event
@@ -199,14 +198,14 @@ class _picasso_detect_utils:
                 channel = self.gui.picasso_channel.currentText()
 
                 if dataset == "All Datasets":
-                    dataset_list = list(self.dataset_dict.keys())
+                    dataset_list = list(self.session.ordinary_datasets())
                 else:
                     dataset_list = [dataset]
 
                 for dataset_name in dataset_list:
 
                     if channel == "All Channels":
-                        channel_list = list(self.dataset_dict[dataset_name]["images"].keys())
+                        channel_list = list(self.session.ordinary_channels(dataset_name))
                     else:
                         channel_list = [channel]
 
@@ -217,8 +216,7 @@ class _picasso_detect_utils:
                         if channel_name not in roi_dict[dataset_name].keys():
                             roi_dict[dataset_name][channel_name] = {}
 
-                        image_dict = self.dataset_dict[dataset_name]["images"]
-                        image_shape = image_dict[channel_name].shape
+                        image_shape = self.session.image(dataset_name, channel_name).shape
 
                         frame_shape = image_shape[1:]
 

@@ -101,7 +101,7 @@ class _diffusion_utils:
 
         try:
 
-            if hasattr(self, "tracking_dict") == True:
+            if hasattr(self, "session") == True:
 
                 dataset = self.gui.adc_dataset.currentText()
                 channel = self.gui.adc_channel.currentText()
@@ -179,7 +179,7 @@ class _diffusion_utils:
 
                 coefs = []
 
-                for particle, track in tracks.groupby("particle"):
+                for particle, track in tracks.groupby("track_id"):
 
                     diffusion = track[plot_metric].values[0]
                     coefs.append(diffusion)
@@ -243,7 +243,7 @@ class _diffusion_utils:
 
         try:
 
-            if hasattr(self, "tracking_dict") == True:
+            if hasattr(self, "session") == True:
 
                 dataset = self.gui.adc_dataset.currentText()
                 channel = self.gui.adc_channel.currentText()
@@ -265,8 +265,8 @@ class _diffusion_utils:
                 if msd is None:
                     return
 
-                dataset_list = list(self.dataset_dict.keys())
-                file_path = self.dataset_dict[dataset_list[0]]["path"]
+                dataset_list = list(self.session.ordinary_datasets())
+                file_path = self.session.metadata(dataset_list[0])["path"]
 
                 if type(file_path) == list:
                     file_path = file_path[0]
@@ -303,12 +303,12 @@ class _diffusion_utils:
             export_data = []
             for (dataset_name, channel_name), tracks in track_data.groupby(["dataset", "channel"]):
                 dat = []
-                for particle, track in tracks.groupby("particle"):
+                for particle, track in tracks.groupby("track_id"):
                     diffusion = track["D*"].values[0]
                     if diffusion >= min_range and diffusion <= max_range:
-                        dat.append([particle,diffusion])
+                        dat.append([int(particle), track["particle"].iloc[0], diffusion])
 
-                coef_data = pd.DataFrame(dat, columns=["particle","D* (um2/s)"])
+                coef_data = pd.DataFrame(dat, columns=["track_id", "particle","D* (um2/s)"])
                 coef_data.insert(0, "dataset", dataset_name)
                 coef_data.insert(1, "channel", channel_name)
                 export_data.append(coef_data)
@@ -320,7 +320,7 @@ class _diffusion_utils:
 
             dataset_list = coefs["dataset"].unique()
 
-            file_path = self.dataset_dict[dataset_list[0]]["path"]
+            file_path = self.session.metadata(dataset_list[0])["path"]
 
             if type(file_path) == list:
                 file_path = file_path[0]

@@ -13,7 +13,6 @@ from qtpy.QtWidgets import (
     QDoubleSpinBox,
     QSpinBox,
 )
-from scipy.ndimage import shift
 
 
 class _events_utils:
@@ -24,7 +23,7 @@ class _events_utils:
         pixel_size = self.gui.update_pixel_size_value.value()
         update_seg = self.gui.update_pixel_size_segmentations.isChecked()
 
-        if dataset == "" or dataset not in self.dataset_dict.keys():
+        if dataset == "" or dataset not in self.session.ordinary_datasets():
             return
 
         self.session.update_metadata(dataset, pixel_size=pixel_size)
@@ -66,7 +65,7 @@ class _events_utils:
                                  ]
 
             for selector_name in dataset_selectors:
-                dataset_names = list(self.dataset_dict.keys())
+                dataset_names = list(self.session.ordinary_datasets())
 
                 single_dataset_selectors = ["moltrack_dataset_selector", "cellpose_dataset",
                                             "copy_locs_dataset", "copy_tracks_dataset",
@@ -127,21 +126,20 @@ class _events_utils:
             channel_names = []
 
             if dataset_name != "All Datasets":
-                if dataset_name in self.dataset_dict.keys():
-                    image_dict = self.dataset_dict[dataset_name]["images"]
-
-                    channel_names = list(image_dict.keys())
+                if dataset_name in self.session.ordinary_datasets():
+                    channel_names = list(self.session.ordinary_channels(dataset_name))
 
             else:
                 channel_names = []
 
-                for dataset_name in self.dataset_dict.keys():
-                    image_dict = self.dataset_dict[dataset_name]["images"]
-                    channel_names.append(set(image_dict.keys()))
+                for dataset_name in self.session.ordinary_datasets():
+                    channel_names.append(set(self.session.ordinary_channels(dataset_name)))
 
-                channel_names = set.intersection(*channel_names)
+                channel_names = set.intersection(*channel_names) if channel_names else set()
                 channel_names = list(channel_names)
 
+            if dataset_name == "Segmentation Image" and channel_selector.objectName() == "cellpose_channel":
+                channel_names = ["Segmentation Image"]
             channel_selector_name = channel_selector.objectName()
 
             if (channel_selector_name not in single_channel_selectors and len(channel_names) > 1):
@@ -481,9 +479,9 @@ class _events_utils:
             dataset = self.active_dataset
             channel = self.active_channel
 
-            if dataset in self.dataset_dict.keys():
-                if "images" in self.dataset_dict[dataset].keys():
-                    image_dict = self.dataset_dict[dataset]["images"]
+            if dataset in self.session.ordinary_datasets():
+                if self.session.ordinary_channels(dataset):
+                    image_dict = {c: self.session.image(dataset, c).as_dask() for c in self.session.ordinary_channels(dataset)}
 
                     if channel in image_dict.keys():
                         if dataset not in self.contrast_dict.keys():
@@ -538,14 +536,14 @@ class _events_utils:
 
         try:
 
-            if dataset == None or dataset not in self.dataset_dict.keys():
+            if dataset == None or dataset not in self.session.ordinary_datasets():
                 dataset_name = self.gui.moltrack_dataset_selector.currentText()
             else:
                 dataset_name = dataset
 
-            if dataset_name in self.dataset_dict.keys():
-                if "images" in self.dataset_dict[dataset_name].keys():
-                    image_dict = self.dataset_dict[dataset_name]["images"]
+            if dataset_name in self.session.ordinary_datasets():
+                if self.session.ordinary_channels(dataset_name):
+                    image_dict = {c: self.session.image(dataset_name, c).as_dask() for c in self.session.ordinary_channels(dataset_name)}
 
                     if channel == None or channel not in image_dict.keys():
                         channel_name = (self.gui.moltrack_channel_selector.currentText())
@@ -557,8 +555,8 @@ class _events_utils:
                     self.active_dataset = dataset_name
                     self.active_channel = channel_name
 
-                    image_dict = self.dataset_dict[dataset_name]["images"]
-                    pixel_size = float(self.dataset_dict[dataset_name]["pixel_size"])
+                    image_dict = {c: self.session.image(dataset_name, c).as_dask() for c in self.session.ordinary_channels(dataset_name)}
+                    pixel_size = float(self.session.metadata(dataset_name)["pixel_size"])
                     scale = [pixel_size, pixel_size]
 
                     if channel_name in image_dict.keys():
@@ -588,7 +586,7 @@ class _events_utils:
                         self.image_layer_auto_contrast(image, dataset_name, channel_name)
                         self.image_layer.refresh()
 
-                        dataset_names = self.dataset_dict.keys()
+                        dataset_names = self.session.ordinary_datasets()
                         active_dataset_index = list(dataset_names).index(dataset_name)
 
                         channel_names = list(image_dict.keys())
@@ -621,12 +619,12 @@ class _events_utils:
 
     def update_overlay_text(self):
         try:
-            if self.dataset_dict != {}:
+            if bool(self.session.ordinary_datasets()):
                 dataset_name = self.gui.moltrack_dataset_selector.currentText()
                 channel_name = self.gui.moltrack_channel_selector.currentText()
 
-                if dataset_name in self.dataset_dict.keys():
-                    data_dict = self.dataset_dict[dataset_name].copy()
+                if dataset_name in self.session.ordinary_datasets():
+                    data_dict = self.session.metadata(dataset_name)
 
                     path = data_dict["path"]
                     exposure_time_ms = data_dict["exposure_time"]
@@ -665,7 +663,7 @@ class _events_utils:
 
         remove_localisations = True
 
-        if hasattr(self, "localisation_dict"):
+        if hasattr(self, "session"):
             if hasattr(self, "fiducial_layer"):
                 show_localisations = self.loc_layer.visible
             else:
@@ -678,19 +676,19 @@ class _events_utils:
                 dataset_name = self.gui.moltrack_dataset_selector.currentText()
                 channel_name = self.gui.moltrack_channel_selector.currentText()
 
-                if dataset_name in self.localisation_dict.keys():
-                    if (channel_name in self.localisation_dict[dataset_name].keys()):
+                if dataset_name in self.session.ordinary_datasets():
+                    if channel_name in self.session.ordinary_channels(dataset_name):
 
-                        localisation_dict = self.localisation_dict[dataset_name][channel_name].copy()
+                        records = self.session.query_localizations(dataset_name, channel_name).to_records(index=False)
 
-                        if "localisations" in localisation_dict.keys():
-                            locs = localisation_dict["localisations"]
+                        if len(records):
+                            locs = records
 
                             if active_frame in locs.frame:
                                 frame_locs = locs[locs.frame == active_frame].copy()
                                 render_locs = np.vstack((frame_locs.y, frame_locs.x)).T.tolist()
 
-                                pixel_size = float(self.dataset_dict[dataset_name]["pixel_size"])
+                                pixel_size = float(self.session.metadata(dataset_name)["pixel_size"])
                                 scale = [pixel_size, pixel_size]
 
                                 vis_mode = (self.gui.picasso_vis_mode.currentText())
@@ -812,16 +810,12 @@ class _events_utils:
 
             if translation_target in ["Segmentation Image", "All"]:
                 if hasattr(self, "segmentation_image"):
-                    image = self.segmentation_image.copy()
-
-                    if len(image.shape) == 2:
-                        image = shift(image, shift=shift_vector)
-                        self.segmentation_image = image
-
-                    else:
-                        for fame_index, frame in enumerate(image):
-                            image[fame_index] = shift(frame, shift=shift_vector)
-                        self.segmentation_image = image
+                    binding = self.session.annotations.get("segmentation_image_binding")
+                    if binding is None:
+                        raise ValueError("Segmentation image must have a persistent source binding")
+                    self.session.translate_image(*binding, dx=shift_vector[1], dy=shift_vector[0])
+                    self.segmentation_image = self.session.image(*binding)[:]
+                    self._segmentation_source = self.segmentation_image
 
                     self.segmentation_layer.data = self.segmentation_image
                     self.segmentation_layer.refresh()

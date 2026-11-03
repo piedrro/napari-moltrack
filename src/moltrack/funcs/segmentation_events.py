@@ -57,7 +57,7 @@ class _segmentation_events:
         layer.bind_key("s", func=lambda event: self.modify_mode(mode="edit_midlines"), overwrite=True, )
         layer.bind_key("Escape", func=lambda event: self.modify_mode(mode="pan_zoom"), overwrite=True, )
 
-    def initialise_segLayer(self, shapes=None, pixel_size=None):
+    def initialise_segLayer(self, shapes=None, pixel_size=None, *, model_mask_ids=()):
         layer_names = [layer.name for layer in self.viewer.layers]
 
         if "Segmentations" in layer_names:
@@ -101,6 +101,9 @@ class _segmentation_events:
         self.segLayer.mouse_wheel_callbacks.append(self.dilate_segmentation)
 
         self.register_shape_layer_keybinds(self.segLayer)
+        from moltrack.model_views import record_layer_annotations, connect_layer_annotations
+        record_layer_annotations(self.session, self.segLayer, "segmentations", mask_ids=model_mask_ids)
+        connect_layer_annotations(self.session, self.segLayer, "segmentations")
         self.update_segmentation_combos()
 
         return self.segLayer

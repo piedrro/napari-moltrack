@@ -46,7 +46,7 @@ class _cell_events:
             pixel_size = self.segmentation_image_pixel_size
             scale = [pixel_size, pixel_size]
         elif self.active_dataset is not None:
-            pixel_size = self.dataset_dict[self.active_dataset]["pixel_size"]
+            pixel_size = self.session.metadata(self.active_dataset)["pixel_size"]
             scale = [pixel_size, pixel_size]
         else:
             scale = [1, 1]
@@ -99,6 +99,9 @@ class _cell_events:
 
         self.store_cell_shapes(init=True)
 
+        from moltrack.model_views import record_layer_annotations, connect_layer_annotations
+        record_layer_annotations(self.session, self.cellLayer, "cells")
+        connect_layer_annotations(self.session, self.cellLayer, "cells")
         self.update_segmentation_combos()
 
         return self.cellLayer
@@ -256,14 +259,16 @@ class _cell_events:
 
         try:
 
-            name_list = self.cellLayer.properties["name"].copy()
-            cell_list = self.cellLayer.properties["cell"].copy()
+            annotations = copy.deepcopy(self.session.annotations.get("cells", {}))
+            properties = annotations.get("properties", {})
+            name_list = properties.get("name", [])
+            cell_list = properties.get("cell", [])
 
             cell_list = [cell for cell in cell_list if isinstance(cell, dict)]
 
-            shape_types = self.cellLayer.shape_type.copy()
-            shapes = self.cellLayer.data.copy()
-            pixel_size = self.cellLayer.scale[0]
+            shape_types = annotations.get("shape_types", [])
+            shapes = annotations.get("data", [])
+            pixel_size = annotations.get("scale", [1.])[0]
 
             cell_indices = [i for i, n in enumerate(name_list) if n == name]
 

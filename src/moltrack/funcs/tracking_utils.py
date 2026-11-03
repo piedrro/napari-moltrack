@@ -50,7 +50,7 @@ class _tracking_utils:
 
             filtered_tracks = []
 
-            track_groups = tracks.groupby(["dataset", "channel", "particle"])
+            track_groups = tracks.groupby(["dataset", "channel", "track_id"])
 
             n_tracks_removed = 0
             n_segments_removed = 0
@@ -101,13 +101,12 @@ class _tracking_utils:
                             else:
                                 n_tracks_removed += 1
 
-            if len(filtered_tracks) > 0:
-                filtered_tracks = pd.concat(filtered_tracks, ignore_index=True)
-
-                for (dataset, channel), filtered_track in filtered_tracks.groupby(["dataset", "channel"]):
-                    filtered_track.reset_index(drop=True, inplace=True)
-                    filtered_track = filtered_track.to_records(index=False)
-                    self.tracking_dict[dataset][channel]["tracks"] = filtered_track
+            retained = pd.concat(filtered_tracks, ignore_index=True) if filtered_tracks else tracks.iloc[:0]
+            for partition in self.session.selected_partitions(
+                self.gui.segtracks_dataset.currentText(), self.gui.segtracks_channel.currentText()
+            ):
+                selected = retained[(retained.dataset == partition[0]) & (retained.channel == partition[1])]
+                self.session.retain_rows(*partition, selected.id.to_numpy(), tracks=True)
 
             if remove_mode == "Track":
                 show_info(f"Removed {n_tracks_removed} complete tracks")
@@ -125,100 +124,9 @@ class _tracking_utils:
             print(traceback.format_exc())
 
     def get_tracks(self, dataset, channel, return_dict=False, include_metadata=True):
-        if hasattr(self, 'session'):
-            from moltrack.model_views import gui_query
-            return gui_query(self.session, dataset, channel, tracks=True, return_dict=return_dict, include_metadata=include_metadata)
-
-
-
-        order = ["dataset", "channel", "group", "particle",
-                 "frame", "cell_index", "segmentation_index",
-                 "x", "y", "photons", "bg",
-                 "sx", "sy", "lpx", "lpy",
-                 "ellipticity", "net_gradient", "iterations"]
-
-        track_data = []
-        group = 0
-
-        try:
-            if dataset == "All Datasets":
-                dataset_list = list(self.tracking_dict.keys())
-            else:
-                dataset_list = [dataset]
-
-            for dataset_name in dataset_list:
-                if dataset_name not in self.tracking_dict.keys():
-                    continue
-
-                if channel == "All Channels":
-                    channel_list = list(self.tracking_dict[dataset_name].keys())
-                else:
-                    channel_list = [channel]
-
-                for channel_name in channel_list:
-                    if (channel_name not in self.tracking_dict[dataset_name].keys()):
-                        continue
-
-                    track_dict = self.tracking_dict[dataset_name][channel_name]
-
-                    if "tracks" in track_dict.keys():
-                        tracks = track_dict["tracks"].copy()
-
-                        tracks = pd.DataFrame(tracks)
-
-                        if include_metadata:
-                            if "dataset" not in tracks.columns:
-                                tracks.insert(0, "dataset", dataset_name)
-                            if "channel" not in tracks.columns:
-                                tracks.insert(1, "channel", channel_name)
-                            if len(dataset_list) > 1:
-                                if "group" not in tracks.columns:
-                                    tracks.insert(2, "group", group)
-
-                        mask = []
-
-                        for col in tracks.columns:
-                            if col not in order:
-                                order.append(col)
-
-                        for col in order:
-                            if col in tracks.columns:
-                                mask.append(col)
-
-                        tracks = tracks[mask]
-
-                        tracks = tracks.to_records(index=False)
-
-                        n_tracks = len(tracks)
-
-                        if n_tracks > 0:
-                            if return_dict == False:
-                                track_data.append(tracks)
-                            else:
-                                track_dict = {"dataset": dataset_name, "channel": channel_name, "tracks": tracks, }
-                                track_data.append(track_dict)
-
-        except:
-            print(traceback.format_exc())
-
-        if return_dict == False:
-            if len(track_data) == 0:
-                pass
-            elif len(track_data) == 1:
-                track_data = track_data[0]
-            else:
-
-                name_list = [set(dat.dtype.names) for dat in track_data]
-                common_names = list(set.intersection(*name_list))
-
-                if len(common_names) > 0:
-                    track_data = [dat[common_names] for dat in track_data]
-                    track_data = np.hstack(track_data).view(np.recarray).copy()
-                else:
-                    track_data = []
-
-        return track_data
-
+        from moltrack.model_views import gui_query
+        return gui_query(self.session, dataset, channel, tracks=True,
+                         return_dict=return_dict, include_metadata=include_metadata)
 
     def link_locs(self, f, search_range, pos_columns=None,
                   t_column='frame', progress_callback=None, **kwargs):
@@ -431,7 +339,7 @@ class _tracking_utils:
 
             remove_tracks = True
 
-            if hasattr(self, "tracking_dict"):
+            if hasattr(self, "session"):
                 if hasattr(self, "tracks_layer"):
                     show_tracks = self.loc_layer.visible
                 else:
@@ -447,10 +355,9 @@ class _tracking_utils:
                     return_dict=False, include_metadata=True, )
 
                 if len(tracks) > 0:
-                    image_dict = self.dataset_dict[dataset_name]["images"]
-                    n_frames = image_dict[channel_name].shape[0]
+                    n_frames = self.session.image(dataset_name, channel_name).shape[0]
 
-                    pixel_size = float(self.dataset_dict[dataset_name]["pixel_size"])
+                    pixel_size = float(self.session.metadata(dataset_name)["pixel_size"])
                     scale = [pixel_size, pixel_size]
 
                     remove_tracks = False
@@ -461,14 +368,15 @@ class _tracking_utils:
                     cmap_metric = self.moltrack_metrics.get(cmap_metric)
                     cmap_name = self.gui.track_colour_colourmap.currentText()
 
-                    if cmap_metric in render_tracks.columns:
-                        metric_data = render_tracks[cmap_metric].values
+                    if cmap_metric in render_tracks.columns and np.isfinite(render_tracks[cmap_metric].to_numpy(dtype=float)).any():
+                        metric_data = render_tracks[cmap_metric].to_numpy(dtype=float)
+                        finite_metrics = metric_data[np.isfinite(metric_data)]
 
                         if reset_cmap_range:
-                            cmap_min = min(metric_data)
-                            cmap_max = max(metric_data)
+                            cmap_min = min(finite_metrics)
+                            cmap_max = max(finite_metrics)
 
-                            step = self.nice_step(cmap_min,cmap_max)
+                            step = self.nice_step(cmap_min,cmap_max) if cmap_max > cmap_min else 1.0
                             self.gui.track_colour_min.blockSignals(True)
                             self.gui.track_colour_max.blockSignals(True)
 
@@ -490,14 +398,19 @@ class _tracking_utils:
                         if cmap_min > cmap_max:
                             cmap_min, cmap_max = cmap_max, cmap_min
 
-                        metric_norm_data = np.clip((metric_data - cmap_min) / (cmap_max - cmap_min), 0, 1)
+                        metric_norm_data = (
+                            np.clip((metric_data - cmap_min) / (cmap_max - cmap_min), 0, 1)
+                            if cmap_max > cmap_min else np.zeros(len(metric_data))
+                        )
                     else:
                         metric_norm_data = None
 
-                    render_tracks = render_tracks[["particle", "frame", "y", "x"]]
-
-                    if track_id in render_tracks["particle"].values:
-                        render_tracks = render_tracks[render_tracks["particle"] == track_id]
+                    if track_id in render_tracks["track_id"].values:
+                        selected = render_tracks["track_id"] == track_id
+                        render_tracks = render_tracks[selected]
+                        if metric_norm_data is not None:
+                            metric_norm_data = metric_norm_data[selected]
+                    render_tracks = render_tracks[["track_id", "frame", "y", "x"]]
 
                     render_tracks = render_tracks.to_records(index=False)
                     render_tracks = [list(track) for track in render_tracks]
@@ -542,10 +455,9 @@ class _tracking_utils:
             if remove_tracks:
                 try:
                     if "Tracks" in layer_names:
-                        self.track_layer.selected_data = []
-                        self.viewer.layers.remove(self.track_layer)
-                        self.track_layer = self.viewer.add_tracks(np.array([[0,0,0,0]]), name="Tracks",
-                            units=("pixel", "nm", "nm"))
+                        self.viewer.layers.remove("Tracks")
+                        if hasattr(self, "track_layer"):
+                            del self.track_layer
                 except:
                     print(traceback.format_exc())
 

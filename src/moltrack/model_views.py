@@ -91,16 +91,22 @@ def gui_query(
 
     frames = []
     result = []
-    datasets = session.datasets() if dataset == "All Datasets" else (dataset,)
+    datasets = (
+        session.ordinary_datasets()
+        if dataset == "All Datasets"
+        else (dataset,)
+    )
     group = 0
     for name in datasets:
-        if name not in session.datasets():
+        if name not in session.ordinary_datasets():
             continue
         channels = (
-            session.channels(name) if channel == "All Channels" else (channel,)
+            session.ordinary_channels(name)
+            if channel == "All Channels"
+            else (channel,)
         )
         for ch in channels:
-            if ch not in session.channels(name):
+            if ch not in session.ordinary_channels(name):
                 continue
             rows = (
                 session.query_tracks if tracks else session.query_localizations
@@ -146,3 +152,58 @@ def gui_query(
     if return_dict:
         return result
     return gui_records(pd.concat(frames, ignore_index=True)) if frames else []
+
+
+def record_layer_annotations(session, layer, name, *, mask_ids=()):
+    """Capture exact editable vertices, types, properties and display calibration."""
+    session.set_annotations(
+        name,
+        {
+            "data": deepcopy(list(layer.data)),
+            "shape_types": list(layer.shape_type),
+            "properties": deepcopy(dict(layer.properties)),
+            "scale": list(layer.scale),
+            "mask_ids": list(mask_ids),
+        },
+    )
+
+
+def connect_layer_annotations(session, layer, name):
+    # Keep the capture independent of interactive edit-mode handlers, which
+    # temporarily disconnect themselves during compound shape operations.
+    def changed(event):
+        if getattr(event, "action", None) in (
+            "adding",
+            "changing",
+            "removing",
+        ):
+            return
+        record_layer_annotations(session, layer, name)
+
+    # Interactive handlers read the session to fit companion geometry. Capture
+    # first, including after those handlers reconnect following compound edits.
+    layer.events.data.connect(changed, position="first")
+    layer.events.properties.connect(changed, position="first")
+    layer.events.scale.connect(changed, position="first")
+    return changed
+
+
+def refresh_row_projections(host, *, localizations=False, update_vis=False):
+    """Refresh row views and dependent consumers after a GUI mutation."""
+    if localizations:
+        host.draw_localisations(update_vis=update_vis)
+    host.draw_tracks()
+    for name in (
+        "update_track_filter_criterion",
+        "update_track_criterion_ranges",
+        "update_diffusion_range",
+        "plot_diffusion_graph",
+        "update_traces_export_options",
+        "update_trackplot_options",
+        "plot_tracks",
+        "update_render_msd_range",
+        "_heatmap_is_current",
+    ):
+        callback = getattr(host, name, None)
+        if callback is not None:
+            callback()
