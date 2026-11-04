@@ -568,6 +568,8 @@ class ProjectSession:
         rows = (self.query_tracks if tracks else self.query_localizations)(
             *source
         )
+        if rows.empty:
+            return
         binding = self.partition(*target)
         incoming = rows.drop(
             columns=[
@@ -736,11 +738,11 @@ class ProjectSession:
         self._analysis_cache.clear()
 
 
-def clear_statistics(model):
+def clear_statistics(model, *, ids=None):
     """Invalidate GUI-derived numeric statistics after their inputs change."""
     from .model_analysis import STAT_COLUMNS
 
-    rows = model.localizations.query(space="raw")
+    rows = model.localizations.query(ids=ids, space="raw")
     columns = {
         name: np.full(len(rows["id"]), np.nan)
         for name in STAT_COLUMNS

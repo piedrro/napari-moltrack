@@ -6,7 +6,7 @@ from weakref import ref
 
 import numpy as np
 import pandas as pd
-from molcore.staging import state_token, transact
+from molcore.staging import state_token, transact, validate_expected
 
 from .model_processing import _cancel
 
@@ -47,17 +47,15 @@ def compute_merge(prepared, progress_callback=None):
     results = []
     for dataset in prepared.datasets:
         _cancel(prepared.cancel_event)
-        data = pd.DataFrame(
-            prepared.session.query_localizations(
-                dataset, prepared.session.ordinary_channels(dataset)[0]
-            )
-        ).iloc[:0]
         chunks = [
             prepared.session.query_localizations(dataset, ch)
             for ch in prepared.session.ordinary_channels(dataset)
         ]
-        if chunks:
-            data = pd.concat(chunks, ignore_index=True)
+        # Compatibility requires two populated channels across the dataset,
+        # even when an individual frame contains only one channel's rows.
+        if sum(not chunk.empty for chunk in chunks) < 2:
+            continue
+        data = pd.concat(chunks, ignore_index=True)
         merged = []
         groups = list(data.groupby("frame", sort=True))
         for index, (_, group) in enumerate(groups):
@@ -91,6 +89,10 @@ def publish_merge(session, pending):
         or session._partitions != prepared.bindings
     ):
         raise StaleResultError("Session bindings changed")
+    validate_expected(session.model, prepared.expected)
+    if not results:
+        _cancel(prepared.cancel_event)
+        return
 
     def commit(model):
         from moltrack.session import ProjectSession
@@ -115,7 +117,21 @@ def publish_merge(session, pending):
                 staged.replace_localizations(dataset, channel, raw)
         from moltrack.session import clear_statistics
 
-        clear_statistics(model)
+        affected_ids = np.concatenate(
+            [
+                model.localizations.query(
+                    acquisition_id=acquisition,
+                    channel=native_channel,
+                    space="raw",
+                )["id"]
+                for dataset, _ in results
+                for channel in staged.ordinary_channels(dataset)
+                for acquisition, native_channel in [
+                    staged.partition(dataset, channel)
+                ]
+            ]
+        )
+        clear_statistics(model, ids=affected_ids)
         _cancel(prepared.cancel_event)
 
     transact(session.model, commit, expected=prepared.expected)

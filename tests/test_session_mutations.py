@@ -35,6 +35,163 @@ def rows():
     )
 
 
+@pytest.mark.parametrize("tracks", [False, True])
+def test_empty_source_copy_is_a_service_noop(tracks):
+    s = make_session()
+    ids = s.replace_localizations("data", "acceptor", rows())
+    s.model.tracks.add(ids, metadata={"particle": "keep"})
+    s.update_measurements(ids, {"speed": [0.0, 7.0, 8.0]})
+    s.set_annotations("partitions", {"data": {"acceptor": {"fitted": True}}})
+    before_locs = s.query_localizations("data", "acceptor")
+    before_tracks = s.query_tracks("data", "acceptor")
+    before = state_token(s.model)
+    s.copy_rows(("data", "donor"), ("data", "acceptor"), tracks=tracks)
+    pd.testing.assert_frame_equal(
+        s.query_localizations("data", "acceptor"), before_locs, check_like=True
+    )
+    pd.testing.assert_frame_equal(
+        s.query_tracks("data", "acceptor"), before_tracks, check_like=True
+    )
+    assert s.annotations["partitions"] == {
+        "data": {"acceptor": {"fitted": True}}
+    }
+    assert state_token(s.model) == before
+
+
+def merge_noop_session(channel_count=2, populated=True):
+    s = make_session()
+    if channel_count == 1:
+        single = ProjectSession(s.model)
+        single.bind("data", "donor", "a", "image")
+        s = single
+    if populated:
+        nearby = rows().assign(
+            frame=[0, 0, 1], x=[2.0, 2.1, 3.0], y=[2.0, 2.1, 3.0]
+        )
+        ids = s.replace_localizations("data", "donor", nearby)
+        s.model.tracks.add(ids[[0, 2]], metadata={"particle": "keep"})
+        s.update_measurements(ids, {"speed": [0.0, 7.0, 8.0]})
+    s.model.add_segmentation(
+        Segmentation(
+            id="keep-mask",
+            acquisition_id="a",
+            channel="image",
+            frame=0,
+            labels=np.ones((8, 8), dtype=np.int32),
+        )
+    )
+    return s
+
+
+@pytest.mark.parametrize(
+    "channel_count,populated", [(1, True), (2, True), (2, False)]
+)
+def test_merge_fewer_than_two_populated_channels_preserves_entire_state(
+    channel_count, populated
+):
+    from moltrack.model_edits import (
+        compute_merge,
+        prepare_merge,
+        publish_merge,
+    )
+
+    s = merge_noop_session(channel_count, populated)
+    before = state_token(s.model)
+    locs = {p: s.query_localizations(*p) for p in s.selected_partitions()}
+    tracks = {p: s.query_tracks(*p) for p in s.selected_partitions()}
+    pending = compute_merge(prepare_merge(s, "data", 1.0))
+    assert pending[1] == []
+    publish_merge(s, pending)
+    assert state_token(s.model) == before
+    for p in s.selected_partitions():
+        pd.testing.assert_frame_equal(
+            s.query_localizations(*p), locs[p], check_like=True
+        )
+        pd.testing.assert_frame_equal(
+            s.query_tracks(*p), tracks[p], check_like=True
+        )
+    np.testing.assert_array_equal(
+        s.model.segmentations["keep-mask"].labels, np.ones((8, 8))
+    )
+
+
+def test_merge_all_datasets_skips_ineligible_and_keeps_global_channel_guard():
+    from moltrack.model_edits import (
+        compute_merge,
+        prepare_merge,
+        publish_merge,
+    )
+
+    s = merge_noop_session()
+    for acquisition, channel in [("c", "donor"), ("d", "acceptor")]:
+        s.model.add_acquisition(
+            Acquisition(ArraySource(np.zeros((5, 8, 8))), id=acquisition)
+        )
+        s.bind("eligible", channel, acquisition, "image")
+    # Two populated channels globally, but only donor contributes frame zero.
+    s.replace_localizations(
+        "eligible",
+        "donor",
+        rows().iloc[:2].assign(frame=[0, 0], x=[1.0, 1.1], y=[1.0, 1.1]),
+    )
+    s.replace_localizations(
+        "eligible", "acceptor", rows().iloc[:1].assign(frame=1)
+    )
+    before = s.query_localizations("data", "donor")
+    tracks = s.query_tracks("data", "donor")
+    eligible_ids = s.query_localizations("eligible", "donor").id.tolist()
+    pending = compute_merge(prepare_merge(s, "All Datasets", 1.0))
+    assert [name for name, _ in pending[1]] == ["eligible"]
+    publish_merge(s, pending)
+    pd.testing.assert_frame_equal(
+        s.query_localizations("data", "donor"), before, check_like=True
+    )
+    pd.testing.assert_frame_equal(
+        s.query_tracks("data", "donor"), tracks, check_like=True
+    )
+    assert s.query_localizations("data", "acceptor").empty
+    assert "keep-mask" in s.model.segmentations
+    for channel in ("donor", "acceptor"):
+        merged = s.query_localizations("eligible", channel)
+        assert merged.frame.tolist() == [0, 1]
+        assert not set(merged.id) & set(eligible_ids)
+
+
+@pytest.mark.parametrize("change", ["rows", "bindings", "owner", "cancel"])
+def test_merge_noop_still_rejects_stale_or_cancelled_publication(change):
+    from concurrent.futures import CancelledError
+    from threading import Event
+
+    from molcore import StaleResultError
+
+    from moltrack.model_edits import (
+        compute_merge,
+        prepare_merge,
+        publish_merge,
+    )
+
+    s = merge_noop_session()
+    event = Event()
+    pending = compute_merge(prepare_merge(s, "data", 1.0, cancel_event=event))
+    if change == "rows":
+        s.update_measurements(
+            s.query_localizations("data", "donor").id,
+            {"photons": [4.0, 5.0, 6.0]},
+        )
+    elif change == "bindings":
+        s.bind("alias", "donor", "a", "image")
+    elif change == "owner":
+        s.model = s.model.snapshot()
+    else:
+        event.set()
+    before = state_token(s.model)
+    with pytest.raises(
+        CancelledError if change == "cancel" else StaleResultError
+    ):
+        publish_merge(s, pending)
+    assert state_token(s.model) == before
+
+
 def test_copy_detections_allocates_fresh_ids_and_preserves_measurements():
     s = make_session()
     old = s.replace_localizations("data", "donor", rows())

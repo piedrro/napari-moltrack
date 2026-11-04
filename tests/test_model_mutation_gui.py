@@ -1,6 +1,7 @@
 from types import SimpleNamespace as NS
 
 import numpy as np
+import pandas as pd
 import pytest
 from shapely.geometry import Polygon
 from test_session_mutations import make_session, rows
@@ -92,6 +93,55 @@ def test_gui_copy_and_clear_all_use_session():
         h.session.query_localizations(*p).empty
         for p in h.session.selected_partitions()
     )
+
+
+@pytest.mark.parametrize("mode", ["locs", "tracks"])
+def test_gui_empty_copy_preserves_target_and_restores_controls(
+    mode, monkeypatch
+):
+    from molcore.staging import state_token
+
+    h = Host()
+    ids = h.session.replace_localizations("data", "acceptor", rows())
+    h.session.model.tracks.add(ids, metadata={"particle": "keep"})
+    h.session.update_measurements(ids, {"speed": [0.0, 7.0, 8.0]})
+    if mode == "tracks":
+        # Nonempty detections are still an empty track source.
+        h.session.replace_localizations("data", "donor", rows())
+    before_locs = h.session.query_localizations("data", "acceptor")
+    before_tracks = h.session.query_tracks("data", "acceptor")
+    before = state_token(h.session.model)
+    prefix = "copy_" + mode
+    setattr(h.gui, prefix + "_dataset", control("data"))
+    setattr(h.gui, prefix + "_channel", control("donor"))
+    setattr(h.gui, prefix + "_mode", control(0))
+    h.controls_enabled = True
+
+    def update_ui(*, init=False):
+        h.controls_enabled = not init
+
+    h.update_ui = update_ui
+    notices = []
+    monkeypatch.setattr(
+        "moltrack.funcs.management_utils.show_info", notices.append
+    )
+    h.copy_data(mode=mode)
+    pd.testing.assert_frame_equal(
+        h.session.query_localizations("data", "acceptor"),
+        before_locs,
+        check_like=True,
+    )
+    pd.testing.assert_frame_equal(
+        h.session.query_tracks("data", "acceptor"),
+        before_tracks,
+        check_like=True,
+    )
+    assert state_token(h.session.model) == before
+    assert h.controls_enabled
+    assert notices and "no " in notices[0].lower()
+    assert ("tracks" if mode == "tracks" else "localisations") in notices[
+        0
+    ].lower()
 
 
 def test_gui_localization_filter_clears_every_selected_row():
@@ -318,15 +368,19 @@ def test_segmentation_image_translation_updates_persistent_corrected_view():
 
 
 @pytest.mark.parametrize(
-    "operation", ["delete", "copy", "filter", "partial", "polygon", "merge"]
+    "operation",
+    ["delete", "copy", "filter", "partial", "polygon", "merge", "import_csv"],
 )
-def test_localization_cascades_refresh_visible_tracks_and_consumers(operation):
+def test_localization_cascades_refresh_visible_tracks_and_consumers(
+    operation, tmp_path
+):
     from molcore import Acquisition, ArraySource
     from napari.components import ViewerModel
 
+    from moltrack.funcs.import_utils import _import_utils
     from moltrack.model_edits import compute_merge, prepare_merge
 
-    class ProjectionHost(Host):
+    class ProjectionHost(Host, _import_utils):
         def draw_tracks(self, *args, **kwargs):
             self.calls.append("tracks")
             _tracking_utils.draw_tracks(self, *args, **kwargs)
@@ -388,6 +442,7 @@ def test_localization_cascades_refresh_visible_tracks_and_consumers(operation):
     h.plot_diffusion_graph = lambda: h.calls.append("diffusion")
     h.update_traces_export_options = lambda: h.calls.append("traces")
     h._heatmap_is_current = lambda: h.calls.append("heatmap")
+    h.update_SMLM_combos = lambda: h.calls.append("import_options")
     if operation == "delete":
         h.gui.delete_locs_dataset = control("data")
         h.gui.delete_locs_channel = control("donor")
@@ -420,6 +475,20 @@ def test_localization_cascades_refresh_visible_tracks_and_consumers(operation):
             Polygon([(6, 6), (6, 7), (7, 7), (7, 6)])
         ]
         h.remove_seglocs()
+    elif operation == "import_csv":
+        path = tmp_path / "replacement.csv"
+        rows().assign(x=[5.0, 6.0, 7.0]).to_csv(path, index=False)
+        h.import_localisations(
+            import_dataset="data",
+            import_channel="donor",
+            import_data="Localisations",
+            import_mode="CSV",
+            path=str(path),
+        )
+        assert h.session.query_localizations("data", "donor").x.tolist() == [
+            5.0, 6.0, 7.0
+        ]
+        assert "import_options" in h.calls
     else:
         h.process_merge_localisations(
             compute_merge(prepare_merge(h.session, "data", 1.0))

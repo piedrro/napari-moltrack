@@ -105,12 +105,12 @@ Produce `replace_localizations(dataset, channel, rows, *, frame_index=None) -> n
 
 - [x] Audit normal GUI paths for temporary Dataset construction, scientific dictionary writes, widget reads from workers, detached-row mutation treated as persistence, and duplicated track positions. Remove bridges left by earlier tasks.
 - [x] Add integration coverage for import → detect/fit → track → measure → filter/edit → correct → save/reload with deterministic backends, checking identity and raw/corrected consistency across the chain.
-- [ ] Run `$env:QT_API='pyqt6'; .verify312/Scripts/python.exe -m pytest tests src/moltrack/_tests -q --tb=short --disable-warnings` and applicable lint on changed/new modules; run `git diff --check`. Resolve failures and perform representative GUI verification when available.
-- [ ] Obtain fresh whole-change review for spec compliance, identity/provenance, worker publication, and persistence. Resolve review findings and rerun affected verification. Mark completion only when all six tasks and reviews are complete; document any real dependency blocker explicitly rather than claiming a bridge completes the migration.
+- [x] Run `$env:QT_API='pyqt6'; .verify312/Scripts/python.exe -m pytest tests src/moltrack/_tests -q --tb=short --disable-warnings` and applicable lint on changed/new modules; run `git diff --check`. Resolve failures and perform representative GUI verification when available.
+- [x] Obtain fresh whole-change review for spec compliance, identity/provenance, worker publication, and persistence. Resolve review findings and rerun affected verification. Mark completion only when all six tasks and reviews are complete; document any real dependency blocker explicitly rather than claiming a bridge completes the migration.
 
 ## Execution and review record
 
-Stages 1�5 were implemented and independently approved in sequence:
+Stages 1-5 were implemented and independently approved in sequence:
 `569cbd1`, `711e10e`, `57e9302`, `81a1884`, and `9fc8cf8`.
 Stage 4 and Stage 5 review findings were fixed and independently approved before
 advancing. Detailed RED/GREEN and review records are retained in the task reports.
@@ -119,7 +119,18 @@ Stage 6 implements the final GUI fallback/property cleanup, detached I/O worker
 capture, worker-stop publication guard, and the deterministic ALEX integration
 chain. Both development runtimes use the published exact MolCore revision
 `1f6ea9a8b33796424566fd467567efdb00cac651` and Cellpose 3.0.9.
-Focused verification is being completed by the Stage 6 implementer. The controller
-will run the fresh complete suite, runtime/build checks, independent Stage 6 review
-and fresh whole-branch review after source freeze. Those gates remain pending;
-this plan does not claim the migration is complete yet.
+All six stages and their independent reviews are complete. The whole-change
+review identified three final compatibility regressions: copying empty sources,
+merging fewer than two populated channels, and stale Tracks after localization
+file replacement. One consolidated fix wave resolved all three; scoped re-review
+approved the fixes with no remaining findings.
+
+Final controller verification on 2026-11-04: 193 tests passed in the complete
+repository suite, and two default-runtime widget/ALEX pipeline smoke tests passed.
+Core-module Ruff, repository undefined-name checks, whitespace checks and the
+dependency lock check passed. Wheel and source distribution builds succeeded;
+the wheel was checked against the reviewed source and exact MolCore Git pin.
+Dependency/GUI deprecation warnings remain visible in test/build output.
+
+Work is retained on `codex/dataset-backend`. The authorized shared MolCore changes
+are published on `codex/moltrack-processing-apis`; neither branch was merged.

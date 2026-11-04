@@ -1,6 +1,6 @@
 # Dataset-owned MolTrack backend
 
-Status: approved by the user on 2026-11-02; implementation planning in progress.
+Status: implemented and independently reviewed; final verification passed on 2026-11-04.
 
 ## Intent and scope
 
@@ -181,10 +181,10 @@ migration. Exact module names, container layout, and cache granularity are
 implementation decisions, subject to the compatibility and ownership rules above.
 
 
-## Implementation status (2026-11-03)
+## Implementation status (2026-11-04)
 
-Stages 1–5 are implemented and independently approved, including the persistence
-and legacy-conversion review fixes. Stage 6 has removed standalone dictionary GUI
+All six stages are implemented and independently approved, including persistence,
+legacy-conversion and final whole-change review fixes. Stage 6 removed dictionary GUI
 processing and compatibility snapshot properties. Normal processing uses the
 persistent session and detached requests; array compatibility stays in backend.py.
 The odd-frame ALEX integration chain exercises detection/fitting, tracking,
@@ -193,7 +193,7 @@ including stable identity and raw/corrected consistency.
 
 The exact published MolCore dependency is
 `1f6ea9a8b33796424566fd467567efdb00cac651`; both Python 3.12.3 development
-runtimes have this revision and Cellpose 3.0.9. Stage 6 focused verification and
-source audit are recorded in its task report. Fresh controller-owned full-suite,
-build/runtime checks, Stage 6 review and whole-branch review remain pending.
-The migration is not marked complete until those gates pass.
+runtimes have this revision and Cellpose 3.0.9. Final controller verification passed:
+193 repository tests, two default-runtime widget/pipeline smoke tests, core lint,
+undefined-name/whitespace/lock checks, and wheel/source builds. Whole-change review
+and its scoped fix re-review are approved with no remaining findings.

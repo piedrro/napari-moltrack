@@ -18,6 +18,7 @@ from shapely.geometry import Polygon
 
 from moltrack.funcs.compute_utils import Worker
 from moltrack.backend import image_source
+from moltrack.model_views import refresh_row_projections
 
 
 def import_image_data(dat, progress_dict=None, index=0):
@@ -367,7 +368,7 @@ class _import_utils:
                             imported_locs = self.get_locs(import_dataset, import_channel)
                             show_info(f"Imported {len(imported_locs)} localisations")
 
-                            self.draw_localisations()
+                            refresh_row_projections(self, localizations=True)
 
                             self.update_filter_criterion()
                             self.update_criterion_ranges()

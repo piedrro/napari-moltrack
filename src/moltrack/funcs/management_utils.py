@@ -28,6 +28,15 @@ class _management_utils:
             channel = getattr(self.gui, controls + "_channel").currentText()
             index = getattr(self.gui, controls + "_mode").currentIndex()
             self.update_ui(init=True)
+            query = (
+                self.session.query_tracks
+                if mode == "tracks"
+                else self.session.query_localizations
+            )
+            if query(dataset, channel).empty:
+                kind = "tracks" if mode == "tracks" else "localisations"
+                show_info(f"No {kind} to copy from the selected channel")
+                return
             for target in self.get_copy_targets(dataset, channel, index):
                 self.session.copy_rows(
                     (dataset, channel),
