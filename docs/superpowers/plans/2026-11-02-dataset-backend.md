@@ -134,3 +134,27 @@ Dependency/GUI deprecation warnings remain visible in test/build output.
 
 Work is retained on `codex/dataset-backend`. The authorized shared MolCore changes
 are published on `codex/moltrack-processing-apis`; neither branch was merged.
+
+## Recorded implementation decisions and tradeoffs
+
+1. Work used a feature branch in the supplied checkout. Changes live in that
+   checkout; the original `v2` branch was not changed or merged automatically.
+2. PowerShell replaced unavailable Bash tooling for scoped briefs, logs and
+   review packages. This changes recovery tooling, with no runtime effect.
+3. The approved project format is ZIP containing native HDF5 and typed application
+   metadata. New files require the migrated reader; legacy import remains supported.
+4. Known-ID fitting updates positions and numeric values through public APIs and
+   preserves text metadata. In-place text replacements are rejected atomically;
+   importing replacement text allocates fresh rows instead.
+5. Explicit concatenation creates derived acquisitions while retaining original
+   acquisitions, frame offsets and timing provenance. This can increase storage;
+   incompatible geometry or calibration is rejected rather than silently combined.
+6. Clearing ordinary image imports preserves standalone segmentation sources and
+   global vector annotations in the same session. Lazy segmentation payloads remain
+   owned until project close; this action is not a full-project reset.
+
+The whole-change review's declined items follow the approved non-goals: existing
+scientific formulae and external raw-coordinate conventions were preserved;
+missing legacy correction history is not guessed; expensive real GPU/model-weight
+inference was not part of the supplied-fixture verification. Existing GUI style
+and the empty tests namespace in built artifacts were not introduced by this work.
