@@ -24,6 +24,233 @@ def widget(qtbot, monkeypatch):
     viewer.close()
 
 
+def clear_import_fixture(widget, tmp_path, *, loaded):
+    from moltrack.model_processing import (
+        ProcessingRequest,
+        RegistrationSettings,
+        compute,
+        prepare,
+    )
+
+    image = np.arange(128, dtype=np.float32).reshape(2, 8, 8) + 100.0
+    image[:, 3, 3] = 1000.0
+    descriptor = {
+        "source_images": image,
+        "pixel_size": 100.0,
+        "exposure_time": 20.0,
+        "multichannel_mode": "None",
+        "channel_name": "image",
+        "path": "ordinary.tif",
+        "dataset_name": "ordinary",
+    }
+    widget.publish_import_images([descriptor], clear=False, concatenate=False)
+    widget.publish_image_import(
+        {
+            "import_mode": "Segmentation Image",
+            "jobs": [dict(descriptor, frame_averaging=True)],
+        }
+    )
+    session = widget.session
+    binding = session.annotations["segmentation_image_binding"]
+    session.translate_image(*binding, dx=1.0, dy=0.0)
+    session.annotations["notes"] = {"keep": "editable application annotation"}
+    ordinary = session.partition("ordinary", "image")
+    ids = session.replace_localizations(
+        "ordinary",
+        "image",
+        {
+            "frame": [0, 1],
+            "x": [3.0, 3.0],
+            "y": [3.0, 3.0],
+        },
+    )
+    session.model.tracks.add(ids)
+    for mask_id, partition in (
+        ("old-mask", ordinary),
+        ("seg-mask", session.partition(*binding)),
+    ):
+        session.model.add_segmentation(
+            Segmentation(
+                id=mask_id,
+                acquisition_id=partition[0],
+                channel=partition[1],
+                frame=0,
+                labels=np.ones((8, 8), dtype=np.int32),
+            )
+        )
+    polygon = np.array([[1.0, 1.0], [1.0, 4.0], [4.0, 4.0], [4.0, 1.0]])
+    widget.initialise_segLayer(
+        [polygon], 100.0, model_mask_ids=["old-mask", "seg-mask"]
+    )
+    widget.initialise_cellLayer(
+        [polygon], ["polygon"], {"name": ["cell"], "radius": [2.0]}
+    )
+    if loaded:
+        path = tmp_path / "clear-source.moltrack"
+        model_io.save_project(session, path)
+        widget.import_moltrack_project(path=str(path))
+        session = widget.session
+    pending = compute(
+        prepare(
+            session,
+            ProcessingRequest(
+                "registration",
+                (("ordinary", "image"),),
+                RegistrationSettings(
+                    ((1.0, 0.0, 1.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0))
+                ),
+            ),
+        )
+    )
+    return descriptor, session, binding, polygon, pending
+
+
+@pytest.mark.parametrize("loaded", [False, True])
+def test_clear_import_preserves_segmentation_source_annotations_and_listeners(
+    widget, tmp_path, loaded
+):
+    from pathlib import Path
+    from weakref import ref
+
+    from molcore import StaleResultError
+    from molcore.staging import state_token
+
+    from moltrack.model_processing import publish
+
+    descriptor, session, binding, polygon, pending = clear_import_fixture(
+        widget, tmp_path, loaded=loaded
+    )
+    model = session.model
+    resource = (
+        None
+        if session._project_resources is None
+        else Path(session._project_resources.name)
+    )
+    before_pixels = session.image(*binding)[:].copy()
+    before_partition = session.partition(*binding)
+    provenance = deepcopy(model.acquisitions[before_partition[0]].metadata)
+    original_source_id = provenance["source_acquisition_id"]
+    original_pixels = model.acquisitions[original_source_id].source[:].copy()
+    old_source = session.partition("ordinary", "image")[0]
+    old_layer = widget.segLayer
+    old_cell_layer = widget.cellLayer
+    queued_import = {
+        "import_mode": "data",
+        "jobs": [dict(descriptor, dataset_name="stale")],
+        "publication": {
+            "owner": ref(model),
+            "expected": state_token(model),
+            "clear": False,
+            "concatenate": False,
+        },
+    }
+    before_seg_token = session.model.transforms.revision
+    widget.gui.import_clear.setChecked(True)
+    widget.publish_image_import({"import_mode": "data", "jobs": [descriptor]})
+    widget.import_data_finished()
+
+    assert widget.session is session
+    assert session.model is model
+    assert session.partition(*binding) == before_partition
+    assert model.acquisitions[before_partition[0]].metadata == provenance
+    np.testing.assert_array_equal(
+        model.acquisitions[original_source_id].source[:], original_pixels
+    )
+    assert old_source not in model.acquisitions
+    assert session.query_localizations("ordinary", "image").empty
+    assert session.query_tracks("ordinary", "image").empty
+    assert "old-mask" not in model.segmentations
+    assert "seg-mask" in model.segmentations
+    assert session.annotations["segmentations"]["mask_ids"] == ["seg-mask"]
+    assert session.annotations["notes"] == {
+        "keep": "editable application annotation"
+    }
+    assert session.model.transforms.revision >= before_seg_token
+    np.testing.assert_array_equal(session.image(*binding)[:], before_pixels)
+    assert session.image(*binding)[0][3, 4] == 1000.0
+    if resource is not None:
+        assert resource.exists()
+        assert session._project_resources.name == str(resource)
+    with pytest.raises(StaleResultError):
+        publish(session, pending)
+    after_clear = state_token(model)
+    widget.publish_image_import(queued_import)
+    assert state_token(model) == after_clear
+    assert "stale" not in session.datasets()
+    widget.gui.cellpose_dataset.setCurrentText("Segmentation Image")
+    prepared = widget._prepare_model_segmentation("active")
+    assert prepared.bindings == (before_partition,)
+    np.testing.assert_array_equal(
+        prepared.session.image(*binding)[:], before_pixels
+    )
+
+    assert widget.segLayer is old_layer
+    assert widget.cellLayer is old_cell_layer
+    widget.segLayer.data = [polygon + 0.5]
+    np.testing.assert_array_equal(
+        session.annotations["segmentations"]["data"][0], polygon + 0.5
+    )
+    widget.cellLayer.properties = {
+        "name": np.array(["changed"]),
+        "radius": np.array([3.0]),
+    }
+    assert session.annotations["cells"]["properties"]["name"].tolist() == [
+        "changed"
+    ]
+
+
+@pytest.mark.parametrize("failure", ["descriptor", "publication"])
+def test_failed_clear_import_keeps_loaded_sources_annotations_and_layers(
+    widget, tmp_path, monkeypatch, failure
+):
+    from pathlib import Path
+
+    from molcore import Dataset
+    from molcore.staging import state_token
+
+    descriptor, session, binding, _, _ = clear_import_fixture(
+        widget, tmp_path, loaded=True
+    )
+    before_token = state_token(session.model)
+    annotations = deepcopy(session.annotations)
+    before_pixels = session.image(*binding)[:].copy()
+    layer = widget.segLayer
+    resource = Path(session._project_resources.name)
+    descriptor = dict(
+        descriptor, path="broken", source_images=np.ones((2, 8, 8))
+    )
+    if failure == "descriptor":
+        descriptor["source_images"] = np.ones((2, 8, 7))
+        descriptor["multichannel_mode"] = "FRET"
+    else:
+        original_add = Dataset.add_acquisition
+
+        def add(model, acquisition):
+            if acquisition.metadata.get("path") == "broken":
+                raise ValueError("failed import publication")
+            return original_add(model, acquisition)
+
+        monkeypatch.setattr(Dataset, "add_acquisition", add)
+    with pytest.raises(ValueError):
+        widget.publish_import_images(
+            [descriptor], clear=True, concatenate=False
+        )
+    assert widget.session is session
+    assert state_token(session.model) == before_token
+    assert widget.segLayer is layer
+    assert resource.exists()
+    np.testing.assert_array_equal(session.image(*binding)[:], before_pixels)
+    assert session.annotations["notes"] == annotations["notes"]
+    assert (
+        session.annotations["segmentations"]["mask_ids"]
+        == annotations["segmentations"]["mask_ids"]
+    )
+    np.testing.assert_array_equal(
+        session.annotations["segmentations"]["data"][0],
+        annotations["segmentations"]["data"][0],
+    )
+
+
 def test_actual_project_action_image_free_preserves_masks_and_reconnects_new_session(
     widget, tmp_path, monkeypatch
 ):

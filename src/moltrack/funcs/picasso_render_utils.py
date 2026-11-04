@@ -1,65 +1,13 @@
-import time
 import traceback
 
 import cv2
 import numpy as np
-from napari.utils.notifications import show_info
-from moltrack.backend import render_locs
 
 from moltrack.funcs.compute_utils import Worker
 
 
 class _picasso_render_utils:
 
-    def render_picasso_locs(
-        self,
-        loc_data,
-        image_shape,
-        blur_method=None,
-        min_blur_width=1,
-        pixel_size=1,
-        progress_callback=None,
-        oversampling=10,
-    ):
-        try:
-
-
-            start_time = time.time()
-
-            images = []
-            total_rendered_locs = 0
-
-            show_info(f"Rendering localisations from {len(loc_data)} dataset(s)/channel(s).")
-
-            for dat in loc_data:
-
-                locs = dat["localisations"]
-
-                n_rendered_locs, image = render_locs(
-                    locs,
-                    image_shape=image_shape,
-                    blur_method=blur_method,
-                    min_blur_width=min_blur_width,
-                    oversampling=oversampling,
-                )
-
-                images.append(image)
-                total_rendered_locs += n_rendered_locs
-
-            if len(images) == 0:
-                image = np.zeros(image_shape[-2:], dtype=np.int8)
-            else:
-                image = self.create_rgb_render(images)
-
-            end_time = time.time()
-
-            show_info(f"Rendered {total_rendered_locs} localisations in {end_time - start_time:.2f} seconds.")
-
-        except:
-            print(traceback.format_exc())
-            image = np.zeros(image_shape[-2:], dtype=np.int8)
-
-        return image, pixel_size, oversampling
 
     def create_rgb_render(
         self, images, normalise=True, histogram_equalize=False, bit_depth=32
@@ -143,22 +91,19 @@ class _picasso_render_utils:
     def draw_picasso_render(self, data):
 
         try:
-            from moltrack.model_processing import PendingOperation
-            if isinstance(data, PendingOperation):
-                from moltrack.funcs.compute_utils import publish_model_result
-                if not publish_model_result(self, data):
-                    return
-                images = [result.image for _, _, result in data.results]
-                image = self.create_rgb_render(images)
-                dataset, channel = data.prepared.request.partitions[0]
-                pixel_size = data.prepared.session.metadata(dataset)['pixel_size']
-                oversampling = data.prepared.request.settings.oversampling
-                data = image, pixel_size, oversampling
+            from moltrack.funcs.compute_utils import publish_model_result
+            if not publish_model_result(self, data):
+                return
+            images = [result.image for _, _, result in data.results]
+            image = self.create_rgb_render(images)
+            dataset, channel = data.prepared.request.partitions[0]
+            pixel_size = data.prepared.session.metadata(dataset)['pixel_size']
+            oversampling = data.prepared.request.settings.oversampling
+            data = image, pixel_size, oversampling
             image, pixel_size, oversampling = data
 
             scale = [pixel_size / oversampling, pixel_size / oversampling]
 
-            layer_names = [layer.name for layer in self.viewer.layers]
 
             if hasattr(self, "render_layer") == False:
                 self.render_layer = self.viewer.add_image(
@@ -212,17 +157,6 @@ class _picasso_render_utils:
 
             if len(loc_data) > 0:
 
-                image_shape = loc_data[0]["image_shape"]
-                if dataset != "All Datasets":
-                    pixel_size = float(
-                        self.session.metadata(dataset)["pixel_size"]
-                    )
-                else:
-                    dataset_name = list(self.session.ordinary_datasets())[0]
-                    pixel_size = float(
-                        self.session.metadata(dataset_name)["pixel_size"]
-                    )
-
                 if blur_method == "One-Pixel-Blur":
                     blur_method = "smooth"
                 elif blur_method == "Global Localisation Precision":
@@ -236,14 +170,10 @@ class _picasso_render_utils:
 
                 self.update_ui(init=True)
 
-                if hasattr(self, 'session'):
-                    from moltrack.model_processing import ProcessingRequest, RenderingSettings, compute_worker, prepare
-                    request = ProcessingRequest('render', tuple((d['dataset'], d['channel']) for d in loc_data),
-                        RenderingSettings(blur_method=blur_method, min_blur_width=min_blur_width))
-                    worker = Worker(compute_worker, prepare(self.session, request), self.stop_event)
-                else:
-                    worker = Worker(self.render_picasso_locs, loc_data=loc_data, image_shape=image_shape,
-                        blur_method=blur_method, min_blur_width=min_blur_width, pixel_size=pixel_size)
+                from moltrack.model_processing import ProcessingRequest, RenderingSettings, compute_worker, prepare
+                request = ProcessingRequest('render', tuple((d['dataset'], d['channel']) for d in loc_data),
+                    RenderingSettings(blur_method=blur_method, min_blur_width=min_blur_width))
+                worker = Worker(compute_worker, prepare(self.session, request), self.stop_event)
                 worker.signals.result.connect(self.draw_picasso_render)
                 worker.signals.finished.connect(self.picasso_render_finished)
                 self.threadpool.start(worker)

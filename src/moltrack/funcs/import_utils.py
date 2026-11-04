@@ -17,32 +17,66 @@ from qtpy.QtWidgets import QFileDialog
 from shapely.geometry import Polygon
 
 from moltrack.funcs.compute_utils import Worker
-from moltrack.backend import read_movie, image_source
+from moltrack.backend import image_source
 
 
-def crop_frame(image, crop_mode):
-    try:
-        if "left" in crop_mode.lower():
-            crop = image[:, : image.shape[1] // 2]
-        elif "right" in crop_mode.lower():
-            crop = image[:, image.shape[1] // 2:]
-        elif "brightest" in crop_mode.lower():
-            left = image[:, : image.shape[1] // 2]
-            right = image[:, image.shape[1] // 2:]
-            crop = left if np.mean(left) > np.mean(right) else right
-        else:
-            crop = image
-
-    except:
-        print(traceback.format_exc())
-        crop = image
-
-    return crop
-
-
-def import_image_data(dat, progress_dict={}, index=0):
+def import_image_data(dat, progress_dict=None, index=0):
     from moltrack.model_io import prepare_image
-    return prepare_image(dat, progress_callback=lambda progress: progress_dict.__setitem__(index, progress))
+    callback = None if progress_dict is None else lambda progress: progress_dict.__setitem__(index, progress)
+    return prepare_image(dat, progress_callback=callback)
+
+
+def process_compute_jobs(compute_jobs, progress_callback=None, verbose=False):
+
+    results = []
+
+    if verbose:
+        print(f"Processing {len(compute_jobs)} compute jobs.")
+
+    cpu_count = int(multiprocessing.cpu_count() * 0.75)
+
+    if len(compute_jobs) == 1:
+        executor = ThreadPoolExecutor(max_workers=cpu_count)
+    else:
+        if len(compute_jobs) < cpu_count:
+            cpu_count = len(compute_jobs)
+        executor = ProcessPoolExecutor(max_workers=cpu_count)
+
+    with Manager() as manager:
+        progress_dict = manager.dict()
+
+        with executor:
+            # Submit all jobs and store the future objects
+            futures = [executor.submit(import_image_data, job,
+                progress_dict, i) for i, job in enumerate(compute_jobs)]
+
+            while any(not future.done() for future in futures):
+                # Calculate and emit progress
+                total_progress = sum(progress_dict.values())
+                overall_progress = int(total_progress / len(compute_jobs))
+                if progress_callback is not None:
+                    progress_callback.emit(overall_progress)
+                time.sleep(0.1)  # Update frequency
+
+            # Wait for all futures to complete
+            concurrent.futures.wait(futures)
+
+            # Retrieve and process results
+            results = [future.result() for future in futures if future.done()]
+
+    if verbose:
+        print("Finished processing compute jobs.")
+
+    return results
+
+
+def import_data(import_jobs, import_mode="data", progress_callback=None, verbose=False, publication=None, cancel_event=None):
+    """Read captured import jobs without accessing a live widget."""
+    from moltrack.model_processing import _cancel
+    _cancel(cancel_event)
+    jobs = process_compute_jobs(import_jobs, progress_callback, verbose)
+    _cancel(cancel_event)
+    return dict(jobs=jobs, import_mode=import_mode, publication=publication)
 
 
 class _import_utils:
@@ -132,74 +166,30 @@ class _import_utils:
 
         return import_jobs
 
-    def process_compute_jobs(self, compute_jobs, progress_callback=None):
 
-        results = []
-
-        if self.verbose:
-            print(f"Processing {len(compute_jobs)} compute jobs.")
-
-        cpu_count = int(multiprocessing.cpu_count() * 0.75)
-
-        if len(compute_jobs) == 1:
-            executor = ThreadPoolExecutor(max_workers=cpu_count)
-        else:
-            if len(compute_jobs) < cpu_count:
-                cpu_count = len(compute_jobs)
-            executor = ProcessPoolExecutor(max_workers=cpu_count)
-
-        show_info(f"Importing {len(compute_jobs)} images")
-
-        with Manager() as manager:
-            progress_dict = manager.dict()
-
-            with executor:
-                # Submit all jobs and store the future objects
-                futures = [executor.submit(import_image_data, job,
-                    progress_dict, i) for i, job in enumerate(compute_jobs)]
-
-                while any(not future.done() for future in futures):
-                    # Calculate and emit progress
-                    total_progress = sum(progress_dict.values())
-                    overall_progress = int(total_progress / len(compute_jobs))
-                    if progress_callback is not None:
-                        progress_callback.emit(overall_progress)
-                    time.sleep(0.1)  # Update frequency
-
-                # Wait for all futures to complete
-                concurrent.futures.wait(futures)
-
-                # Retrieve and process results
-                results = [future.result() for future in futures if future.done()]
-
-        if self.verbose:
-            print("Finished processing compute jobs.")
-
-        return results
-
-    def populate_import_dataset_dict(self, import_list):
+    def publish_import_images(self, import_list, *, clear=None, concatenate=None):
         from moltrack.model_io import import_images
-        from moltrack.session import ProjectSession
-        target = ProjectSession() if self.gui.import_clear.isChecked() else self.session
-        import_images(target, import_list, concatenate=self.gui.import_concatenate.isChecked())
-        self.session = target
-
-    def import_data(self, progress_callback=None, paths=[], import_mode="data", import_jobs = None):
-
-        if import_jobs is None:
-            import_jobs = self.populate_import_jobs(paths=paths)
-
-        results = self.process_compute_jobs(import_jobs, progress_callback=progress_callback)
-
-        return dict(jobs=results, import_mode=import_mode)
+        clear = self.gui.import_clear.isChecked() if clear is None else clear
+        concatenate = self.gui.import_concatenate.isChecked() if concatenate is None else concatenate
+        import_images(self.session, import_list, concatenate=concatenate, clear=clear)
 
     def publish_image_import(self, result):
+        publication = result.get('publication')
+        if publication is not None:
+            from molcore import StaleResultError
+            from molcore.staging import validate_expected
+            event = getattr(self, 'stop_event', None)
+            if (event is not None and event.is_set()) or self.session.model is not publication['owner']():
+                show_info('Image import result was discarded after cancellation or project replacement')
+                return
+            try:
+                validate_expected(self.session.model, publication.get('expected'))
+            except StaleResultError:
+                show_info('Image import result was discarded after project data changed')
+                return
         if result['import_mode'].lower() == 'segmentation image':
             job = result['jobs'][0]
             from moltrack.model_io import import_images
-            if not hasattr(self, 'session'):
-                from moltrack.session import ProjectSession
-                self.session = ProjectSession()
             descriptor = dict(job, dataset_name='Segmentation Image', multichannel_mode='None', channel_name='Segmentation Image', role='segmentation_image')
             import_images(self.session, [descriptor])
             binding = 'Segmentation Image', 'Segmentation Image'
@@ -208,7 +198,8 @@ class _import_utils:
             self._segmentation_source = self.segmentation_image
             self.segmentation_image_pixel_size = float(job['pixel_size'])
         else:
-            self.populate_import_dataset_dict(result['jobs'])
+            options = {} if publication is None else {key: publication[key] for key in ('clear', 'concatenate')}
+            self.publish_import_images(result['jobs'], **options)
 
     def import_data_finished(self):
         self.populate_dataset_selectors()
@@ -254,7 +245,16 @@ class _import_utils:
                 self.update_ui(init=True)
 
                 import_jobs = self.populate_import_jobs(paths=paths)
-                self.worker = Worker(self.import_data, import_jobs=import_jobs, import_mode=import_mode)
+                show_info(f"Importing {len(import_jobs)} images")
+                from copy import deepcopy
+                from weakref import ref
+                from molcore.staging import state_token
+                publication = dict(owner=ref(self.session.model),
+                    expected=state_token(self.session.model),
+                    clear=self.gui.import_clear.isChecked(),
+                    concatenate=self.gui.import_concatenate.isChecked())
+                self.worker = Worker(import_data, import_jobs=deepcopy(import_jobs), import_mode=import_mode,
+                    verbose=self.verbose, publication=publication, cancel_event=getattr(self, 'stop_event', None))
                 self.worker.signals.result.connect(self.publish_image_import)
                 self.worker.signals.progress.connect(partial(self.moltrack_progress, progress_bar=self.gui.import_progressbar, ))
                 self.worker.signals.finished.connect(self.import_data_finished)
@@ -264,8 +264,6 @@ class _import_utils:
         except:
             self.update_ui()
             print(traceback.format_exc())
-
-
 
 
     def import_pos_out_locs(self, path, loc_cols=None):
@@ -403,7 +401,6 @@ class _import_utils:
                             show_info("Missing required columns for tracking data import")
         except:
             print(traceback.format_exc())
-
 
 
     def import_binary_mask(self, path):

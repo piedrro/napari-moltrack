@@ -128,111 +128,19 @@ class _tracking_utils:
         return gui_query(self.session, dataset, channel, tracks=True,
                          return_dict=return_dict, include_metadata=include_metadata)
 
-    def link_locs(self, f, search_range, pos_columns=None,
-                  t_column='frame', progress_callback=None, **kwargs):
-        from moltrack.backend import link_locs
-
-        if pos_columns not in (None, ['x', 'y'], ['y', 'x']):
-            raise ValueError("Tracking requires x/y positions")
-        rows = f.rename(columns={t_column: 'frame'}) if t_column != 'frame' else f
-        result = link_locs(rows, search_range, memory=kwargs.pop('memory', 0),
-                           progress_callback=progress_callback,
-                           cancel_event=getattr(self, 'stop_event', None), **kwargs)
-        return result.rename(columns={'frame': t_column}) if t_column != 'frame' else result
-
-
-    def detect_tracks(self, loc_data, progress_callback=None):
-        from concurrent.futures import CancelledError
-
-        segchannel = self.gui.tracking_segmentations.currentText()
-        search_range = float(self.gui.trackpy_search_range.value())
-        memory = int(self.gui.trackpy_memory.value())
-        minimum = int(self.gui.min_track_length.value())
-        output, partitions = [], []
-        for dat in loc_data:
-            if getattr(self, 'stop_event', None) is not None and self.stop_event.is_set():
-                raise CancelledError()
-            dataset, channel = dat['dataset'], dat['channel']
-            partitions.append((dataset, channel))
-            if segchannel in ('Segmentations', 'Cells'):
-                locs, segcol = self.detect_seglocs(dataset, channel, segchannel)
-                self.tracking_segchannel, self.tracking_segcol = segchannel, segcol
-            else:
-                locs, segcol = dat['localisations'], None
-                self.tracking_segchannel = self.tracking_segcol = None
-            rows = pd.DataFrame(locs)
-            groups = list(rows.groupby(segcol)) if segcol and len(rows) else [(None, rows)]
-            linked, offset = [], 0
-            for _, group in groups:
-                if group.empty:
-                    continue
-                tracks = self.link_locs(group, search_range=search_range, memory=memory,
-                    min_length=minimum, progress_callback=progress_callback)
-                if tracks.empty:
-                    continue
-                tracks['particle'] += offset
-                offset = int(tracks.particle.max())
-                linked.append(tracks)
-            tracks = pd.concat(linked, ignore_index=True) if linked else rows.iloc[:0].copy()
-            if 'particle' not in tracks:
-                tracks['particle'] = pd.Series(dtype='int64')
-            tracks['dataset'], tracks['channel'] = dataset, channel
-            metadata = self.dataset_dict[dataset]
-            tracks['pixel_size (um)'] = float(metadata['pixel_size']) * 1e-3
-            tracks['exposure_time (s)'] = float(metadata['exposure_time']) * 1e-3
-            output.append(tracks.sort_values(['particle', 'frame']))
-        if getattr(self, 'stop_event', None) is not None and self.stop_event.is_set():
-            raise CancelledError()
-        self._tracking_partitions = partitions
-        return pd.concat(output, ignore_index=True) if output else pd.DataFrame(
-            columns=['dataset', 'channel', 'particle', 'frame', 'x', 'y'])
-
-
-    def track_particles(self, loc_data, stats = True, progress_callback=None):
-
-        show_info("Detecting tracks...")
-
-        track_data = self.detect_tracks(loc_data,
-            progress_callback=progress_callback)
-
-        return track_data
-
-
-
 
     def process_tracking_results(self, track_data):
-        from moltrack.model_processing import PendingOperation
-        if isinstance(track_data, PendingOperation):
-            from moltrack.funcs.compute_utils import publish_model_result
-            if not publish_model_result(self, track_data):
-                return
-            total = sum(len(value[0]) for _, _, value in track_data.results)
-            if total:
-                self.gui.locs_export_data.clear()
-                self.gui.locs_export_data.addItems(['Localisations', 'Tracks'])
-                self.gui.heatmap_data.clear()
-                self.gui.heatmap_data.addItems(['Localisations', 'Tracks'])
-            show_info(f'Tracking complete, {total} tracks found')
+        from moltrack.funcs.compute_utils import publish_model_result
+        if not publish_model_result(self, track_data):
             return
-        if track_data is None or self.stop_event.is_set():
-            return
-        partitions = getattr(self, '_tracking_partitions', list(
-            track_data.groupby(['dataset', 'channel']).groups))
-        total_tracks = 0
-        for dataset, channel in partitions:
-            selected = track_data[(track_data.dataset == dataset) & (track_data.channel == channel)]
-            tracks = selected.to_records(index=False)
-            self.tracking_dict.setdefault(dataset, {})[channel] = {'tracks': tracks}
-            total_tracks += selected.particle.nunique()
-            if self.gui.remove_unlinked.isChecked():
-                self.localisation_dict[dataset][channel]['localisations'] = tracks.copy()
-        if len(track_data):
+        total = sum(len(value[0]) for _, _, value in track_data.results)
+        if total:
             self.gui.locs_export_data.clear()
             self.gui.locs_export_data.addItems(['Localisations', 'Tracks'])
             self.gui.heatmap_data.clear()
             self.gui.heatmap_data.addItems(['Localisations', 'Tracks'])
-        show_info(f'Tracking complete, {total_tracks} tracks found')
-
+        show_info(f'Tracking complete, {total} tracks found')
+        return
     def tracking_finished(self):
 
         self.draw_localisations()
@@ -282,25 +190,22 @@ class _tracking_utils:
                 self.gui.trackplot_focus.setChecked(False)
                 self.gui.trackplot_focus.blockSignals(False)
 
-                if hasattr(self, 'session'):
-                    from moltrack.model_processing import (
-                        ProcessingRequest, TrackingSettings, compute_worker, prepare,
-                    )
-                    segchannel = self.gui.tracking_segmentations.currentText()
-                    segmented = segchannel in ('Segmentations', 'Cells')
-                    shapes = self.get_shapes(segchannel, flipxy=True, polygon=False) if segmented else []
-                    polygons = tuple(tuple(tuple(map(float, point)) for point in shape) for shape in (shapes or []))
-                    settings = TrackingSettings(
-                        search_range=float(self.gui.trackpy_search_range.value()),
-                        memory=int(self.gui.trackpy_memory.value()),
-                        min_length=int(self.gui.min_track_length.value()),
-                        remove_unlinked=self.gui.remove_unlinked.isChecked(),
-                        polygons=polygons,
-                        segmentation_column=segchannel[:-1].lower() + '_index' if segmented else None)
-                    request = ProcessingRequest('tracking', tuple((d['dataset'], d['channel']) for d in loc_data), settings)
-                    worker = Worker(compute_worker, prepare(self.session, request), self.stop_event)
-                else:
-                    worker = Worker(self.track_particles, loc_data)
+                from moltrack.model_processing import (
+                    ProcessingRequest, TrackingSettings, compute_worker, prepare,
+                )
+                segchannel = self.gui.tracking_segmentations.currentText()
+                segmented = segchannel in ('Segmentations', 'Cells')
+                shapes = self.get_shapes(segchannel, flipxy=True, polygon=False) if segmented else []
+                polygons = tuple(tuple(tuple(map(float, point)) for point in shape) for shape in (shapes or []))
+                settings = TrackingSettings(
+                    search_range=float(self.gui.trackpy_search_range.value()),
+                    memory=int(self.gui.trackpy_memory.value()),
+                    min_length=int(self.gui.min_track_length.value()),
+                    remove_unlinked=self.gui.remove_unlinked.isChecked(),
+                    polygons=polygons,
+                    segmentation_column=segchannel[:-1].lower() + '_index' if segmented else None)
+                request = ProcessingRequest('tracking', tuple((d['dataset'], d['channel']) for d in loc_data), settings)
+                worker = Worker(compute_worker, prepare(self.session, request), self.stop_event)
                 worker.signals.result.connect(self.process_tracking_results)
                 worker.signals.finished.connect(self.tracking_finished)
                 worker.signals.progress.connect(partial(self.moltrack_progress,

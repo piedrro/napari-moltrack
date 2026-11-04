@@ -1,4 +1,3 @@
-import concurrent
 import json
 import os
 import traceback
@@ -30,16 +29,11 @@ def format_picasso_path(path):
 
 
 def initialise_data_export(loc_data):
-    try:
-        export_mode = loc_data["export_mode"]
-
-        if export_mode == "Picasso HDF5":
-            export_picasso_localisation(loc_data)
-        else:
-            export_localisation_data(loc_data)
-
-    except:
-        print(traceback.format_exc())
+    export_mode = loc_data["export_mode"]
+    if export_mode == "Picasso HDF5":
+        export_picasso_localisation(loc_data)
+    else:
+        export_localisation_data(loc_data)
 
 
 def export_localisation_data(loc_data):
@@ -62,6 +56,38 @@ def export_picasso_localisation(loc_data):
     # The export dialog already selected these columns; retain arbitrary
     # measurements instead of applying a second hard-coded field whitelist.
     write_table(format_picasso_path(loc_data["hdf5_path"]), table_columns(loc_data["data"]), metadata=loc_data["picasso_info"])
+
+
+def export_locs(jobs, progress_callback=None):
+    """Write detached table jobs captured on the GUI thread."""
+    for index, job in enumerate(jobs):
+        initialise_data_export(job)
+        if progress_callback is not None:
+            progress_callback.emit(int(100 * (index + 1) / len(jobs)))
+
+
+def export_shapes(path, mode, polygons, frame_shape=None, progress_callback=None):
+    """Write detached shape payloads without consulting a widget or layer."""
+    if mode == "Binary Mask":
+        if frame_shape is None:
+            raise ValueError("Could not determine mask shape for export")
+        mask = np.zeros(frame_shape, dtype=np.uint8)
+        for index, polygon in enumerate(polygons):
+            contour = np.round(np.asarray(polygon)[:, ::-1]).astype(np.int32).reshape(-1, 1, 2)
+            cv2.drawContours(mask, [contour], -1, index + 1, -1)
+        tifffile.imwrite(path, mask)
+    elif mode == "JSON":
+        payload = {key: [polygon[key] for polygon in polygons] for key in polygons[0]} if polygons else {}
+        with open(path, "w") as stream:
+            json.dump(payload, stream)
+    elif mode == "Oufti/MicrobTracker Mesh":
+        from moltrack.funcs.oufti_utils import oufti
+        adapter = oufti()
+        meshes = [adapter.get_cell_mesh(polygon) for polygon in polygons]
+        if len(meshes) > 1:
+            adapter.export_oufti(meshes, path)
+    else:
+        raise ValueError(f"Unsupported shape export mode: {mode}")
 
 
 class _export_utils:
@@ -281,17 +307,6 @@ class _export_utils:
     def export_shapes_data_finished(self):
         self.update_ui()
 
-    def export_shapes_data(self, path, progress_callback=None):
-
-        export_data = self.gui.shapes_export_data.currentText()
-        export_mode = self.gui.shapes_export_mode.currentText()
-
-        if export_data == "Segmentations":
-            self.export_segmentations(export_mode, path=path)
-
-        if export_data == "Cells":
-            self.export_cells(export_mode, path=path)
-
     def init_export_shapes_data(self):
 
         export_data = self.gui.shapes_export_data.currentText()
@@ -305,8 +320,12 @@ class _export_utils:
             if path is not None:
                 self.update_ui(init=True)
 
-                worker = Worker(self.export_shapes_data, path)
+                from copy import deepcopy
+                polygons = deepcopy(self.get_export_polygons())
+                frame_shape = self.get_export_mask_shape() if export_mode == "Binary Mask" else None
+                worker = Worker(export_shapes, path, export_mode, polygons, frame_shape)
                 worker.signals.finished.connect(self.export_shapes_data_finished)
+                worker.signals.error.connect(self.update_ui)
                 self.threadpool.start(worker)
 
     def update_shape_export_options(self):
@@ -351,8 +370,7 @@ class _export_utils:
 
         return picasso_info
 
-    def export_locs(self, export_list, export_data,
-            export_loc_mode, progress_callback=None):
+    def prepare_export_locs(self, export_list, export_data, export_loc_mode):
 
         try:
             picasso_info = []
@@ -413,23 +431,11 @@ class _export_utils:
 
                     export_loc_jobs.append(export_loc_job)
 
-            if len(export_loc_jobs) > 0:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    futures = [executor.submit(initialise_data_export, job) for job in export_loc_jobs]
-
-                    for future in concurrent.futures.as_completed(futures):
-                        try:
-                            future.result()
-                        except:
-                            print(traceback.format_exc())
-
-                        progress = int(100 * (len(export_loc_jobs) - len(futures)) / len(export_loc_jobs))
-
-                        if progress_callback is not None:
-                            progress_callback.emit(progress)
-
-        except:
+            from copy import deepcopy
+            return deepcopy(export_loc_jobs)
+        except Exception:
             print(traceback.format_exc())
+            raise
 
     def export_locs_finished(self):
         try:
@@ -489,7 +495,8 @@ class _export_utils:
 
             self.update_ui(init=True)
 
-            self.worker = Worker(self.export_locs, export_list=export_list, export_data=export_data, export_loc_mode=export_loc_mode, )
+            jobs = self.prepare_export_locs(export_list, export_data, export_loc_mode)
+            self.worker = Worker(export_locs, jobs)
             self.worker.signals.progress.connect(partial(self.moltrack_progress, progress_bar=self.gui.export_progressbar, ))
             self.worker.signals.finished.connect(self.export_locs_finished)
             self.worker.signals.error.connect(self.update_ui)

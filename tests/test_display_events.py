@@ -87,13 +87,23 @@ def test_shape_layers_use_units_compatible_with_images(kind):
 
 
 def test_smlm_render_uses_units_compatible_with_images():
+    import threading
+    from test_model_processing import make_session
+
+    from moltrack import model_processing as proc
     from moltrack.funcs.picasso_render_utils import _picasso_render_utils
 
     host = _picasso_render_utils()
+    host.session = make_session()
+    host.session.update_metadata("a", pixel_size=100.)
+    host.stop_event = threading.Event()
     host.viewer = ViewerModel()
     host.viewer.add_image(np.zeros((2, 10, 10)), units=("pixel", "nm", "nm"))
     host.gui = SimpleNamespace(show_render=SimpleNamespace(isChecked=lambda: True))
-    host.draw_picasso_render((np.zeros((10, 10, 3)), 100, 2))
+    pending = proc.compute(proc.prepare(host.session, proc.ProcessingRequest(
+        "render", (("a", "image"),), proc.RenderingSettings(oversampling=2)
+    )))
+    host.draw_picasso_render(pending)
 
     assert host.viewer.layers.extent.units is not None
     np.testing.assert_allclose(host.render_layer.scale, [50, 50])
@@ -140,15 +150,9 @@ def test_active_image_sets_spatial_units_and_preserves_frame_units(shape):
 
 def test_model_backed_active_image_and_pixel_size():
     from moltrack.model_io import import_images
-    from moltrack.model_views import legacy_snapshot
     from moltrack.session import ProjectSession
 
-    class Host(_events_utils):
-        @property
-        def dataset_dict(self):
-            return legacy_snapshot(self.session, "images")
-
-    host = Host()
+    host = _events_utils()
     host.session = ProjectSession()
     import_images(
         host.session,

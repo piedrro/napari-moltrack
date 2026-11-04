@@ -106,10 +106,8 @@ def test_explicit_concatenation_retains_boundary_provenance():
 
 
 def test_gui_queries_are_detached_and_keep_identity():
-    import pytest
-
     from moltrack.model_io import import_images, import_rows
-    from moltrack.model_views import gui_query, legacy_snapshot
+    from moltrack.model_views import gui_query
 
     s = ProjectSession()
     import_images(s, [job()])
@@ -124,13 +122,13 @@ def test_gui_queries_are_detached_and_keep_identity():
     assert rows["custom"].tolist() == [42.0]
     rows["x"] = 99
     assert s.query_localizations("test", "Donor").x.tolist() == [1.0]
-    with pytest.raises(TypeError):
-        legacy_snapshot(s, "images")["test"]["pixel_size"] = 999
+    metadata = s.metadata("test")
+    metadata["pixel_size"] = 999
+    assert s.metadata("test")["pixel_size"] == 117
 
 
 def test_display_projection_does_not_read_full_movie(monkeypatch):
     from moltrack.model_io import import_images
-    from moltrack.model_views import legacy_snapshot
 
     s = ProjectSession()
     import_images(s, [job()])
@@ -140,21 +138,17 @@ def test_display_projection_does_not_read_full_movie(monkeypatch):
     monkeypatch.setattr(
         acq.source, "_frame", lambda i: (calls.append(i), original(i))[1]
     )
-    data = legacy_snapshot(s, "images")["test"]["images"]["Donor"]
+    data = s.image("test", "Donor").as_dask()
     assert calls == []
     data[2].compute()
     assert calls == [2]
 
 
-def test_worker_import_returns_descriptors_without_publication():
-    from moltrack.funcs.import_utils import _import_utils
+def test_worker_import_returns_descriptors_without_publication(monkeypatch):
+    from moltrack.funcs import import_utils
 
-    host = _import_utils()
-    host.process_compute_jobs = lambda jobs, progress_callback=None: jobs
-    host.populate_import_dataset_dict = lambda jobs: (_ for _ in ()).throw(
-        AssertionError("worker published")
-    )
-    result = host.import_data(import_jobs=[job()])
+    monkeypatch.setattr(import_utils, "process_compute_jobs", lambda jobs, *args: jobs)
+    result = import_utils.import_data(import_jobs=[job()])
     assert result["jobs"][0]["dataset_name"] == "test"
 
 
@@ -177,7 +171,7 @@ def test_failed_clear_import_preserves_existing_session():
     broken = job()
     broken["source_images"] = np.zeros((5, 4, 7))
     with pytest.raises(ValueError):
-        host.populate_import_dataset_dict([broken])
+        host.publish_import_images([broken])
     assert host.session is previous
     assert host.session.channels("test") == ("Donor", "Acceptor")
 
@@ -186,6 +180,7 @@ def test_segmentation_import_preserves_crop_and_average():
     from moltrack.funcs.import_utils import _import_utils
 
     host = _import_utils()
+    host.session = ProjectSession()
     j = job("None")
     j.update(
         import_crop_mode="Right",

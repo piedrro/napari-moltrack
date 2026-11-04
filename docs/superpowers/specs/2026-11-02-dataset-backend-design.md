@@ -179,3 +179,21 @@ Do not redesign controls, replace Qt/napari, change scientific formulas, discard
 metadata, add mirrored mutable stores, or claim a partial bridge completes the
 migration. Exact module names, container layout, and cache granularity are
 implementation decisions, subject to the compatibility and ownership rules above.
+
+
+## Implementation status (2026-11-03)
+
+Stages 1–5 are implemented and independently approved, including the persistence
+and legacy-conversion review fixes. Stage 6 has removed standalone dictionary GUI
+processing and compatibility snapshot properties. Normal processing uses the
+persistent session and detached requests; array compatibility stays in backend.py.
+The odd-frame ALEX integration chain exercises detection/fitting, tracking,
+photometry, filtering/edits, repeated registration and native/application reload,
+including stable identity and raw/corrected consistency.
+
+The exact published MolCore dependency is
+`1f6ea9a8b33796424566fd467567efdb00cac651`; both Python 3.12.3 development
+runtimes have this revision and Cellpose 3.0.9. Stage 6 focused verification and
+source audit are recorded in its task report. Fresh controller-owned full-suite,
+build/runtime checks, Stage 6 review and whole-branch review remain pending.
+The migration is not marked complete until those gates pass.

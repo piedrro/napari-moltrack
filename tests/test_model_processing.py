@@ -129,7 +129,6 @@ def test_gui_detection_captures_settings_and_publishes_on_result(monkeypatch):
     host = _picasso_detect_utils()
     host.session = session
     host.stop_event = threading.Event()
-    host.dataset_dict = {"a": {"images": {"image": np.zeros((2, 15, 15))}}}
 
     def value(v):
         return SimpleNamespace(value=lambda: v)

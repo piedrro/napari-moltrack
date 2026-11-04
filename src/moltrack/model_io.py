@@ -124,7 +124,7 @@ def _acquisition(job):
     ), original
 
 
-def import_images(session, jobs, *, concatenate=False):
+def import_images(session, jobs, *, concatenate=False, clear=False):
     """Validate descriptors before publication; explicit concatenation is derived.
 
     Original acquisitions remain in the model, even when a mean or concatenated
@@ -204,7 +204,7 @@ def import_images(session, jobs, *, concatenate=False):
         acquisitions.append(acquisition)
         for name in acquisition.channels:
             bindings.append((dataset, name, acquisition.id, name))
-    session.publish_acquisitions(acquisitions, bindings)
+    session.publish_acquisitions(acquisitions, bindings, clear=clear)
 
 
 def import_rows(session, dataset, channel, rows, *, tracks=False):

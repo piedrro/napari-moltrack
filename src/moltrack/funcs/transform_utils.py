@@ -10,13 +10,7 @@ from napari.utils.notifications import show_info
 from qtpy.QtWidgets import QFileDialog
 
 from moltrack.funcs.compute_utils import Worker
-from moltrack.backend import transform_image, transform_locs
 from molcore.alignment import fit_transform
-
-
-
-
-
 
 
 class _transform_utils:
@@ -143,72 +137,7 @@ class _transform_utils:
         self.update_ui()
         self.update_active_image()
         self.gui.fret_tform_progressbar.setValue(0)
-        if not hasattr(self, 'session'):
-            show_info("Transformation complete")
 
-    def _apply_fret_transform_matrix(self, progress_callback):
-
-        show_info("Applying transform matrix...")
-
-        try:
-            if bool(self.session.ordinary_datasets()):
-
-                target_channel = self.gui.tform_apply_target.currentText()
-
-                if "donor" in target_channel.lower():
-                    target_channels = ["donor", "dd","da"]
-                else:
-                    target_channels = ["acceptor", "aa", "ad"]
-
-                target_images = []
-                total_frames = 0
-                iter = 0
-
-                for dataset_name, dataset_dict in self.dataset_dict.items():
-                    image_dict = dataset_dict["images"]
-
-                    for channel_name in image_dict.keys():
-                        if channel_name.lower() in target_channels:
-                            image = image_dict[channel_name]
-                            n_frames = image.shape[0]
-                            total_frames += n_frames
-                            target_images.append({"dataset_name": dataset_name,"channel_name": channel_name})
-
-                for i in range(len(target_images)):
-
-                    dataset_name = target_images[i]["dataset_name"]
-                    channel_name = target_images[i]["channel_name"]
-
-
-
-                    image_dict = self.dataset_dict[dataset_name]["images"]
-                    img = image_dict[channel_name].copy()
-
-                    def transform_progress(progress):
-                        nonlocal iter
-                        iter += progress
-                        progress = int((iter / total_frames) * 100)
-                        progress_callback.emit(progress)
-
-                    img = transform_image(img, self.transform_matrix, progress_callback=transform_progress)
-                    self.dataset_dict[dataset_name]["images"][channel_name] = img.copy()
-
-                    locs = self.get_locs(dataset_name, channel_name)
-
-                    if len(locs) > 0:
-                        transformed_locs = transform_locs(locs, self.transform_matrix, progress_callback=transform_progress)
-                        if transformed_locs is not None:
-                            self.localisation_dict[dataset_name][channel_name]["localisations"] = transformed_locs
-
-                    tracks = self.get_tracks(dataset_name, channel_name)
-
-                    if len(tracks) > 0:
-                        transformed_tracks = transform_locs(tracks, self.transform_matrix, progress_callback=transform_progress)
-                        if transformed_tracks is not None:
-                            self.tracking_dict[dataset_name][channel_name]["tracks"] = transformed_tracks
-
-        except:
-            print(traceback.format_exc())
 
     def apply_fret_transform_matrix(self):
 
@@ -224,21 +153,18 @@ class _transform_utils:
                     else:
                         self.update_ui(init=True)
 
-                        if hasattr(self, 'session'):
-                            from moltrack.model_processing import ProcessingRequest, RegistrationSettings, compute_worker, prepare
-                            target = self.gui.tform_apply_target.currentText().lower()
-                            channels = ('donor', 'dd', 'da') if 'donor' in target else ('acceptor', 'aa', 'ad')
-                            partitions = tuple((d, c) for d in self.session.datasets()
-                                for c in self.session.channels(d) if c.lower() in channels)
-                            if not partitions:
-                                self.update_ui()
-                                return
-                            settings = RegistrationSettings(tuple(tuple(map(float, row)) for row in self.transform_matrix))
-                            worker = Worker(compute_worker, prepare(self.session,
-                                ProcessingRequest('registration', partitions, settings)), self.stop_event)
-                            worker.signals.result.connect(self._publish_registration_result)
-                        else:
-                            worker = Worker(self._apply_fret_transform_matrix)
+                        from moltrack.model_processing import ProcessingRequest, RegistrationSettings, compute_worker, prepare
+                        target = self.gui.tform_apply_target.currentText().lower()
+                        channels = ('donor', 'dd', 'da') if 'donor' in target else ('acceptor', 'aa', 'ad')
+                        partitions = tuple((d, c) for d in self.session.datasets()
+                            for c in self.session.channels(d) if c.lower() in channels)
+                        if not partitions:
+                            self.update_ui()
+                            return
+                        settings = RegistrationSettings(tuple(tuple(map(float, row)) for row in self.transform_matrix))
+                        worker = Worker(compute_worker, prepare(self.session,
+                            ProcessingRequest('registration', partitions, settings)), self.stop_event)
+                        worker.signals.result.connect(self._publish_registration_result)
                         worker.signals.progress.connect(partial(self.moltrack_progress,
                             progress_bar=self.gui.fret_tform_progressbar, ))
                         worker.signals.finished.connect(self._apply_fret_transform_matrix_finished)

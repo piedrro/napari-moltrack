@@ -16,7 +16,6 @@ from qtpy.QtWidgets import (
 )
 from pyqtgraph import ImageView
 from qtpy.QtCore import QThreadPool
-from qtpy.QtWidgets import QVBoxLayout, QWidget
 from skimage import exposure
 
 if TYPE_CHECKING:
@@ -111,20 +110,6 @@ class MolTrack(QWidget, gui, *subclasses):
 
         self.import_dev_data()
 
-    @property
-    def dataset_dict(self):
-        from moltrack.model_views import legacy_snapshot
-        return legacy_snapshot(self.session, 'images')
-
-    @property
-    def localisation_dict(self):
-        from moltrack.model_views import legacy_snapshot
-        return legacy_snapshot(self.session, 'localisations')
-
-    @property
-    def tracking_dict(self):
-        from moltrack.model_views import legacy_snapshot
-        return legacy_snapshot(self.session, 'tracks')
 
     def import_dev_data(self):
 
@@ -468,7 +453,6 @@ class MolTrack(QWidget, gui, *subclasses):
 
             shapes = self.segLayer.data.copy()
             shape_types = self.segLayer.shape_type.copy()
-            properties = self.segLayer.properties.copy()
 
             for i, shape_type in enumerate(shape_types):
                 if shape_type == "polygon":
@@ -545,7 +529,6 @@ class MolTrack(QWidget, gui, *subclasses):
         # self.populate_dataset_selectors()
 
         # self.gui.track_filter_channel.currentIndexChanged.connect(self.update_track_filter_criterion)
-
 
 
     def export_celllist(self):

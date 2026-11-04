@@ -14,7 +14,11 @@ Multiple datasets can be loaded and processed in parallel.
 
 The processing backend uses MolCore for movie reading, localisation, tracking,
 rendering, filtering, clustering, drift correction, photometry and trajectory
-statistics. The existing MolTrack controls and project dictionaries are retained.
+statistics. A persistent `ProjectSession` owns the MolCore Dataset; GUI tables,
+images and layers are detached projections of its sources, localization IDs and
+track memberships. GUI actions capture settings and process model snapshots;
+validated results publish atomically on the GUI thread. Array-based entry points
+in `moltrack.backend` remain available for scripts.
 Picasso GPU fitting appears in the existing fitting selector when Picasso detects
 a CUDA device; otherwise Picasso CPU fitting is available. The custom MolTrack
 detector remains available through a MolCore backend extension.
@@ -22,6 +26,33 @@ detector remains available through a MolCore backend extension.
 Development uses Python 3.12, napari 0.9.2 and PyQt6 via QtPy. Segmentation uses
 Cellpose 3 models (cyto3, cyto2, cyto and nuclei) or compatible custom weights.
 Built-in segmentation weights download on first use.
+
+Development is pinned to Cellpose 3.0.9 and MolCore Git revision
+`1f6ea9a8b33796424566fd467567efdb00cac651` in `pyproject.toml` and `uv.lock`.
+Both the default `.venv` and `.verify312` use Python 3.12.3 with this revision.
+On Windows, run GUI tests with `QT_API=pyqt6`:
+
+```powershell
+$env:QT_API='pyqt6'
+.verify312/Scripts/python.exe -m pytest tests src/moltrack/_tests -q --tb=short --disable-warnings
+```
+
+New `.moltrack` projects are versioned ZIP containers containing a native
+MolCore HDF5 model, a JSON manifest and typed annotation arrays. They retain
+source/channel frame maps, timing, stable identities, measurements, transforms,
+editable shapes and supported cell properties. Derived plot/analysis caches are
+recomputed after loading. Saving replaces the destination only after the complete
+container has been written successfully.
+
+The image checkbox controls embedded pixels. Image-free projects retain geometry
+and tables; pixel analysis requires an available source. Their zero-valued display
+placeholder is labeled and is never used as scientific image data. Legacy projects
+are converted into detached candidates before adoption. Already-corrected legacy
+arrays establish a corrected baseline, so saved corrections are not applied twice.
+When old files lack exact geometry or pixels, conversion records inferred geometry
+and unresolved source provenance explicitly. Unknown historical registration is
+not reconstructed from original file paths. Unsupported annotation objects fail
+explicitly instead of being silently omitted.
 
 Single molecule localisations can be filtered by their properties (e.g. photons, width, etc.) and can be rendered as a super resolution image.
 

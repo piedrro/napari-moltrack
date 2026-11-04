@@ -10,7 +10,7 @@ from moltrack.funcs.management_utils import _management_utils
 from moltrack.funcs.track_filter_utils import _track_filter_utils
 from moltrack.funcs.tracking_utils import _tracking_utils
 from moltrack.funcs.trackstats_utils import _trackstats_utils
-from moltrack.model_views import gui_query, legacy_snapshot
+from moltrack.model_views import gui_query
 
 
 def control(value):
@@ -36,17 +36,8 @@ class Host(
         self.gui = NS()
         self.moltrack_metrics = {"Photons": "photons"}
 
-    @property
-    def localisation_dict(self):
-        return legacy_snapshot(self.session, "localisations")
 
-    @property
-    def tracking_dict(self):
-        return legacy_snapshot(self.session, "tracks")
 
-    @property
-    def dataset_dict(self):
-        return legacy_snapshot(self.session, "images")
 
     def get_locs(self, dataset, channel, **kw):
         return gui_query(self.session, dataset, channel, **kw)

@@ -33,22 +33,7 @@ class _segmentation_utils:
         dataset = self.gui.cellpose_dataset.currentText()
         channel = self.gui.cellpose_channel.currentText()
         if dataset == 'Segmentation Image':
-            # Older in-memory images are imported once; every inference uses the
-            # persistent source binding, including ordinary segmentation imports.
-            binding = self.session.annotations.get('segmentation_image_binding')
-            source = getattr(self, 'segmentation_image', None)
-            if binding is None or getattr(self, '_segmentation_source', None) is not source:
-                from moltrack.model_io import import_images
-                image = np.asarray(source)
-                if image.ndim == 2:
-                    image = image[None]
-                dataset, channel = 'Segmentation Image', 'Segmentation Image'
-                import_images(self.session, [dict(dataset_name=dataset, channel_name=channel,
-                    source_images=image, path='', pixel_size=self.segmentation_image_pixel_size,
-                    exposure_time=1, multichannel_mode='None', role='segmentation_image')])
-                binding = dataset, channel
-                self.session.set_annotations('segmentation_image_binding', binding)
-                self._segmentation_source = source
+            binding = self.session.annotations['segmentation_image_binding']
             dataset, channel = binding
         frame = int(self.viewer.dims.current_step[0]) if mode == 'active' else None
         if len(self.session._view(dataset, channel)) == 1:
@@ -66,81 +51,21 @@ class _segmentation_utils:
             show_info(f'Selected Cellpose model: {os.path.basename(path)}')
 
 
-
-
-
-    def get_segmentation_images(self, mode = "active"):
-
-        images = []
-
-        if bool(self.session.ordinary_datasets()) or hasattr(self, "segmentation_image"):
-
-            dataset = self.gui.cellpose_dataset.currentText()
-            channel = self.gui.cellpose_channel.currentText()
-            current_frame = self.viewer.dims.current_step[0]
-
-            if dataset == "Segmentation Image":
-                if hasattr(self, "segmentation_image"):
-                    data = self.segmentation_image.copy()
-
-                    if mode == "active":
-                        if len(data.shape) == 3:
-                            if data.shape[0] > 1:
-                                if current_frame < data.shape[0]:
-                                    images = [data[current_frame]]
-                            else:
-                                images = [data[0]]
-                    else:
-                        if len(data.shape) == 3:
-                            images = [frame for frame in data]
-                        else:
-                            images = [data]
-            else:
-                data = {c: self.session.image(dataset, c).as_dask() for c in self.session.ordinary_channels(dataset)}[channel]
-                if mode == "active":
-                    if len(data.shape) == 3:
-                        if current_frame < data.shape[0]:
-                            images = [data[current_frame]]
-                else:
-                    images = data.copy()
-
-                    if len(images.shape) == 3:
-                        images = [frame for frame in images]
-                    else:
-                        images = [images]
-
-        return images
-
-
     def initialise_cellpose(self, mode = "active"):
 
         try:
 
-            if hasattr(self, 'session'):
-                from moltrack.model_processing import compute_worker
-                prepared = self._prepare_model_segmentation(mode)
-                self.update_ui(init=True)
-                self.worker = Worker(compute_worker, prepared, self.stop_event)
-                self.worker.signals.result.connect(self.process_cellpose_result)
-                self.worker.signals.finished.connect(self.run_cellpose_finished)
-                self.worker.signals.error.connect(self.update_ui)
-                self.worker.signals.progress.connect(partial(self.moltrack_progress,
-                    progress_bar=self.gui.cellpose_progressbar))
-                self.threadpool.start(self.worker)
-                return
-
-            images = self.get_segmentation_images(mode = mode)
-
-            if len(images) > 0:
-
-                self.update_ui(init=True)
-
-                self.worker = Worker(self.pixseq_segment, images = images, mode = mode)
-                self.worker.signals.result.connect(self.process_cellpose_result)
-                self.worker.signals.finished.connect(self.run_cellpose_finished)
-                self.worker.signals.progress.connect(partial(self.moltrack_progress,
-                    progress_bar=self.gui.cellpose_progressbar))
-                self.threadpool.start(self.worker)
+            from moltrack.model_processing import compute_worker
+            prepared = self._prepare_model_segmentation(mode)
+            self.update_ui(init=True)
+            self.worker = Worker(compute_worker, prepared, self.stop_event)
+            self.worker.signals.result.connect(self.process_cellpose_result)
+            self.worker.signals.finished.connect(self.run_cellpose_finished)
+            self.worker.signals.error.connect(self.update_ui)
+            self.worker.signals.progress.connect(partial(self.moltrack_progress,
+                progress_bar=self.gui.cellpose_progressbar))
+            self.threadpool.start(self.worker)
+            return
 
         except:
             self.update_ui(init=False)
@@ -150,49 +75,20 @@ class _segmentation_utils:
 
         try:
 
-            from moltrack.model_processing import PendingOperation
-            if isinstance(result, PendingOperation):
-                from moltrack.funcs.compute_utils import publish_model_result
-                if not publish_model_result(self, result):
-                    return
-                shapes = []
-                for dataset, channel, segmentations in result.results:
-                    view = result.prepared.session._view(dataset, channel)
-                    for segmentation in segmentations.values():
-                        frame = None if result.prepared.request.settings.frame_index is not None else view.channel_index(segmentation.frame)
-                        shapes.extend(self.mask_to_shape(segmentation.labels, frame=frame))
-                dataset = result.prepared.request.partitions[0][0]
-                pixel_size = result.prepared.session.metadata(dataset)['pixel_size']
-                mask_ids = [mask.id for _, _, masks in result.results for mask in masks.values()]
-                self.initialise_segLayer(shapes, pixel_size, model_mask_ids=mask_ids)
+            from moltrack.funcs.compute_utils import publish_model_result
+            if not publish_model_result(self, result):
                 return
-
-            layer_names = [layer.name for layer in self.viewer.layers]
-
-            mode, masks = result
-
-            if mode == "active":
-                shapes = self.mask_to_shape(masks[0])
-            else:
-                shapes = []
-                for i, mask in enumerate(masks):
-                    layer_shapes = self.mask_to_shape(mask)
-                    shapes.extend(layer_shapes)
-
-            if len(shapes) > 0:
-
-                dataset = self.gui.cellpose_dataset.currentText()
-
-                if dataset == "Segmentation Image":
-                    pixel_size = self.segmentation_image_pixel_size
-                else:
-                    pixel_size = self.session.metadata(dataset)["pixel_size"]
-
-                self.initialise_segLayer(shapes, pixel_size)
-
-
-
-
+            shapes = []
+            for dataset, channel, segmentations in result.results:
+                view = result.prepared.session._view(dataset, channel)
+                for segmentation in segmentations.values():
+                    frame = None if result.prepared.request.settings.frame_index is not None else view.channel_index(segmentation.frame)
+                    shapes.extend(self.mask_to_shape(segmentation.labels, frame=frame))
+            dataset = result.prepared.request.partitions[0][0]
+            pixel_size = result.prepared.session.metadata(dataset)['pixel_size']
+            mask_ids = [mask.id for _, _, masks in result.results for mask in masks.values()]
+            self.initialise_segLayer(shapes, pixel_size, model_mask_ids=mask_ids)
+            return
 
         except:
             print(traceback.format_exc())
@@ -233,30 +129,6 @@ class _segmentation_utils:
 
         self.update_ui(init=False)
         self.update_segmentation_combos()
-
-
-
-
-    def pixseq_segment(self, images=(), mode='active', progress_callback=None):
-        import torch
-        from molcore import CellposeSettings
-        from moltrack.backend import segment_images
-
-        model = self.gui.cellpose_model.currentText()
-        if model == 'custom':
-            model = getattr(self, 'cellpose_custom_model_path', '')
-            if not os.path.isfile(model):
-                raise ValueError('Please select Cellpose 3 custom weights')
-        settings = CellposeSettings(pretrained_model=model,
-            diameter=float(self.gui.cellpose_diameter_label.text()) or None,
-            flow_threshold=float(self.gui.cellpose_flowthresh_label.text()),
-            cellprob_threshold=float(self.gui.cellpose_maskthresh_label.text()),
-            min_size=int(self.gui.cellpose_minsize_label.text()), gpu=torch.cuda.is_available())
-        if self.gui.cellpose_invert_images.isChecked():
-            images = [np.max(image) - image for image in images]
-        masks = segment_images(images, settings=settings,
-            progress_callback=progress_callback, cancel_event=self.stop_event)
-        return mode, masks
 
 
     def get_segmentation_polygons(self, segmentation_layer = None):

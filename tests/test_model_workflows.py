@@ -471,13 +471,6 @@ def test_gui_workflows_capture_detached_requests(operation):
         host.session.bind("a", "Donor", "camera", "image")
     host.gui = Gui()
     host.stop_event = threading.Event()
-    host.dataset_dict = {
-        "a": {"images": {"image": np.zeros((2, 15, 15))}, "pixel_size": 100.0}
-    }
-    host.localisation_dict = {
-        "a": {"image": {"fitted": True, "localisations": [1]}}
-    }
-    host.tracking_dict = {}
     host.update_ui = lambda **kw: None
     host.moltrack_progress = lambda *a, **kw: None
     host.get_shapes = lambda *a, **kw: []

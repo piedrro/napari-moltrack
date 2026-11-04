@@ -76,7 +76,7 @@ class ProjectSession:
     def partition(self, dataset: str, channel: str) -> tuple[str, str]:
         return self._partitions[dataset][channel]
 
-    def publish_acquisitions(self, acquisitions, bindings):
+    def publish_acquisitions(self, acquisitions, bindings, *, clear=False):
         """Publish a complete GUI import, preserving this session and model.
 
         Source additions and binding validation run against a detached model.
@@ -87,14 +87,84 @@ class ProjectSession:
         def prepare(model):
             staged = ProjectSession(model)
             staged._partitions = deepcopy(self._partitions)
+            annotations = deepcopy(self.annotations)
+            if clear:
+                # Preserve the standalone segmentation source and any original
+                # acquisitions referenced by its derived-source provenance.
+                keep = {
+                    key
+                    for key, acquisition in model.acquisitions.items()
+                    if acquisition.metadata.get("role") == "segmentation_image"
+                }
+                binding = annotations.get("segmentation_image_binding")
+                if binding is not None:
+                    keep.add(staged.partition(*binding)[0])
+                retained_partitions = {
+                    (dataset, channel)
+                    for dataset, channels in staged._partitions.items()
+                    for channel, target in channels.items()
+                    if target[0] in keep
+                }
+                pending = list(keep)
+                while pending:
+                    metadata = model.acquisitions[pending.pop()].metadata
+                    references = [metadata.get("source_acquisition_id")]
+                    references.extend(
+                        segment.get("acquisition_id")
+                        for segment in metadata.get("source_segments", ())
+                    )
+                    for reference in references:
+                        if (
+                            reference in model.acquisitions
+                            and reference not in keep
+                        ):
+                            keep.add(reference)
+                            pending.append(reference)
+                for key in tuple(model.acquisitions):
+                    if key not in keep:
+                        model.remove_acquisition(key, cascade=True)
+                staged._partitions = {
+                    dataset: {
+                        channel: binding
+                        for channel, binding in channels.items()
+                        if (dataset, channel) in retained_partitions
+                    }
+                    for dataset, channels in staged._partitions.items()
+                }
+                staged._partitions = {
+                    dataset: channels
+                    for dataset, channels in staged._partitions.items()
+                    if channels
+                }
+                for name in ("partitions", "contrast"):
+                    if name in annotations:
+                        annotations[name] = {
+                            dataset: {
+                                channel: value
+                                for channel, value in channels.items()
+                                if channel
+                                in staged._partitions.get(dataset, {})
+                            }
+                            for dataset, channels in annotations[name].items()
+                            if dataset in staged._partitions
+                        }
+                for name in ("segmentations", "cells"):
+                    if name in annotations:
+                        annotations[name]["mask_ids"] = [
+                            key
+                            for key in annotations[name].get("mask_ids", ())
+                            if key in model.segmentations
+                        ]
             for acquisition in acquisitions:
                 model.add_acquisition(acquisition)
             for binding in bindings:
                 staged.bind(*binding)
-            return staged._partitions
+            return staged._partitions, annotations
 
-        partitions = transact(self.model, prepare)
+        partitions, annotations = transact(self.model, prepare)
         self._partitions = partitions
+        self.annotations = annotations
+        self._analysis_cache.clear()
 
     def _view(self, dataset, channel):
         acquisition, name = self.partition(dataset, channel)

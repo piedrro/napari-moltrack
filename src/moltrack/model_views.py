@@ -38,44 +38,6 @@ def track_points(rows):
     )
 
 
-def legacy_snapshot(session, kind):
-    """Read-only detached compatibility projection; never a mutable state store."""
-    from types import MappingProxyType
-
-    result = {}
-    for dataset in session.datasets():
-        channels = {}
-        for channel in session.channels(dataset):
-            if kind == "images":
-                channels[channel] = session.image(dataset, channel).as_dask()
-            else:
-                rows = (
-                    session.query_tracks
-                    if kind == "tracks"
-                    else session.query_localizations
-                )(dataset, channel)
-                rows["dataset"] = dataset
-                rows["channel"] = channel
-                records = gui_records(rows)
-                records.flags.writeable = False
-                annotations = (
-                    session.annotations.get("partitions", {})
-                    .get(dataset, {})
-                    .get(channel, {})
-                )
-                channels[channel] = MappingProxyType(
-                    dict(annotations, **{kind: records})
-                )
-        if kind == "images":
-            result[dataset] = MappingProxyType(
-                dict(
-                    session.metadata(dataset),
-                    images=MappingProxyType(channels),
-                )
-            )
-        else:
-            result[dataset] = MappingProxyType(channels)
-    return MappingProxyType(result)
 
 
 def gui_query(

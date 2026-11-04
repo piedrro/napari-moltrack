@@ -136,17 +136,13 @@ class _pixstats_utils:
                 calculate_fret = False
                 self.gui.tracks_pixstats_fret.setChecked(False)
 
-        if hasattr(self, 'session'):
-            from moltrack.model_processing import PhotometrySettings, ProcessingRequest, compute_worker, prepare
-            partitions = tuple(pixstats_data.groupby(['dataset', 'channel'], sort=False).groups)
-            settings = PhotometrySettings(spot_size=spot_size, spot_shape=spot_shape,
-                background_buffer=background_buffer, background_width=background_width,
-                tracks=mode == 'tracks', calculate_fret=calculate_fret)
-            worker = Worker(compute_worker, prepare(self.session,
-                ProcessingRequest('photometry', partitions, settings)), self.stop_event)
-        else:
-            worker = Worker(self.compute_pixstats, pixstats_data, mode, calculate_fret,
-                spot_size, spot_shape,background_buffer, background_width)
+        from moltrack.model_processing import PhotometrySettings, ProcessingRequest, compute_worker, prepare
+        partitions = tuple(pixstats_data.groupby(['dataset', 'channel'], sort=False).groups)
+        settings = PhotometrySettings(spot_size=spot_size, spot_shape=spot_shape,
+            background_buffer=background_buffer, background_width=background_width,
+            tracks=mode == 'tracks', calculate_fret=calculate_fret)
+        worker = Worker(compute_worker, prepare(self.session,
+            ProcessingRequest('photometry', partitions, settings)), self.stop_event)
 
         worker.signals.progress.connect(progressbar)
         worker.signals.result.connect(self.process_pixstats_result)
@@ -174,141 +170,9 @@ class _pixstats_utils:
 
 
     def process_pixstats_result(self, result):
-        from moltrack.model_processing import PendingOperation
-        if isinstance(result, PendingOperation):
-            from moltrack.funcs.compute_utils import publish_model_result
-            publish_model_result(self, result)
-            return
-
-        pixstats_data, mode = result
-
-        if pixstats_data is None:
-            return
-
-        pixstats_data = pd.DataFrame(pixstats_data)
-
-        for (dataset, channel), data in pixstats_data.groupby(["dataset", "channel"]):
-
-            if "index" in data.columns:
-                data = data.drop("index", axis=1)
-
-            data = data.to_records(index=False)
-
-            if mode == "tracks":
-                self.tracking_dict[dataset][channel]["tracks"] = data
-            else:
-                self.localisation_dict[dataset][channel]["localisations"] = data
-
-    def pixstats_calculate_fret(self, data):
-
-        try:
-            np.seterr(all='ignore')
-
-            data = pd.DataFrame(data)
-
-            fret_dataset = []
-
-            for dataset, dataset_data in data.groupby("dataset"):
-
-                channel_list = dataset_data["channel"].unique()
-                channel_list = [chan.lower() for chan in channel_list]
-
-                if set(["donor", "acceptor"]).issubset(channel_list):
-                    fret_data = self.pixstats_compute_fret(dataset_data)
-                elif set(["dd", "da"]).issubset(channel_list):
-                    fret_data = self.pixstats_compute_alex_fret(dataset_data)
-                else:
-                    fret_data = dataset_data
-
-                fret_dataset.append(fret_data)
-
-            if len(fret_dataset) > 0:
-
-                fret_dataset = pd.concat(fret_dataset, ignore_index=True)
-                fret_dataset.reset_index(drop=True, inplace=True)
-
-        except:
-            print(traceback.format_exc())
-
-        return fret_dataset
-
-    def pixstats_compute_fret(self, data):
-
-        for metric in data.columns:
-            try:
-                if metric in self.moltrack_metrics.values():
-                    if "pixel" in metric:
-                        metric_name = metric
-                        bg_name = metric + "_bg"
-                    elif "photons" in metric:
-                        metric_name = metric
-                        bg_name = "bg"
-                    else:
-                        continue
-
-                    donor_data = data[data["channel"].str.lower() == "donor"][metric_name]
-                    acceptor_data = data[data["channel"].str.lower() == "acceptor"][metric_name]
-
-                    donor_bg = data[data["channel"].str.lower() == "donor"][bg_name]
-                    acceptor_bg = data[data["channel"].str.lower() == "acceptor"][bg_name]
-
-                    fret = (acceptor_data - donor_data) / acceptor_data
-                    fret_bg = (acceptor_bg - donor_bg) / acceptor_bg
-
-                    fret_metric = metric + "_fret"
-
-                    data[fret_metric] = fret
-                    data[fret_metric + "_bg"] = fret_bg
-
-            except:
-                print(traceback.format_exc())
-
-        return data
-
-    def pixstats_compute_alex_fret(self, data):
-
-        for metric in list(data.columns):
-            try:
-                if metric in self.moltrack_metrics.values():
-                    if "fret" in metric:
-                        continue
-                    elif "pixel" in metric:
-                        metric_name = metric
-                        bg_name = metric + "_bg"
-                    elif "photons" in metric:
-                        metric_name = metric
-                        bg_name = "bg"
-                    else:
-                        continue
-
-                    dd_data = data[data["channel"].str.lower() == "dd"][metric_name].copy()
-                    da_data = data[data["channel"].str.lower() == "da"][metric_name].copy()
-
-                    dd_bg = data[data["channel"].str.lower() == "dd"][bg_name].copy()
-                    da_bg = data[data["channel"].str.lower() == "da"][bg_name].copy()
-
-                    dd_data = np.array(dd_data)
-                    da_data = np.array(da_data)
-                    dd_bg = np.array(dd_bg)
-                    da_bg = np.array(da_bg)
-
-                    dd_data = dd_data - dd_bg
-                    da_data = da_data - da_bg
-
-                    fret = da_data / (da_data + dd_data)
-                    fret = np.clip(fret, 0, 1)
-
-                    fret_metric = metric + "_fret"
-
-                    for channel in data["channel"].unique():
-                        data.loc[data["channel"] == channel, fret_metric] = fret
-
-            except:
-                print(traceback.format_exc())
-
-        return data
-
-
+        from moltrack.funcs.compute_utils import publish_model_result
+        publish_model_result(self, result)
+        return
 
     @staticmethod
     def generate_localisation_mask(spot_size, spot_shape="square", buffer_size=0, bg_width=1):
@@ -351,28 +215,3 @@ class _pixstats_utils:
             background_mask = background_mask & ~buffer_mask
 
         return mask, buffer_mask, background_mask
-
-
-
-
-
-
-
-
-
-    def compute_pixstats(self, pixmap_data, mode, calculate_fret, spot_size, spot_shape,
-                         background_buffer, background_width, progress_callback=None):
-        from moltrack.backend import measure_locs
-
-        measured = []
-        for (dataset, channel), rows in pixmap_data.groupby(['dataset', 'channel'], sort=False):
-            movie = self.dataset_dict[dataset]['images'][channel]
-            measured.append(measure_locs(movie, rows, spot_size=spot_size, spot_shape=spot_shape,
-                background_buffer=background_buffer, background_width=background_width,
-                progress_callback=progress_callback, cancel_event=self.stop_event))
-        results = pd.concat(measured, ignore_index=True) if measured else pd.DataFrame(pixmap_data).copy()
-        if calculate_fret:
-            results = self.pixstats_calculate_fret(results)
-        else:
-            results = results.drop(columns=[col for col in results if '_fret' in col])
-        return results.to_records(index=False), mode

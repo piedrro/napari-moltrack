@@ -1,5 +1,6 @@
 import sys
 import traceback
+from concurrent.futures import CancelledError
 
 import napari
 import numpy as np
@@ -109,10 +110,12 @@ class Worker(QRunnable):
         # Retrieve args/kwargs here; and fire processing using them
         try:
 
-            while not self._is_stopped:
+            if not self._is_stopped:
                 result = self.fn(*self.args, **self.kwargs)
-                self.signals.result.emit(result)  # Emit the result
-                self._is_stopped = True
+                if not self._is_stopped:
+                    self.signals.result.emit(result)
+        except CancelledError:
+            pass
         except:
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
@@ -126,4 +129,3 @@ class Worker(QRunnable):
     def stop(self):
 
         self._is_stopped = True
-        self.signals.finished.emit()

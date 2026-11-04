@@ -3,11 +3,8 @@ import traceback
 from concurrent.futures import CancelledError
 from functools import partial
 
-import numpy as np
-import pandas as pd
 from napari.utils.notifications import show_info
 
-from moltrack.backend import localize_movie
 from moltrack.funcs.compute_utils import Worker
 
 
@@ -75,7 +72,6 @@ class _picasso_detect_utils:
                 detect_mode = self.gui.smlm_detect_mode.currentText()
                 fit_mode = self.gui.smlm_fit_mode.currentText()
                 dataset_name = self.gui.picasso_dataset.currentText()
-                channel_name = self.gui.picasso_channel.currentText()
                 frame_mode = self.gui.picasso_frame_mode.currentText()
                 minimise_ram = self.gui.picasso_minimise_ram.isChecked()
 
@@ -96,57 +92,31 @@ class _picasso_detect_utils:
                     else:
                         frame_index = None
 
-                    if dataset_name == "All Datasets":
-                        dataset_list = list(self.session.ordinary_datasets())
-                    else:
-                        dataset_list = [dataset_name]
+                    from moltrack.model_processing import DetectionSettings, ProcessingRequest, prepare
 
-                    if channel_name == "All Channels":
-
-                        channel_list = []
-                        for dataset_name in self.session.ordinary_datasets():
-                            try:
-                                channel_list.append(set(self.session.ordinary_channels(dataset_name)))
-                            except:
-                                pass
-
-                        channel_list = set.intersection(*channel_list)
-                        channel_list = list(channel_list)
-
-                    else:
-                        channel_list = [channel_name]
-
-                    if hasattr(self, 'session'):
-                        from moltrack.model_processing import DetectionSettings, ProcessingRequest, prepare
-
-                        roi = self.generate_roi()
-                        frozen_roi = tuple(
-                            ((dataset, channel), tuple(tuple(point) for point in points))
-                            for dataset, channels in roi.items()
-                            for channel, points in channels.items()
-                        )
-                        settings = DetectionSettings(
-                            detect=detect, fit=fit, frame_index=frame_index,
-                            threshold=float(self.gui.smlm_threshold.value()),
-                            box_size=int(self.gui.picasso_box_size.value()),
-                            roi=frozen_roi,
-                            remove_overlapping=self.gui.picasso_remove_overlapping.isChecked(),
-                            detect_mode=detect_mode,
-                            kernel_size=int(self.gui.moltrack_kernel_size.text()),
-                            fit_mode=fit_mode,
-                        )
-                        request = ProcessingRequest('detect', self.session.selected_partitions(
-                            self.gui.picasso_dataset.currentText(), self.gui.picasso_channel.currentText()
-                        ), settings)
-                        prepared = prepare(self.session, request)
-                        stop_event = self.stop_event
-                        self.worker = Worker(_compute_detection, prepared, stop_event)
-                        self.worker.signals.result.connect(self._publish_picasso_result)
-                    else:
-                        self.worker = Worker(self._picasso_wrapper,
-                            detect=detect, fit=fit, dataset_list=dataset_list,
-                            channel_list=channel_list, detect_mode=detect_mode,
-                            fit_mode=fit_mode, frame_index=frame_index)
+                    roi = self.generate_roi()
+                    frozen_roi = tuple(
+                        ((dataset, channel), tuple(tuple(point) for point in points))
+                        for dataset, channels in roi.items()
+                        for channel, points in channels.items()
+                    )
+                    settings = DetectionSettings(
+                        detect=detect, fit=fit, frame_index=frame_index,
+                        threshold=float(self.gui.smlm_threshold.value()),
+                        box_size=int(self.gui.picasso_box_size.value()),
+                        roi=frozen_roi,
+                        remove_overlapping=self.gui.picasso_remove_overlapping.isChecked(),
+                        detect_mode=detect_mode,
+                        kernel_size=int(self.gui.moltrack_kernel_size.text()),
+                        fit_mode=fit_mode,
+                    )
+                    request = ProcessingRequest('detect', self.session.selected_partitions(
+                        self.gui.picasso_dataset.currentText(), self.gui.picasso_channel.currentText()
+                    ), settings)
+                    prepared = prepare(self.session, request)
+                    stop_event = self.stop_event
+                    self.worker = Worker(_compute_detection, prepared, stop_event)
+                    self.worker.signals.result.connect(self._publish_picasso_result)
 
                     self.worker.signals.progress.connect(partial(self.moltrack_progress,
                         progress_bar=self.gui.picasso_progressbar))
@@ -246,46 +216,3 @@ class _picasso_detect_utils:
             print(traceback.format_exc())
 
         return roi_dict
-
-
-    def _picasso_wrapper(self, progress_callback, detect, fit,
-                         dataset_list=(), channel_list=(), frame_index=None,
-                         detect_mode="Picasso", fit_mode="Picasso"):
-        box_size = int(self.gui.picasso_box_size.value())
-        roi_dict = self.generate_roi()
-        pending = []
-        for dataset in dataset_list:
-            for channel in channel_list:
-                movie = self.dataset_dict[dataset]['images'][channel]
-                candidates = None
-                if not detect:
-                    candidates = self.localisation_dict.get(dataset, {}).get(channel, {}).get('localisations')
-                    if candidates is None or len(candidates) == 0:
-                        continue
-                locs = localize_movie(movie,
-                    threshold=float(self.gui.smlm_threshold.value()), box_size=box_size,
-                    fit=fit, candidates=candidates, frame_index=frame_index,
-                    roi=roi_dict.get(dataset, {}).get(channel),
-                    remove_overlapping=detect and self.gui.picasso_remove_overlapping.isChecked(),
-                    detect_mode=detect_mode, kernel_size=int(self.gui.moltrack_kernel_size.text()),
-                    use_gpu=fit_mode == 'Picasso GPU', progress_callback=progress_callback,
-                    cancel_event=self.stop_event)
-                pending.append((dataset, channel, locs))
-        # Commit only after every selected partition has completed successfully.
-        if self.stop_event.is_set():
-            raise CancelledError()
-        for dataset, channel, locs in pending:
-            entry = self.localisation_dict.setdefault(dataset, {}).setdefault(channel, {})
-            if 'lpx' in locs.dtype.names and 'lpy' in locs.dtype.names:
-                data = pd.DataFrame(locs)
-                data['sigma'] = np.sqrt((data.lpx ** 2 + data.lpy ** 2) / 2)
-                locs = data.to_records(index=False)
-            data = pd.DataFrame(locs)
-            data['dataset'], data['channel'] = dataset, channel
-            locs = data.to_records(index=False)
-            if frame_index is not None and len(entry.get('localisations', [])):
-                old = pd.DataFrame(entry['localisations'])
-                old = old[old.frame != frame_index]
-                locs = pd.concat([old, pd.DataFrame(locs)], ignore_index=True).to_records(index=False)
-            entry.update(localisations=locs, fitted=bool(fit), box_size=box_size)
-        return pending, bool(fit)
