@@ -390,7 +390,9 @@ def test_gui_publication_runs_on_qt_thread(operation, qtbot, monkeypatch):
             host.apply_fret_transform_matrix()
         else:
             host.undrifting_tools.rcc_undrift()
-        qtbot.waitUntil(lambda: bool(published), timeout=10000)
+        # This verifies thread affinity, not latency. Busy Windows build hosts
+        # can take over ten seconds to deliver the queued GUI publication.
+        qtbot.waitUntil(lambda: bool(published), timeout=30000)
         assert computed
         host.threadpool.waitForDone(10000)
     finally:

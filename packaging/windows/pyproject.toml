@@ -1,0 +1,28 @@
+[project]
+name = "moltrack-windows-build"
+version = "0.0.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "napari-moltrack",
+    "cellpose==3.0.9",
+    "torch==2.9.1+cpu",
+    "torchvision==0.24.1+cpu",
+    "pyinstaller==6.16.0",
+    "pyinstaller-hooks-contrib==2025.9",
+    "pytest",
+    "pytest-qt",
+]
+
+[tool.uv]
+package = false
+environments = ["sys_platform == 'win32' and platform_machine == 'AMD64'"]
+
+[tool.uv.sources]
+napari-moltrack = { path = "../.." }
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

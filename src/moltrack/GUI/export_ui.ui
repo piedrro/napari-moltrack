@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Export</class>
+ <widget class="QWidget" name="Export">
+  <layout class="QVBoxLayout" name="verticalLayout_11">
+   <item>
+    <widget class="QTabWidget" name="tabWidget_2">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tab_5">
+      <attribute name="title">
+       <string>Segmentations/Cells</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_6">
+       <item>
+        <layout class="QFormLayout" name="formLayout_33">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_31">
+           <property name="text">
+            <string>Export Data</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="shapes_export_data" />
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_135">
+           <property name="text">
+            <string>Export Mode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="shapes_export_mode" />
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="export_shapes">
+         <property name="text">
+          <string>Export Shapes</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_8">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::MinimumExpanding</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_4">
+      <attribute name="title">
+       <string>Localisations/Tracks</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_5">
+       <item>
+        <widget class="QLabel" name="label_74">
+         <property name="text">
+          <string>Localisations will be exported at the import directory</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_19">
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_112">
+           <property name="text">
+            <string>Export Mode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="locs_export_mode">
+           <item>
+            <property name="text">
+             <string>Picasso HDF5</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>CSV</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>POS.OUT</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_72">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="locs_export_dataset" />
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_13">
+           <property name="text">
+            <string>Export Data</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="locs_export_data">
+           <item>
+            <property name="text">
+             <string>Localisations</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Tracks</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_73">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QComboBox" name="locs_export_channel" />
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="locs_export_concat">
+         <property name="text">
+          <string>Concatenate Tracks/Localisations</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="export_localisations">
+         <property name="text">
+          <string>Export Localisations</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QProgressBar" name="export_progressbar">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>10</height>
+          </size>
+         </property>
+         <property name="value">
+          <number>0</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_34">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_15">
+      <attribute name="title">
+       <string>Traces</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_16">
+       <item>
+        <widget class="QLabel" name="label_54">
+         <property name="text">
+          <string>Export time traces for downstream analysis</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_34">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_113">
+           <property name="text">
+            <string>Export Mode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="traces_export_mode">
+           <item>
+            <property name="text">
+             <string>TraceAnalyser (.json)</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_75">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="traces_export_dataset" />
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_77">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="traces_export_channel" />
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_53">
+           <property name="text">
+            <string>Intensity Metric</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QComboBox" name="traces_export_metric" />
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="traces_export_subtract_background">
+         <property name="text">
+          <string>Subtract Background</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="export_traces">
+         <property name="text">
+          <string>Export Traces</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_15">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_34">
+      <attribute name="title">
+       <string>BactFit</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_36">
+       <item>
+        <layout class="QFormLayout" name="formLayout_37">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_17">
+           <property name="text">
+            <string>Export Data</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="bactfit_export_data">
+           <item>
+            <property name="text">
+             <string>Localisations</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Tracks</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_156">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="bactfit_export_dataset" />
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_157">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="bactfit_export_channel" />
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="export_bactfit">
+         <property name="text">
+          <string>Export BactFit</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_35">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_30">
+      <attribute name="title">
+       <string>Project</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_32">
+       <item>
+        <widget class="QLabel" name="label_59">
+         <property name="text">
+          <string>Export all active data into a single moltrack binary project file that can be reloaded later. If the images are not included in the moltrack project file, they will be loaded from the image paths.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_16">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Minimum</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>10</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="export_project_images">
+         <property name="text">
+          <string>Include Images (large files)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="export_project">
+         <property name="text">
+          <string>Export Moltrack Project</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_6">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>354</width>
+       <height>414</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <resources />
+ <connections />
+</ui>

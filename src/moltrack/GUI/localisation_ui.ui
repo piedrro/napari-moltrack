@@ -1,0 +1,1265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Localisation</class>
+ <widget class="QWidget" name="Localisation">
+  <layout class="QVBoxLayout" name="verticalLayout_3">
+   <item>
+    <widget class="QTabWidget" name="tabWidget_6">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tab_21">
+      <attribute name="title">
+       <string>Detect</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_23">
+       <item>
+        <widget class="QLabel" name="label_3">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Detect Localisations</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_11">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>Detect Mode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="smlm_detect_mode">
+           <item>
+            <property name="text">
+             <string>GaussThresh</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Picasso</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>Fit Mode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="smlm_fit_mode">
+           <item>
+            <property name="text">
+             <string>Picasso</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_11">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="picasso_dataset" />
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_38">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QComboBox" name="picasso_channel" />
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_8">
+           <property name="text">
+            <string>Frame Mode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QComboBox" name="picasso_frame_mode">
+           <item>
+            <property name="text">
+             <string>Active</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>All</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="picasso_box_size_label">
+           <property name="text">
+            <string>Box Size</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <widget class="QSpinBox" name="picasso_box_size">
+           <property name="minimum">
+            <number>3</number>
+           </property>
+           <property name="maximum">
+            <number>21</number>
+           </property>
+           <property name="singleStep">
+            <number>2</number>
+           </property>
+           <property name="value">
+            <number>7</number>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLabel" name="smlm_threshold_label">
+           <property name="text">
+            <string>Threshold</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="1">
+          <widget class="QSpinBox" name="smlm_threshold" />
+         </item>
+         <item row="7" column="0">
+          <widget class="QLabel" name="moltrack_kernel_size_label">
+           <property name="text">
+            <string>Kernel Size</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="1">
+          <widget class="QSpinBox" name="moltrack_kernel_size">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>7</number>
+           </property>
+          </widget>
+         </item>
+         <item row="8" column="0">
+          <widget class="QLabel" name="label_35">
+           <property name="text">
+            <string>ROI Border Width (Pixels)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="8" column="1">
+          <widget class="QLineEdit" name="picasso_roi_border_width">
+           <property name="text">
+            <string>5</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="picasso_remove_overlapping">
+         <property name="text">
+          <string>Remove Overlapping Localisations/Bounding Boxes (determined by Picaso Box Size)</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="picasso_window_cropping">
+         <property name="text">
+          <string>Remove Localisations Outside Field Of View (FOV)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="picasso_minimise_ram">
+         <property name="text">
+          <string>Minimise RAM usage</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayout_6">
+         <item row="0" column="0">
+          <widget class="QPushButton" name="picasso_detect">
+           <property name="text">
+            <string>Detect</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QPushButton" name="picasso_detectfit">
+           <property name="text">
+            <string>Detect and Fit</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QPushButton" name="picasso_fit">
+           <property name="text">
+            <string>Fit</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QProgressBar" name="picasso_progressbar">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>10</height>
+          </size>
+         </property>
+         <property name="value">
+          <number>0</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_11">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::MinimumExpanding</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_7">
+      <attribute name="title">
+       <string>Edit</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_7">
+       <item>
+        <widget class="QLabel" name="label_33">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Remove Localisations Outside Segmentations</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_5">
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_34">
+           <property name="text">
+            <string>Segmentations</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="remove_seglocs_segmentation" />
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_36">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="remove_seglocs_dataset" />
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_41">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="remove_seglocs_channel" />
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="remove_seglocs">
+         <property name="text">
+          <string>Remove</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_13">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_118">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Copy localisations to other channel(s)/dataset(s)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_14">
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_119">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="copy_locs_channel" />
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_122">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="copy_locs_dataset" />
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_124">
+           <property name="text">
+            <string>Mode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="copy_locs_mode">
+           <item>
+            <property name="text">
+             <string>Copy localisations to ALL channels in SELECTED dataset</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Copy localisations to SELECTED channel in ALL datasets</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Copy localisations to ALL channels in ALL datasets</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="copy_locs">
+         <property name="text">
+          <string>Copy Localisations</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_27">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_128">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Delete Localisations in dataset(s)/channel(s)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_16">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_129">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="delete_locs_dataset" />
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_130">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="delete_locs_channel" />
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="delete_locs">
+         <property name="text">
+          <string>Delete Localisations</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_28">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_149">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Merge Localisations in Dataset</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_152">
+         <property name="text">
+          <string>Merges localisations across multiple channels within a dataset. Uses DBSCAN to remove duplicates. Useful for tracking particles that appear/transition between channels.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_18">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_150">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="merge_locs_dataset" />
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_151">
+           <property name="text">
+            <string>Min Distance (Pixels)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QDoubleSpinBox" name="merge_locs_min_distance" />
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="merge_locs">
+         <property name="text">
+          <string>Merge Localisations</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_31">
+      <attribute name="title">
+       <string>Visualisations</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_33">
+       <item>
+        <widget class="QLabel" name="label_27">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Localisation Visualisation Settings</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayout_14">
+         <item row="0" column="3">
+          <widget class="QComboBox" name="picasso_vis_size">
+           <property name="currentIndex">
+            <number>4</number>
+           </property>
+           <item>
+            <property name="text">
+             <string>1</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>2</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>3</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>4</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>5</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>6</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>7</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>8</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>9</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>10</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_114">
+           <property name="text">
+            <string>Mode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="picasso_vis_mode">
+           <item>
+            <property name="text">
+             <string>Disk</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Square</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="label_115">
+           <property name="text">
+            <string>Size</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_120">
+           <property name="text">
+            <string>Opacity</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="picasso_vis_opacity">
+           <property name="currentIndex">
+            <number>9</number>
+           </property>
+           <item>
+            <property name="text">
+             <string>0.1</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.2</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.3</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.4</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.5</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.6</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.7</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.8</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.9</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>1.0</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLabel" name="label_121">
+           <property name="text">
+            <string>Edge Width</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3">
+          <widget class="QComboBox" name="picasso_vis_edge_width">
+           <property name="currentText">
+            <string>0.1</string>
+           </property>
+           <property name="currentIndex">
+            <number>0</number>
+           </property>
+           <item>
+            <property name="text">
+             <string>0.1</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.2</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.3</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.4</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.5</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.6</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.7</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.8</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.9</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>1.0</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_30">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_27">
+      <attribute name="title">
+       <string>PixStats</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_24">
+       <item>
+        <widget class="QLabel" name="label_139">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Compute PixStats</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_138">
+         <property name="text">
+          <string>Computes descriptive statistics such as mean, median, and standard deviation of pixel values within a specified mask size centered around given XY coordinates for each localisation. Computed for all datasets and channels.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_17">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_142">
+           <property name="text">
+            <string>Mask Size (Pixels)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="locs_pixstats_spot_size">
+           <property name="currentIndex">
+            <number>0</number>
+           </property>
+           <item>
+            <property name="text">
+             <string>3</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>4</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>5</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>6</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>7</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>8</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>9</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>10</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_143">
+           <property name="text">
+            <string>Mask Shape</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="locs_pixstats_spot_shape">
+           <item>
+            <property name="text">
+             <string>Square</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Circle</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_144">
+           <property name="text">
+            <string>Background Buffer (Pixels)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="locs_pixstats_bg_buffer">
+           <property name="currentIndex">
+            <number>1</number>
+           </property>
+           <item>
+            <property name="text">
+             <string>0</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>1</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>2</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>3</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>4</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>5</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_145">
+           <property name="text">
+            <string>Background Width (Pixels)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QComboBox" name="locs_pixstats_bg_width">
+           <property name="currentIndex">
+            <number>2</number>
+           </property>
+           <item>
+            <property name="text">
+             <string>1</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>2</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>3</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>5</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>10</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="locs_pixstats_fret">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="text">
+          <string>Calculate FRET</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="locs_pixstats_compute">
+         <property name="text">
+          <string>Compute PixStats</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QProgressBar" name="locs_pixstats_progressbar">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>10</height>
+          </size>
+         </property>
+         <property name="value">
+          <number>0</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="locs_pixstats_graph_container" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_23">
+      <attribute name="title">
+       <string>Filter</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_26">
+       <item>
+        <widget class="QLabel" name="label_92">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Filter Localisations (Picasso)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_24">
+         <item row="0" column="0">
+          <widget class="QLabel" name="picasso_filter_dataset_label">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="picasso_filter_dataset" />
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="picasso_filter_dataset_label_2">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="picasso_filter_channel" />
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_90">
+           <property name="text">
+            <string>Filter By</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="filter_criterion" />
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="filter_subtract_bg">
+         <property name="text">
+          <string>Subtract Background</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="filter_graph_container" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_91">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Filter Ranges</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayout_7">
+         <item row="0" column="0">
+          <layout class="QFormLayout" name="formLayout_22">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_86">
+             <property name="text">
+              <string>Min</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QDoubleSpinBox" name="filter_min">
+             <property name="minimum">
+              <double>-999999999.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>9999999999.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="0" column="1">
+          <layout class="QFormLayout" name="formLayout_23">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_87">
+             <property name="text">
+              <string>Max</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QDoubleSpinBox" name="filter_max">
+             <property name="minimum">
+              <double>-99999999999.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>9999999999.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="filter_localisations">
+         <property name="text">
+          <string>Filter Localisations</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_20">
+      <attribute name="title">
+       <string>Render</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_25">
+       <item>
+        <widget class="QLabel" name="label_85">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Render Localisations (Picasso)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_20">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_81">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="picasso_render_dataset" />
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_83">
+           <property name="text">
+            <string>Blur Method</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="picasso_render_blur_method">
+           <item>
+            <property name="text">
+             <string>None</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>One-Pixel-Blur</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Global Localisation Precision</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Individual Localisation Precision</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Individual Localisation Precision, iso</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_84">
+           <property name="text">
+            <string>Min. Blur (cam. pixel)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QDoubleSpinBox" name="picasso_render_min_blur">
+           <property name="singleStep">
+            <double>0.100000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_82">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="picasso_render_channel" />
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="picasso_render">
+         <property name="text">
+          <string>Render Localisations</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_19">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>413</width>
+           <height>173</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources />
+ <connections />
+</ui>

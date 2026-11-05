@@ -1,0 +1,63 @@
+name: Windows installer
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.5'
+      - name: Install pinned Inno Setup compiler
+        shell: pwsh
+        run: |
+          $setup = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
+          Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe' -OutFile $setup
+          $expected = '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732'
+          if ((Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) {
+            throw 'Inno Setup download checksum mismatch'
+          }
+          $directory = Join-Path $env:RUNNER_TEMP 'inno-setup'
+          $process = Start-Process $setup -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER', '/NOICONS', ('/DIR="' + $directory + '"')) -Wait -PassThru -WindowStyle Hidden
+          if ($process.ExitCode -ne 0) { throw 'Inno Setup compiler installation failed' }
+          "MOLTRACK_ISCC=$directory/ISCC.exe" | Add-Content $env:GITHUB_ENV
+      - name: Check out Windows OpenGL test helper
+        uses: actions/checkout@v4
+        with:
+          repository: pyvista/gl-ci-helpers
+          ref: d1c3a005634166a4acee81e8e0446e528ffbd0a9
+          path: build/gl-ci-helpers
+      - name: Enable software OpenGL on the CI runner
+        shell: pwsh
+        run: ./build/gl-ci-helpers/appveyor/install_opengl.ps1
+      - name: Build and verify installer
+        shell: pwsh
+        run: ./packaging/windows/build.ps1 -IsccPath $env:MOLTRACK_ISCC
+      - name: Upload installer and verification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: MolTrack-Windows-x64
+          if-no-files-found: error
+          compression-level: 0
+          path: |
+            dist/windows/MolTrack-Setup-*-x64.exe
+            dist/windows/*.sha256
+            dist/windows/dependencies.txt
+            dist/windows/uv.lock
+            dist/windows/smoke-test.json
+      - name: Upload diagnostic logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-build-diagnostics
+          if-no-files-found: ignore
+          path: |
+            build/windows/**/*.txt
+            ~/AppData/Local/MolTrack/logs/*.log

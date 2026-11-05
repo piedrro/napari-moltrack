@@ -2,6 +2,7 @@ import os
 import traceback
 from functools import partial
 from threading import Event
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import cv2
@@ -9,13 +10,17 @@ import numpy as np
 import pyqtgraph as pg
 import torch
 from napari.utils.notifications import show_info
+from qtpy.QtCore import QEvent
 from qtpy.QtWidgets import (
     QApplication,
+    QDockWidget,
+    QLabel,
+    QPushButton,
+    QShortcut,
     QVBoxLayout,
     QWidget,
 )
 from pyqtgraph import ImageView
-from qtpy.QtCore import QThreadPool
 from skimage import exposure
 
 if TYPE_CHECKING:
@@ -24,7 +29,7 @@ if TYPE_CHECKING:
 from moltrack.funcs.bactfit_utils import _bactfit_utils
 from moltrack.funcs.cell_events import _cell_events
 from moltrack.funcs.cell_heatmap_utils import _cell_heatmap_utils
-from moltrack.funcs.compute_utils import _compute_utils
+from moltrack.funcs.compute_utils import CancellableThreadPool, _compute_utils
 from moltrack.funcs.diffusion_utils import _diffusion_utils
 from moltrack.funcs.events_utils import _events_utils
 from moltrack.funcs.export_utils import _export_utils
@@ -45,7 +50,8 @@ from moltrack.funcs.trackstats_utils import _trackstats_utils
 from moltrack.funcs.transform_utils import _transform_utils
 from moltrack.funcs.undrift_utils import MoltrackUndrifting
 
-from moltrack.GUI.widget_ui import Ui_Frame as gui
+from moltrack.GUI.tool_windows import TOOL_SECTIONS, ToolWindow
+from moltrack.GUI.widget_ui import Ui_Frame
 
 subclasses = [_import_utils, _compute_utils,
               _events_utils, _segmentation_utils,
@@ -69,20 +75,20 @@ class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
         self.frame_position = None
 
 
-class MolTrack(QWidget, gui, *subclasses):
+class MolTrack(QWidget, *subclasses):
     # your QWidget.__init__ can optionally request the napari viewer instance
     # use a type annotation of 'napari.viewer.Viewer' for any parameter
-    def __init__(self, viewer: "napari.viewer.Viewer"):
+    def __init__(self, viewer: "napari.viewer.Viewer", *, load_dev_data=True):
         super().__init__()
         self.viewer = viewer
+        self._viewer_cancel_shortcut = None
 
-        # create UI
-        self.gui = gui()
-        self.gui.setupUi(self)
+        self._setup_launcher()
         self.gui.cellpose_model.clear()
         self.gui.cellpose_model.addItems(["cyto3", "cyto2", "cyto", "nuclei", "custom"])
 
-        from moltrack.__init__ import __version__ as version
+        from moltrack import __version__ as version
+        self.setWindowTitle(f"MolTrack v{version}")
         show_info(f"napari-moltrack version: {version}")
 
         self.undrifting_tools = MoltrackUndrifting(self.viewer,self)
@@ -105,11 +111,82 @@ class MolTrack(QWidget, gui, *subclasses):
         self.draw_pixstats_mask(mode="tracks")
 
         # create threadpool and stop event
-        self.threadpool = QThreadPool()
+        self.threadpool = CancellableThreadPool(self)
+        self.threadpool.all_finished.connect(self.update_ui)
         self.stop_event = Event()
 
-        self.import_dev_data()
+        if load_dev_data:
+            self.import_dev_data()
 
+    def _setup_launcher(self):
+        sidebar = Ui_Frame()
+        sidebar.setupUi(self)
+        # Existing handlers use one namespace for controls across the forms.
+        self.gui = SimpleNamespace(**vars(sidebar))
+        self.tool_windows = {}
+        for index, (title, form_class, pages_name) in enumerate(TOOL_SECTIONS):
+            window = ToolWindow(title, form_class, pages_name, self)
+            self.tool_windows[title] = window
+            vars(self.gui).update(vars(window.form))
+
+            button = QPushButton(title.replace("&", "&&"), self)
+            button.clicked.connect(partial(self.open_tool_window, title))
+            sidebar.verticalLayout.insertWidget(index, button)
+        sidebar.verticalLayout.addStretch()
+
+    def open_tool_window(self, section):
+        window = self.tool_windows[section]
+        window.open_or_focus()
+        return window
+
+    def _hide_tool_windows(self):
+        for window in self.tool_windows.values():
+            window.hide()
+
+    def closeEvent(self, event):
+        self._hide_tool_windows()
+        super().closeEvent(event)
+
+    def eventFilter(self, watched, event):
+        if watched is getattr(self, "_title_dock", None) and event.type() == QEvent.Type.Close:
+            self._hide_tool_windows()
+        return super().eventFilter(watched, event)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        dock = self.parentWidget()
+        while dock is not None and not isinstance(dock, QDockWidget):
+            dock = dock.parentWidget()
+        if dock is not None and dock is not getattr(self, "_title_dock", None):
+            self._title_dock = dock
+            dock.installEventFilter(self)
+            dock.topLevelChanged.connect(self._update_dock_title)
+            dock.dockLocationChanged.connect(self._update_dock_title)
+        if dock is not None and self._viewer_cancel_shortcut is None:
+            main_window = dock.parentWidget()
+            if main_window is not None:
+                shortcut = self._make_cancel_shortcut(main_window.window())
+                self._viewer_cancel_shortcut = shortcut
+                self.destroyed.connect(shortcut.deleteLater)
+        self._update_dock_title()
+
+    def _update_dock_title(self, *_):
+        dock = getattr(self, "_title_dock", None)
+        if dock is None:
+            return
+        dock.setWindowTitle(self.windowTitle())
+        # Napari recreates its custom title bar when floating or redocking.
+        title_bar = dock.titleBarWidget()
+        title_label = getattr(title_bar, "title", None)
+        if isinstance(title_label, QLabel):
+            title_label.setText(self.windowTitle())
+        close_button = getattr(title_bar, "close_button", None)
+        if close_button is not None and not close_button.property("moltrackHideOnClose"):
+            # Keep the launcher and its project alive when closing its dock.
+            close_button.clicked.disconnect()
+            close_button.clicked.connect(dock.close)
+            close_button.setProperty("moltrackHideOnClose", True)
+            close_button.setToolTip("Hide MolTrack and its tool windows")
 
     def import_dev_data(self):
 
@@ -397,7 +474,7 @@ class MolTrack(QWidget, gui, *subclasses):
 
         self.viewer.dims.events.current_step.connect(self.slider_event)
 
-        self.gui.import_localisations.clicked.connect(self.import_localisations)
+        self.gui.import_localisations.clicked.connect(lambda: self.import_localisations())
         self.gui.locs_import_data.currentIndexChanged.connect(self.update_locs_import_options)
 
         self.gui.import_shapes.clicked.connect(self.import_shapes)
@@ -547,7 +624,26 @@ class MolTrack(QWidget, gui, *subclasses):
         except:
             print(traceback.format_exc())
 
+    def _make_cancel_shortcut(self, window):
+        shortcut = QShortcut("Ctrl+.", window)
+        shortcut.setAutoRepeat(False)
+        shortcut.activated.connect(self.cancel_active_operation)
+        return shortcut
+
+    def _set_cancel_shortcuts_enabled(self, enabled):
+        for shortcut in self._tool_cancel_shortcuts:
+            shortcut.setEnabled(enabled)
+        if self._viewer_cancel_shortcut is not None:
+            self._viewer_cancel_shortcut.setEnabled(enabled)
+
     def initialise_keybindings(self):
+
+        if not hasattr(self, "_tool_cancel_shortcuts"):
+            self._tool_cancel_shortcuts = [
+                self._make_cancel_shortcut(window)
+                for window in self.tool_windows.values()
+            ]
+        self._set_cancel_shortcuts_enabled(True)
 
         self.viewer.bind_key("F1", self.devfunc, overwrite=True,)
 
@@ -560,6 +656,8 @@ class MolTrack(QWidget, gui, *subclasses):
         self.register_shape_layer_keybinds(self.viewer)
 
     def remove_keybindings(self):
+
+        self._set_cancel_shortcuts_enabled(False)
 
         self.viewer.bind_key("F1", None)
 

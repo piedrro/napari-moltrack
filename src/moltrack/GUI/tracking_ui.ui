@@ -1,0 +1,1340 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Tracking</class>
+ <widget class="QWidget" name="Tracking">
+  <layout class="QVBoxLayout" name="verticalLayout_12">
+   <item>
+    <widget class="QTabWidget" name="tabWidget_5">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tab_12">
+      <attribute name="title">
+       <string>Link</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_13">
+       <item>
+        <widget class="QLabel" name="label_30">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Link Localisations</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_148">
+         <property name="text">
+          <string>When a segmentation (segmentation /cells) layer is selected, the linking algorithm only links the localisations within each segmentation, ensuring that particle tracks are confined within unique segmentations.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_25">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_95">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="tracking_dataset" />
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_98">
+           <property name="text">
+            <string>Search Range (Pixels)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QDoubleSpinBox" name="trackpy_search_range">
+           <property name="value">
+            <double>5.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_99">
+           <property name="text">
+            <string>Memory (Frames)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QSpinBox" name="trackpy_memory">
+           <property name="value">
+            <number>1</number>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="label_100">
+           <property name="text">
+            <string>Min Track Length (Frames)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <widget class="QSpinBox" name="min_track_length">
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="value">
+            <number>5</number>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_96">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="tracking_channel" />
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_147">
+           <property name="text">
+            <string>Segmentation Layer</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="tracking_segmentations" />
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="remove_unlinked">
+         <property name="text">
+          <string>Remove Unlinked Localisations</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="link_localisations">
+         <property name="text">
+          <string>Link Localisatons</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QProgressBar" name="tracking_progressbar">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>10</height>
+          </size>
+         </property>
+         <property name="value">
+          <number>0</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_31">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_35">
+      <attribute name="title">
+       <string>Stats</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_37">
+       <item>
+        <widget class="QLabel" name="label_153">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Compute Track Statistics</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_154">
+         <property name="text">
+          <string>Compute track statistics/metrics such as MSD, speed, step size and apparent diffusion coefficients. If a segmentation layer is selected during localisation linking, additional distance-based metrics will be computed (e.g. distance to membrane). The diffusion coefficient track length specifies the number of track segments over which the apparent diffusion coefficient is calculated, for tracks shorter than this the diffusion coefficient will be discarded.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_38">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_155">
+           <property name="text">
+            <string>Diffusion Coefficient Track Length</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QSpinBox" name="trackstats_adc_track_length">
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="value">
+            <number>4</number>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_158">
+           <property name="text">
+            <string>Rolling Average Window Size</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QSpinBox" name="trackstats_roll_window_size">
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>50</number>
+           </property>
+           <property name="value">
+            <number>4</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="compute_track_stats">
+         <property name="text">
+          <string>Compute Track Statistics</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QProgressBar" name="track_stats_progressbar">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>10</height>
+          </size>
+         </property>
+         <property name="value">
+          <number>0</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_3">
+      <attribute name="title">
+       <string>Edit</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_4">
+       <item>
+        <widget class="QLabel" name="label_39">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Remove Tracks/Track Coords Outside Segmentations</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_6">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_43">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="segtracks_dataset" />
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_44">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="segtracks_channel" />
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_42">
+           <property name="text">
+            <string>Segmentations</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="segtracks_seg" />
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_32">
+           <property name="text">
+            <string>Detect Mode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QComboBox" name="segtracks_detect">
+           <item>
+            <property name="text">
+             <string>Entire Track</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Track Segments</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_22">
+           <property name="text">
+            <string>Remove Mode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QComboBox" name="segtracks_remove">
+           <item>
+            <property name="text">
+             <string>Track</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Track Segment</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="remove_segtracks">
+         <property name="text">
+          <string>Remove</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_26">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_71">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Copy tracks to other channel(s)/dataset(s)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_3">
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_79">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="copy_tracks_channel" />
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_80">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="copy_tracks_dataset" />
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_117">
+           <property name="text">
+            <string>Mode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="copy_tracks_mode">
+           <item>
+            <property name="text">
+             <string>Copy tracks to ALL channels in SELECTED dataset</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Copy tracks to SELECTED channel in ALL datasets</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Copy tracks to ALL channels in ALL datasets</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="copy_tracks">
+         <property name="text">
+          <string>Copy Tracks</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_14">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_125">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Delete tracks in dataset(s)/channel(s)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_15">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_127">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="delete_tracks_dataset" />
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_126">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="delete_tracks_channel" />
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="delete_tracks">
+         <property name="text">
+          <string>Delete Tracks</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_37">
+      <attribute name="title">
+       <string>CMAP</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_39">
+       <item>
+        <widget class="QLabel" name="label_159">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Adjust Track Metric Colourmap</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_39">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_160">
+           <property name="text">
+            <string>Colour Metric</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="track_colour_metric" />
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_161">
+           <property name="text">
+            <string>Colourmap</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="track_colour_colourmap">
+           <item>
+            <property name="text">
+             <string>Jet</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Turbo</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Viridis</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Plasma</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Inferno</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Magma</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Hot</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayout_10">
+         <item row="0" column="0">
+          <layout class="QFormLayout" name="formLayout_41">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_164">
+             <property name="text">
+              <string>Min</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QDoubleSpinBox" name="track_colour_min">
+             <property name="minimum">
+              <double>-999999999.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>9999999999.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="0" column="1">
+          <layout class="QFormLayout" name="formLayout_42">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_166">
+             <property name="text">
+              <string>Max</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QDoubleSpinBox" name="track_colour_max">
+             <property name="minimum">
+              <double>-99999999999.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>9999999999.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_36">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_17">
+      <attribute name="title">
+       <string>PixStats</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_17">
+       <item>
+        <widget class="QLabel" name="label_56">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Compute Track PixStats</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_63">
+         <property name="text">
+          <string>Computes descriptive statistics such as mean, median, and standard deviation of pixel values within a specified mask size centered around given XY coordinates in each track. Computed for all datasets and channels.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_10">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_58">
+           <property name="text">
+            <string>Mask Size (Pixels)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="tracks_pixstats_spot_size">
+           <property name="currentIndex">
+            <number>0</number>
+           </property>
+           <item>
+            <property name="text">
+             <string>3</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>4</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>5</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>6</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>7</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>8</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>9</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>10</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_60">
+           <property name="text">
+            <string>Mask Shape</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="tracks_pixstats_spot_shape">
+           <item>
+            <property name="text">
+             <string>Square</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Circle</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_61">
+           <property name="text">
+            <string>Background Buffer (Pixels)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="tracks_pixstats_bg_buffer">
+           <property name="currentIndex">
+            <number>1</number>
+           </property>
+           <item>
+            <property name="text">
+             <string>0</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>1</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>2</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>3</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>4</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>5</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_62">
+           <property name="text">
+            <string>Background Width (Pixels)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QComboBox" name="tracks_pixstats_bg_width">
+           <property name="currentIndex">
+            <number>2</number>
+           </property>
+           <item>
+            <property name="text">
+             <string>1</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>2</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>3</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>5</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>10</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="tracks_pixstats_fret">
+         <property name="text">
+          <string>Calculate FRET</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="tracks_pixstats_compute">
+         <property name="text">
+          <string>Compute Track PixStats</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QProgressBar" name="tracks_pixstats_progressbar">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>10</height>
+          </size>
+         </property>
+         <property name="value">
+          <number>0</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="tracks_pixstats_graph_container" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_13">
+      <attribute name="title">
+       <string>Filter</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_14">
+       <item>
+        <layout class="QFormLayout" name="formLayout_29">
+         <item row="0" column="0">
+          <widget class="QLabel" name="picasso_filter_dataset_label_5">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="track_filter_dataset" />
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="picasso_filter_dataset_label_6">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="track_filter_channel" />
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_93">
+           <property name="text">
+            <string>Filter By</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <layout class="QGridLayout" name="gridLayout_3">
+           <item row="0" column="0">
+            <widget class="QComboBox" name="track_filter_criterion" />
+           </item>
+           <item row="0" column="1">
+            <widget class="QComboBox" name="track_filter_metric">
+             <item>
+              <property name="text">
+               <string>Mean</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Median</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Min</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Max</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Standard Deviation</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="track_filter_subtract_bg">
+         <property name="text">
+          <string>Subtract Background</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="tracks_filter_graph_container" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_94">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Filter Ranges</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayout_8">
+         <item row="0" column="0">
+          <layout class="QFormLayout" name="formLayout_30">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_88">
+             <property name="text">
+              <string>Min</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QDoubleSpinBox" name="track_filter_min">
+             <property name="minimum">
+              <double>-999999999.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>9999999999.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="0" column="1">
+          <layout class="QFormLayout" name="formLayout_31">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_89">
+             <property name="text">
+              <string>Max</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QDoubleSpinBox" name="track_filter_max">
+             <property name="minimum">
+              <double>-99999999999.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>9999999999.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="filter_tracks">
+         <property name="text">
+          <string>Filter Tracks</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_28">
+      <attribute name="title">
+       <string>Track Plots</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_29">
+       <item>
+        <layout class="QFormLayout" name="formLayout_36">
+         <item row="0" column="0">
+          <widget class="QLabel" name="picasso_filter_dataset_label_7">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="trackplot_dataset" />
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="picasso_filter_dataset_label_8">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="trackplot_channel" />
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_140">
+           <property name="text">
+            <string>Y Axis</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <layout class="QGridLayout" name="gridLayout_15">
+           <item row="0" column="0">
+            <widget class="QComboBox" name="trackplot_metric1" />
+           </item>
+           <item row="0" column="1">
+            <widget class="QComboBox" name="trackplot_metric2" />
+           </item>
+           <item row="0" column="2">
+            <widget class="QComboBox" name="trackplot_metric3" />
+           </item>
+           <item row="0" column="3">
+            <widget class="QComboBox" name="trackplot_metric4" />
+           </item>
+          </layout>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_146">
+           <property name="text">
+            <string>X Axis</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QComboBox" name="trackplot_xaxis">
+           <item>
+            <property name="text">
+             <string>Segment Index</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Frame Index</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Time (s)</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Time (ms)</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayout_16">
+         <item row="0" column="0">
+          <widget class="QCheckBox" name="trackplot_subtrack_background">
+           <property name="text">
+            <string>Subtract Background</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QCheckBox" name="trackplot_highlight">
+           <property name="text">
+            <string>Highlight Active Track</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QCheckBox" name="trackplot_focus">
+           <property name="text">
+            <string>Focus on Track</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QWidget" name="trackplot_graph_container" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayout_13">
+         <item row="0" column="1">
+          <widget class="QSlider" name="trackplot_slider">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_57">
+           <property name="text">
+            <string>Track</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLabel" name="trackplot_slider_label">
+           <property name="minimumSize">
+            <size>
+             <width>28</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>0</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_32">
+      <attribute name="title">
+       <string>Diffusion Plots</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_34">
+       <item>
+        <widget class="QLabel" name="label_50">
+         <property name="text">
+          <string>Requires track statistics to be computed (Tracking -&gt; Link -&gt; Compute Track Statistics)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="adc_graph_container" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_45">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Plot Settings</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_7">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_49">
+           <property name="text">
+            <string>Plot</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="adc_plot">
+           <item>
+            <property name="text">
+             <string>MSD</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>D</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>D*</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="picasso_filter_dataset_label_3">
+           <property name="text">
+            <string>Dataset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="adc_dataset" />
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="picasso_filter_dataset_label_4">
+           <property name="text">
+            <string>Channel</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="adc_channel" />
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="adc_options">
+         <item row="1" column="0">
+          <widget class="QLabel" name="adc_bins_label">
+           <property name="text">
+            <string>N Bins</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QSpinBox" name="adc_bins">
+           <property name="value">
+            <number>30</number>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="adc_range_label">
+           <property name="text">
+            <string>Range (um2/s)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <layout class="QGridLayout" name="gridLayout_2">
+           <item row="0" column="0">
+            <widget class="QDoubleSpinBox" name="adc_range_min" />
+           </item>
+           <item row="0" column="1">
+            <widget class="QDoubleSpinBox" name="adc_range_max">
+             <property name="value">
+              <double>10.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="adc_checkboxes">
+         <item row="0" column="0">
+          <widget class="QCheckBox" name="adc_density">
+           <property name="text">
+            <string>Density Plot</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QCheckBox" name="adc_hide_first">
+           <property name="text">
+            <string>Hide First Bin</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="export_adc">
+         <property name="text">
+          <string>Export Plot Data</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources />
+ <connections />
+</ui>

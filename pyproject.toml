@@ -59,6 +59,9 @@ testing = [
 [project.scripts]
 dev = "moltrack._dev:main"
 
+[project.gui-scripts]
+moltrack = "moltrack.launcher:main"
+
 [project.entry-points."napari.manifest"]
 napari-moltrack = "moltrack:napari.yaml"
 

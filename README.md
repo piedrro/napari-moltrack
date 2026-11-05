@@ -12,6 +12,11 @@ This plugin was designed to detect/track single molecules inside cells, but can 
 All functions are parallelised/GPU accelerated where possible to increase performance.
 Multiple datasets can be loaded and processed in parallel.
 
+Press **Ctrl+.** in the MolTrack window to cancel background processing.
+Cancelled workers discard their results; controls become available when the
+workers finish. Native calculations may need to finish their current step before
+stopping. Escape retains its shape-editing behavior.
+
 The processing backend uses MolCore for movie reading, localisation, tracking,
 rendering, filtering, clustering, drift correction, photometry and trajectory
 statistics. A persistent `ProjectSession` owns the MolCore Dataset; GUI tables,
@@ -80,6 +85,18 @@ https://napari.org/stable/plugins/index.html
 -->
 
 ## Installation
+
+### Windows desktop installer
+
+Windows desktop builds install MolTrack with its own Python runtime and open the
+MolTrack interface directly from a Start menu shortcut. Build instructions and
+release checks are in [Windows desktop distribution](docs/windows-installer.md).
+The manually triggered **Windows installer** GitHub Actions workflow produces
+`MolTrack-Setup-<version>-x64.exe` and verification artifacts.
+The Windows installer uses CPU processing to keep downloads smaller. Python
+installations from GitHub can still use CUDA-enabled dependencies for acceleration.
+
+### Python package
 
 You can install `napari-moltrack` via [pip]:
 

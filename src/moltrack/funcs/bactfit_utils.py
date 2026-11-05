@@ -1,7 +1,6 @@
 import traceback
 from functools import partial
 
-from bactfit.preprocess import data_to_cells
 from napari.utils.notifications import show_info
 
 from moltrack.funcs.compute_utils import Worker
@@ -98,11 +97,10 @@ class _bactfit_utils:
 
 
 def fit_cells_worker(prepared, progress_callback=None):
+    from moltrack.bactfit_compat import fit_segmentations
     from moltrack.model_cells import finish_cells
-    from moltrack.model_processing import _cancel
-    _cancel(prepared.cancel_event)
-    cells = data_to_cells(prepared.payload["segmentations"])
-    if not len(cells.data):
-        return finish_cells(prepared, None)
-    cells.optimise(**prepared.payload["settings"], progress_callback=progress_callback)
+    cells = fit_segmentations(
+        prepared.payload["segmentations"], prepared.payload["settings"],
+        progress_callback=progress_callback, cancel_event=prepared.cancel_event,
+    )
     return finish_cells(prepared, cells)
