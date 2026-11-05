@@ -42,6 +42,31 @@ def test_widget_initializes_with_current_napari(qtbot, monkeypatch):
         viewer.close()
 
 
+def test_widget_title_uses_package_version(qtbot, monkeypatch):
+    import napari
+
+    import moltrack
+    from moltrack._widget import MolTrack
+
+    monkeypatch.setattr(moltrack, "__version__", "9.8.7")
+    monkeypatch.setattr(MolTrack, "import_dev_data", lambda self: None)
+    viewer = napari.Viewer(show=False)
+    try:
+        dock, widget = viewer.window.add_plugin_dock_widget("napari-moltrack")
+        viewer.show()
+        expected = "MolTrack v9.8.7"
+        qtbot.waitUntil(lambda: dock.windowTitle() == expected)
+        assert widget.windowTitle() == expected
+        assert dock.titleBarWidget().title.text() == expected
+        dock.setFloating(True)
+        qtbot.waitUntil(lambda: dock.titleBarWidget().title.text() == expected)
+        dock.setFloating(False)
+        qtbot.waitUntil(lambda: dock.titleBarWidget().title.text() == expected)
+        assert viewer.window.add_plugin_dock_widget("napari-moltrack")[1] is widget
+    finally:
+        viewer.close()
+
+
 def test_preview_populates_partition_metadata(monkeypatch):
     import pandas as pd
     from test_model_processing import make_session

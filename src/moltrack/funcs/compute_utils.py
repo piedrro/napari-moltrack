@@ -4,7 +4,7 @@ from concurrent.futures import CancelledError
 
 import napari
 import numpy as np
-from qtpy.QtCore import Signal, Slot
+from qtpy.QtCore import QThreadPool, Signal, Slot
 from qtpy.QtCore import QObject, QRunnable
 
 
@@ -25,6 +25,15 @@ def publish_model_result(host, pending):
 
 class _compute_utils:
 
+    def cancel_active_operation(self):
+        """Request cancellation without re-enabling controls before workers finish."""
+        from napari.utils.notifications import show_info
+
+        if not self.threadpool.has_workers():
+            return
+        self.stop_event.set()
+        self.threadpool.cancel_all()
+        show_info("Cancellation requested. Waiting for active calculations to stop.")
 
 
 
@@ -46,6 +55,39 @@ class _compute_utils:
         except:
             print(traceback.format_exc())
 
+
+
+class CancellableThreadPool(QThreadPool):
+    """Retain every runnable, including launchers that use local worker variables."""
+
+    all_finished = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._workers = set()
+
+    def start(self, worker, priority=0):
+        self._workers.add(worker)
+        worker.signals.finished.connect(lambda: self._finished(worker))
+        try:
+            super().start(worker, priority)
+        except Exception:
+            self._workers.discard(worker)
+            raise
+
+    def _finished(self, worker):
+        self._workers.discard(worker)
+        if not self._workers:
+            self.all_finished.emit()
+
+    def has_workers(self):
+        return bool(self._workers)
+
+    def cancel_all(self):
+        workers = tuple(self._workers)
+        for worker in workers:
+            worker.stop()
+        return len(workers)
 
 
 class WorkerSignals(QObject):

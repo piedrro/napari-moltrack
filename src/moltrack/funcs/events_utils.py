@@ -378,6 +378,9 @@ class _events_utils:
 
     def update_ui(self, error=None, init=False):
         try:
+            pool = getattr(self, "threadpool", None)
+            if not init and pool is not None and getattr(pool, "has_workers", lambda: False)():
+                return
             if self.verbose:
                 print(f"Updating UI, init = {init}")
 
@@ -425,9 +428,6 @@ class _events_utils:
                 for control in controls:
                     getattr(self.gui, control).setEnabled(True)
 
-                self.multiprocessing_active = False
-
-                self.stop_event.clear()
                 self.multiprocessing_active = False
 
             if error is not None:

@@ -11,11 +11,13 @@ import torch
 from napari.utils.notifications import show_info
 from qtpy.QtWidgets import (
     QApplication,
+    QDockWidget,
+    QLabel,
+    QShortcut,
     QVBoxLayout,
     QWidget,
 )
 from pyqtgraph import ImageView
-from qtpy.QtCore import QThreadPool
 from skimage import exposure
 
 if TYPE_CHECKING:
@@ -24,7 +26,7 @@ if TYPE_CHECKING:
 from moltrack.funcs.bactfit_utils import _bactfit_utils
 from moltrack.funcs.cell_events import _cell_events
 from moltrack.funcs.cell_heatmap_utils import _cell_heatmap_utils
-from moltrack.funcs.compute_utils import _compute_utils
+from moltrack.funcs.compute_utils import CancellableThreadPool, _compute_utils
 from moltrack.funcs.diffusion_utils import _diffusion_utils
 from moltrack.funcs.events_utils import _events_utils
 from moltrack.funcs.export_utils import _export_utils
@@ -72,7 +74,7 @@ class CustomPyQTGraphWidget(pg.GraphicsLayoutWidget):
 class MolTrack(QWidget, gui, *subclasses):
     # your QWidget.__init__ can optionally request the napari viewer instance
     # use a type annotation of 'napari.viewer.Viewer' for any parameter
-    def __init__(self, viewer: "napari.viewer.Viewer"):
+    def __init__(self, viewer: "napari.viewer.Viewer", *, load_dev_data=True):
         super().__init__()
         self.viewer = viewer
 
@@ -82,7 +84,8 @@ class MolTrack(QWidget, gui, *subclasses):
         self.gui.cellpose_model.clear()
         self.gui.cellpose_model.addItems(["cyto3", "cyto2", "cyto", "nuclei", "custom"])
 
-        from moltrack.__init__ import __version__ as version
+        from moltrack import __version__ as version
+        self.setWindowTitle(f"MolTrack v{version}")
         show_info(f"napari-moltrack version: {version}")
 
         self.undrifting_tools = MoltrackUndrifting(self.viewer,self)
@@ -105,11 +108,34 @@ class MolTrack(QWidget, gui, *subclasses):
         self.draw_pixstats_mask(mode="tracks")
 
         # create threadpool and stop event
-        self.threadpool = QThreadPool()
+        self.threadpool = CancellableThreadPool(self)
+        self.threadpool.all_finished.connect(self.update_ui)
         self.stop_event = Event()
 
-        self.import_dev_data()
+        if load_dev_data:
+            self.import_dev_data()
 
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        dock = self.parentWidget()
+        while dock is not None and not isinstance(dock, QDockWidget):
+            dock = dock.parentWidget()
+        if dock is not None and dock is not getattr(self, "_title_dock", None):
+            self._title_dock = dock
+            dock.topLevelChanged.connect(self._update_dock_title)
+            dock.dockLocationChanged.connect(self._update_dock_title)
+        self._update_dock_title()
+
+    def _update_dock_title(self, *_):
+        dock = getattr(self, "_title_dock", None)
+        if dock is None:
+            return
+        dock.setWindowTitle(self.windowTitle())
+        # Napari recreates its custom title bar when floating or redocking.
+        title_label = getattr(dock.titleBarWidget(), "title", None)
+        if isinstance(title_label, QLabel):
+            title_label.setText(self.windowTitle())
 
     def import_dev_data(self):
 
@@ -549,6 +575,12 @@ class MolTrack(QWidget, gui, *subclasses):
 
     def initialise_keybindings(self):
 
+        if not hasattr(self, "_cancel_shortcut"):
+            self._cancel_shortcut = QShortcut("Ctrl+.", self)
+            self._cancel_shortcut.setAutoRepeat(False)
+            self._cancel_shortcut.activated.connect(self.cancel_active_operation)
+        self._cancel_shortcut.setEnabled(True)
+
         self.viewer.bind_key("F1", self.devfunc, overwrite=True,)
 
         self.viewer.bind_key("Control-Right", func=lambda event: self.moltract_translation(direction="right"), overwrite=True, )
@@ -560,6 +592,8 @@ class MolTrack(QWidget, gui, *subclasses):
         self.register_shape_layer_keybinds(self.viewer)
 
     def remove_keybindings(self):
+
+        self._cancel_shortcut.setEnabled(False)
 
         self.viewer.bind_key("F1", None)
 
