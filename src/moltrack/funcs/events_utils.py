@@ -507,14 +507,15 @@ class _events_utils:
 
         if hasattr(self, "segmentation_image"):
             pixel_size = self.segmentation_image_pixel_size
-            scale = [pixel_size, pixel_size]
+            scale = [pixel_size or 1.0] * 2
+            spatial_units = ("nm", "nm") if pixel_size is not None else ("pixel", "pixel")
 
             if hasattr(self, "segmentation_layer"):
                 self.viewer.layers.remove(self.segmentation_layer)
 
             self.segmentation_layer = self.viewer.add_image(self.segmentation_image,
                 name="Segmentation Image", visible=True, blending="opaque",
-                units=("pixel",) * (self.segmentation_image.ndim - 2) + ("nm", "nm"),
+                units=("pixel",) * (self.segmentation_image.ndim - 2) + spatial_units,
                 scale=scale, )
 
             self.viewer.reset_view()
@@ -525,7 +526,6 @@ class _events_utils:
 
             self.viewer.scale_bar.visible = True
             self.segmentation_layer.scale = scale
-            self.segmentation_layer.units = (*self.segmentation_layer.units[:-2], "nm", "nm")
 
             self.segmentation_layer.refresh()
 
@@ -557,8 +557,9 @@ class _events_utils:
                     self.active_dataset = dataset_name
                     self.active_channel = channel_name
 
-                    pixel_size = float(self.session.metadata(dataset_name)["pixel_size"])
-                    scale = [pixel_size, pixel_size]
+                    pixel_size = self.session._view(dataset_name, channel_name).acquisition.pixel_size
+                    scale = [pixel_size or 1.0] * 2
+                    spatial_units = ("nm", "nm") if pixel_size is not None else ("pixel", "pixel")
 
                     if channel_name in image_dict.keys():
                         available = self.session.image_available(dataset_name, channel_name)
@@ -575,7 +576,7 @@ class _events_utils:
                         if hasattr(self, "image_layer") == False:
                             self.image_layer = self.viewer.add_image(image, name=image_name,
                                 colormap="gray", blending="opaque", visible=True, scale=scale,
-                                units=("pixel",) * (image.ndim - 2) + ("nm", "nm"), contrast_limits=(0, 1) if not available else None, )
+                                units=("pixel",) * (image.ndim - 2) + spatial_units, contrast_limits=(0, 1) if not available else None, )
 
                             self.viewer.reset_view()
 
@@ -590,7 +591,7 @@ class _events_utils:
 
                         self.viewer.scale_bar.visible = True
                         self.image_layer.scale = scale
-                        self.image_layer.units = (*self.image_layer.units[:-2], "nm", "nm")
+                        self.image_layer.units = (*self.image_layer.units[:-2], *spatial_units)
 
                         if available:
                             self.image_layer_auto_contrast(image, dataset_name, channel_name)
@@ -639,7 +640,7 @@ class _events_utils:
                 if dataset_name in self.session.ordinary_datasets():
                     data_dict = self.session.metadata(dataset_name)
 
-                    path = data_dict["path"]
+                    path = data_dict.get("path") or dataset_name
                     exposure_time_ms = data_dict["exposure_time"]
 
                     current_step = self.viewer.dims.current_step[0]
@@ -701,8 +702,9 @@ class _events_utils:
                                 frame_locs = locs[locs.frame == active_frame].copy()
                                 render_locs = np.vstack((frame_locs.y, frame_locs.x)).T.tolist()
 
-                                pixel_size = float(self.session.metadata(dataset_name)["pixel_size"])
-                                scale = [pixel_size, pixel_size]
+                                pixel_size = self.session._view(dataset_name, channel_name).acquisition.pixel_size
+                                scale = [pixel_size or 1.0] * 2
+                                spatial_units = ("nm", "nm") if pixel_size is not None else ("pixel", "pixel")
 
                                 vis_mode = (self.gui.picasso_vis_mode.currentText())
                                 vis_opacity = float(self.gui.picasso_vis_opacity.currentText())
@@ -725,7 +727,7 @@ class _events_utils:
                                     self.loc_layer = self.viewer.add_points(render_locs, ndim=2,
                                         border_color="red", face_color=[0, 0, 0, 0], opacity=vis_opacity,
                                         name="localisations", symbol=symbol, size=vis_size, border_width=vis_border_width,
-                                        scale=scale, units=("nm", "nm"), )
+                                        scale=scale, units=spatial_units, )
 
                                     update_vis = True
 
@@ -743,7 +745,7 @@ class _events_utils:
 
                                 self.loc_layer.scale = scale
                                 self.viewer.scale_bar.visible = True
-                                self.loc_layer.units = (*self.loc_layer.units[:-2], "nm", "nm")
+                                self.loc_layer.units = (*self.loc_layer.units[:-2], *spatial_units)
 
                                 if update_vis:
                                     if self.verbose:

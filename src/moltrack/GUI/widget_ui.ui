@@ -504,7 +504,7 @@
            <item>
             <widget class="QLabel" name="label_141">
              <property name="text">
-              <string>Load a moltrack project from a .moltrack binary file. Moltrack projects can be loaded without images to save load times.</string>
+              <string>Open a MolCore HDF5 project (.moltrack.h5, .h5, .hdf5) or a legacy .moltrack project. You can load a project without its images.</string>
              </property>
              <property name="wordWrap">
               <bool>true</bool>
@@ -4760,7 +4760,7 @@
            <item>
             <widget class="QLabel" name="label_59">
              <property name="text">
-              <string>Export all active data into a single moltrack binary project file that can be reloaded later. If the images are not included in the moltrack project file, they will be loaded from the image paths.</string>
+              <string>Export a native MolCore HDF5 project (.moltrack.h5). Select the image checkbox to embed available movie pixels.</string>
              </property>
              <property name="wordWrap">
               <bool>true</bool>

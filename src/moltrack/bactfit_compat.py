@@ -16,6 +16,7 @@ from bactfit.preprocess import data_to_cells
 from bactfit.utils import fit_poly
 
 from .model_processing import _cancel
+from .project_geometry import outline_fingerprint
 
 
 def _numpy2_fit_cell():
@@ -39,6 +40,7 @@ def _cells_from_shapes(shapes):
     cells = []
     for shape in shapes:
         shape = np.asarray(shape)
+        source_outline = outline_fingerprint(shape)
         if shape.ndim != 2 or shape.shape[1] not in (2, 3):
             raise ValueError("Cell outlines must contain 2D coordinates with an optional frame column")
         if len(shape) < 3:
@@ -54,6 +56,7 @@ def _cells_from_shapes(shapes):
         imported = data_to_cells([shape])
         for cell in getattr(imported, "data", []):
             cell.frame_index = int(frame)
+            cell._moltrack_source_outline = source_outline
             cells.append(cell)
     return cells
 

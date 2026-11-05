@@ -1,13 +1,12 @@
 """One persistent model carries an odd-frame ALEX workflow through a project."""
 
-import os
 from dataclasses import asdict
 from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
 
-from moltrack import backend
+from moltrack import backend, config
 from moltrack import model_processing as proc
 from moltrack.model_io import import_images, load_project, save_project
 from moltrack.session import ProjectSession
@@ -18,7 +17,7 @@ def test_alex_import_fit_track_measure_edit_correct_project_chain(monkeypatch, t
         raise AssertionError("normal model workflows cannot construct array facades")
 
     monkeypatch.setattr(backend, "_model", forbidden_facade)
-    monkeypatch.setattr(os, "process_cpu_count", lambda: 8, raising=False)
+    monkeypatch.setattr(config, "NUM_CPUS", 6)
     movie = np.full((5, 17, 34), 100., dtype=np.float32)
     movie[:, 8, 8] = 1100.
     session = ProjectSession()
@@ -61,6 +60,21 @@ def test_alex_import_fit_track_measure_edit_correct_project_chain(monkeypatch, t
 
     monkeypatch.setattr(proc.localisation, "detect", detect)
     monkeypatch.setattr(proc.localisation, "fit", fit)
+
+    def check_worker_count(operation):
+        def checked(*args, **kwargs):
+            assert kwargs["num_cpus"] == 6
+            return operation(*args, **kwargs)
+
+        return checked
+
+    monkeypatch.setattr(
+        proc.tracking, "track", check_worker_count(proc.tracking.track)
+    )
+    monkeypatch.setattr(
+        proc.photometry, "measure_localizations",
+        check_worker_count(proc.photometry.measure_localizations),
+    )
     partitions = (("alex", "DD"), ("alex", "DA"))
 
     def run(operation, settings):

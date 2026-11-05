@@ -262,8 +262,9 @@ class _tracking_utils:
                 if len(tracks) > 0:
                     n_frames = self.session.image(dataset_name, channel_name).shape[0]
 
-                    pixel_size = float(self.session.metadata(dataset_name)["pixel_size"])
-                    scale = [pixel_size, pixel_size]
+                    pixel_size = self.session._view(dataset_name, channel_name).acquisition.pixel_size
+                    scale = [pixel_size or 1.0] * 2
+                    units = ("pixel", "nm", "nm") if pixel_size is not None else ("pixel",) * 3
 
                     remove_tracks = False
 
@@ -328,7 +329,7 @@ class _tracking_utils:
                         self.track_layer = self.viewer.add_tracks(
                             render_tracks, name="Tracks",scale=scale,
                             colormap=cmap_name, properties=properties,
-                            color_by="track_id", units=("pixel", "nm", "nm"),)
+                            color_by="track_id", units=units,)
 
                         self.viewer.reset_view()
                         self.track_layer.mouse_double_click_callbacks.append(self.select_track)
@@ -338,6 +339,7 @@ class _tracking_utils:
                         self.track_layer.color_by = "track_id"
                         self.track_layer.data = render_tracks
                         self.track_layer.scale = scale
+                        self.track_layer.units = units
                         self.track_layer.colormap = cmap_name
 
                     if self.gui.show_tracks.isChecked() == False:

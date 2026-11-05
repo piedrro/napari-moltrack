@@ -566,7 +566,10 @@ class _import_utils:
         candidate = None
         try:
             if path is None:
-                path = QFileDialog.getOpenFileName(self, "Open file", os.path.expanduser("~/Desktop"), "*.moltrack")[0]
+                path = QFileDialog.getOpenFileName(
+                    self, "Open MolTrack Project", os.path.expanduser("~/Desktop"),
+                    "Project files (*.h5 *.hdf5 *.moltrack)",
+                )[0]
             if not path:
                 return
             # Decode and validate the entire candidate before touching live state.

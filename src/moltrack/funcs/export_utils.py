@@ -509,6 +509,7 @@ class _export_utils:
         from copy import deepcopy
         from moltrack.model_io import save_project
         from moltrack.model_views import layer_annotations
+        from moltrack.project_geometry import RECORD_ID, ensure_record_ids
 
         try:
             if path is None:
@@ -516,8 +517,16 @@ class _export_utils:
                 source = self.session.metadata(datasets[0]).get("path", "") if datasets else ""
                 if isinstance(source, list):
                     source = source[0] if source else ""
-                proposed = str(Path(source).with_suffix(".moltrack")) if source else str(Path.home() / "Desktop" / "moltrack_project.moltrack")
-                path = QFileDialog.getSaveFileName(self, "Export Moltrack Project", proposed, "(*.moltrack)")[0]
+                proposed = Path(source) if source else Path.home() / "Desktop" / "moltrack_project"
+                if not proposed.name.lower().endswith(".moltrack.h5"):
+                    proposed = proposed.with_suffix(".moltrack.h5")
+                path = QFileDialog.getSaveFileName(
+                    self, "Export MolTrack Project", str(proposed),
+                    "MolTrack project (*.moltrack.h5)",
+                )[0]
+                if path and Path(path).suffix.lower() not in {".h5", ".hdf5"}:
+                    suffix = ".h5" if path.lower().endswith(".moltrack") else ".moltrack.h5"
+                    path += suffix
             if not path:
                 return
             self.update_ui(init=True)
@@ -529,7 +538,12 @@ class _export_utils:
                     # Capturing a display is not a geometry edit. Preserve native
                     # masks already bound to the current exact layer vertices.
                     mask_ids = self.session.annotations.get(name, {}).get("mask_ids", ())
-                    self.session.annotations[name] = layer_annotations(layer, mask_ids=mask_ids)
+                    annotation = layer_annotations(layer, mask_ids=mask_ids)
+                    ids = ensure_record_ids(annotation, name)
+                    if list(layer.properties.get(RECORD_ID, ())) != ids:
+                        with layer.events.properties.blocker():
+                            layer.properties = {**layer.properties, RECORD_ID: ids}
+                    self.session.annotations[name] = annotation
             save_project(self.session, path, include_images=self.gui.export_project_images.isChecked())
             show_info("MolTrack project exported")
         except Exception as error:

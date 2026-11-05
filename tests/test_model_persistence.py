@@ -1,11 +1,12 @@
 import json
 import pickle
 import zipfile
+from hashlib import sha256
 
 import numpy as np
 import pytest
 from bactfit.cell import Cell, CellList
-from molcore import MissingSource
+from molcore import BactFitCell, Dataset, MissingSource, SegmentationOutline
 from shapely.geometry import LineString, Polygon
 from test_model_import import job
 
@@ -70,21 +71,14 @@ def populated():
     return s
 
 
-def test_container_preserves_native_identity_transforms_annotations_and_lazy_lifetime(
+def test_hdf5_preserves_native_identity_transforms_annotations_and_lazy_lifetime(
     tmp_path,
 ):
     original = populated()
-    path = tmp_path / "project.moltrack"
+    path = tmp_path / "project.moltrack.h5"
     model_io.save_project(original, path)
-    assert zipfile.is_zipfile(path)
-    with zipfile.ZipFile(path) as archive:
-        manifest = json.loads(archive.read("manifest.json"))
-        assert manifest["format"] == "moltrack-project"
-        assert manifest["version"] == 1
-        assert "model.h5" in archive.namelist()
-        assert all(
-            not name.endswith(("pickle", "pkl")) for name in archive.namelist()
-        )
+    with Dataset.open(path) as native:
+        assert set(native.acquisitions) == set(original.model.acquisitions)
     loaded = model_io.load_project(path)
     try:
         assert loaded._partitions == original._partitions
@@ -121,6 +115,125 @@ def test_container_preserves_native_identity_transforms_annotations_and_lazy_lif
     from pathlib import Path
 
     assert not Path(resource_path).exists()
+
+
+def test_native_geometry_can_be_opened_edited_and_resaved(tmp_path):
+    path = tmp_path / "native.h5"
+    original = populated()
+    acquisition, channel = original.partition("test", "DA")
+    vertices = ((1.25, 2), (4, 2), (4, 3))
+    outline = SegmentationOutline(
+        "outline",
+        vertices,
+        acquisition_id=acquisition,
+        channel=channel,
+        frame=3,
+        pixel_size=117,
+    )
+    fit = BactFitCell(
+        "fit",
+        vertices,
+        ((1, 2), (4, 2)),
+        ((1, 2), (4, 2)),
+        (0.5, 2),
+        0.75,
+        fit_error=0.25,
+        outline_id="outline",
+    )
+    original.model.add_segmentation_outline(outline)
+    original.model.add_bactfit_cell(fit)
+    original.model.save(path, image_policy="full")
+    with model_io.load_project(path) as session:
+        shapes = session.annotations["segmentations"]
+        np.testing.assert_array_equal(
+            shapes["data"][0], [[1, 2, 1.25], [1, 2, 4], [1, 3, 4]]
+        )
+        assert session.annotations["cells"]["shape_types"] == [
+            "polygon",
+            "path",
+        ]
+        pixels = session.image(acquisition, channel)[:].copy()
+        model_io.save_project(session, path, include_images=False)
+        np.testing.assert_array_equal(
+            session.image(acquisition, channel)[:], pixels
+        )
+        with Dataset.open(path) as saved:
+            assert saved.segmentation_outlines["outline"] == outline
+            assert saved.bactfit_cells["fit"] == fit
+        session.annotations["cells"]["properties"]["name"][0] = "renamed"
+        model_io.save_project(session, path, include_images=False)
+        with Dataset.open(path) as saved:
+            assert saved.bactfit_cells["fit"] == fit
+        shapes["data"].clear()
+        shapes["shape_types"].clear()
+        for name in shapes["properties"]:
+            shapes["properties"][name] = []
+        model_io.save_project(session, path, include_images=False)
+    with Dataset.open(path) as saved:
+        assert not saved.segmentation_outlines
+        assert not saved.bactfit_cells
+
+
+def test_export_converts_gui_geometry_to_native_records(tmp_path):
+    session = populated()
+    vertices = np.array([[2, 1.25], [2, 4], [3, 4]])
+    session.annotations["segmentations"] = {
+        "data": [vertices],
+        "shape_types": ["polygon"],
+        "scale": [117, 117],
+        "properties": {},
+    }
+    params = {
+        "radius": 0.75,
+        "poly_params": [0.5, 2],
+        "cell_poles": [(2, 1), (2, 4)],
+        "_moltrack_source_outline": sha256(
+            vertices.astype("<f4").tobytes()
+        ).hexdigest(),
+    }
+    session.annotations["cells"] = {
+        "data": [vertices, [[2, 1], [2, 4]]],
+        "shape_types": ["polygon", "path"],
+        "scale": [117, 117],
+        "properties": {"name": ["cell", "cell"], "cell": [params, params]},
+    }
+    path = tmp_path / "sample.moltrack.h5"
+    model_io.save_project(session, path)
+    with Dataset.open(path) as native:
+        (outline,) = native.segmentation_outlines.values()
+        (fit,) = native.bactfit_cells.values()
+        assert outline.vertices == ((1.25, 2), (4, 2), (4, 3))
+        assert outline.pixel_size == 117
+        assert fit.polygon == outline.vertices
+        assert fit.poles == ((1, 2), (4, 2))
+        assert fit.polynomial_coefficients == (0.5, 2)
+        assert fit.radius == 0.75
+        assert fit.outline_id == outline.id
+
+
+def test_surviving_new_outline_keeps_its_id_after_deleting_a_neighbor(
+    tmp_path,
+):
+    session = ProjectSession()
+    polygon = np.array([[2, 1], [2, 4], [3, 4]])
+    layer = {
+        "data": [polygon, polygon + 10],
+        "shape_types": ["polygon"] * 2,
+        "scale": [100, 100],
+        "properties": {},
+    }
+    session.annotations["segmentations"] = layer
+    path = tmp_path / "stable.moltrack.h5"
+    model_io.save_project(session, path)
+    with Dataset.open(path) as native:
+        _, survivor = native.segmentation_outlines.values()
+    layer["data"].pop(0)
+    layer["shape_types"].pop(0)
+    for values in layer["properties"].values():
+        values.pop(0)
+    model_io.save_project(session, path)
+    with Dataset.open(path) as native:
+        assert dict(native.segmentation_outlines) == {survivor.id: survivor}
 
 
 @pytest.mark.parametrize(
@@ -216,6 +329,60 @@ def test_unknown_version_and_unexpected_zip_members_are_rejected(tmp_path):
             model_io.load_project(path)
 
 
+def test_historical_zip_project_migrates_to_native_hdf5(tmp_path):
+    from moltrack.project_codec import AnnotationCodec
+
+    session = populated()
+    polygon = np.array([[2, 1], [2, 4], [3, 4]])
+    session.annotations["segmentations"] = {
+        "data": [polygon],
+        "shape_types": ["polygon"],
+        "scale": [117, 117],
+        "properties": {},
+        "mask_ids": [],
+    }
+    payload = tmp_path / "model.h5"
+    session.model.save(payload, image_policy="full")
+    old = tmp_path / "old.moltrack"
+    with zipfile.ZipFile(old, "w") as archive:
+        codec = AnnotationCodec(archive)
+        annotations = codec.encode(session.annotations)
+        archive.write(payload, "model.h5")
+        archive.writestr(
+            "manifest.json",
+            json.dumps(
+                {
+                    "format": "moltrack-project",
+                    "version": 1,
+                    "bindings": [
+                        [
+                            dataset,
+                            channel,
+                            *session.partition(dataset, channel),
+                        ]
+                        for dataset in session.datasets()
+                        for channel in session.channels(dataset)
+                    ],
+                    "annotations": annotations,
+                    "arrays": codec.members,
+                }
+            ),
+        )
+    new = tmp_path / "old.moltrack.h5"
+    with model_io.load_project(old) as migrated:
+        model_io.save_project(migrated, new)
+    with Dataset.open(new) as native:
+        (outline,) = native.segmentation_outlines.values()
+        assert outline.vertices == ((1, 2), (4, 2), (4, 3))
+    with model_io.load_project(new) as reopened:
+        assert reopened.partition("test", "DA") == session.partition(
+            "test", "DA"
+        )
+        assert isinstance(
+            reopened.annotations["cells"]["properties"]["cell"][0], Cell
+        )
+
+
 @pytest.mark.parametrize(
     "change", ["vertices", "properties", "shape-type", "scale"]
 )
@@ -307,6 +474,15 @@ def test_legacy_corrected_baseline_independent_tracks_and_real_cells(tmp_path):
             s.annotations["cells"]["properties"]["cell"][0], Cell
         )
         assert s.model.metadata["migration_report"]
+        converted = tmp_path / "old.moltrack.h5"
+        model_io.save_project(s, converted)
+        with model_io.load_project(converted) as reopened:
+            assert reopened.query_localizations(
+                "old", "cropped"
+            ).x.tolist() == [2.0, 3.0]
+            assert isinstance(
+                reopened.annotations["cells"]["properties"]["cell"][0], Cell
+            )
     finally:
         s.close()
 

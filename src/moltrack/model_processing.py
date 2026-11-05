@@ -27,11 +27,11 @@ from molcore import (
 )
 from molcore.staging import state_token, transact, validate_expected
 
+from . import config
 from .backend import (
     MoltrackDetection,
     PicassoGpu,
     _filter_candidates,
-    localisation_cpu_workers,
     progress_adapter,
 )
 from .model_views import channel_rows
@@ -158,7 +158,6 @@ def _detect_partition(
     if settings.frame_index is not None:
         camera_frame = int(view.source_frames[settings.frame_index])
         frame_range = (camera_frame, camera_frame + 1)
-    workers = localisation_cpu_workers()
     options = {
         "progress": progress_adapter(progress),
         "cancel_event": cancel_event,
@@ -176,7 +175,7 @@ def _detect_partition(
             backend=MoltrackDetection(settings.kernel_size)
             if settings.detect_mode.lower() != "picasso"
             else None,
-            num_cpus=workers,
+            num_cpus=config.NUM_CPUS,
             **options,
         )
         original = None
@@ -194,7 +193,7 @@ def _detect_partition(
             name,
             settings=params,
             frame_range=(0, 0),
-            num_cpus=workers,
+            num_cpus=config.NUM_CPUS,
             **options,
         )
         columns = {k: original[k].to_numpy(copy=True) for k in ("x", "y")}
@@ -229,7 +228,7 @@ def _detect_partition(
             camera=CameraSettings(100.0, 1.0, 1.0),
             apply=False,
             backend=PicassoGpu() if use_gpu else None,
-            num_cpus=1 if use_gpu else workers,
+            num_cpus=1 if use_gpu else config.NUM_CPUS,
             **options,
         )
         if fitted.failed_fits and not len(fitted.columns["frame"]):
@@ -369,6 +368,7 @@ def _measure_partition(session, dataset, channel, settings, options):
             exclude_neighbours=False,
         ),
         apply=False,
+        num_cpus=config.NUM_CPUS,
         **options,
     )
     values = (
@@ -391,7 +391,6 @@ def _compute_workflow(prepared, *, progress, cancel_event):
     session, request = prepared.session, prepared.request
     model, settings = session.model, request.settings
     options = {
-        "num_cpus": 1,
         "progress": progress_adapter(progress),
         "cancel_event": cancel_event,
     }
@@ -410,6 +409,7 @@ def _compute_workflow(prepared, *, progress, cancel_event):
                 name,
                 ids=ids,
                 settings=settings.drift,
+                num_cpus=config.NUM_CPUS,
                 **options,
             )
         seen = set()
@@ -488,6 +488,10 @@ def _compute_workflow(prepared, *, progress, cancel_event):
                     requests,
                     settings=settings.cellpose,
                     apply=False,
+                    num_cpus=(
+                        1 if getattr(settings.cellpose, "gpu", False)
+                        else config.NUM_CPUS
+                    ),
                     **options,
                 )
             elif request.operation == "tracking":
@@ -614,6 +618,7 @@ def _track_partition(session, dataset, channel, settings, options):
                 frame_clock="channel",
             ),
             apply=False,
+            num_cpus=config.NUM_CPUS,
             **options,
         )
         memberships.extend(result.memberships)

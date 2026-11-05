@@ -42,12 +42,12 @@ $env:QT_API='pyqt6'
 .verify312/Scripts/python.exe -m pytest tests src/moltrack/_tests -q --tb=short --disable-warnings
 ```
 
-New `.moltrack` projects are versioned ZIP containers containing a native
-MolCore HDF5 model, a JSON manifest and typed annotation arrays. They retain
-source/channel frame maps, timing, stable identities, measurements, transforms,
-editable shapes and supported cell properties. Derived plot/analysis caches are
-recomputed after loading. Saving replaces the destination only after the complete
-container has been written successfully.
+New projects use `.moltrack.h5`, a native MolCore HDF5 snapshot you can open
+with `molcore.Dataset.open`. Segmentation masks, editable outlines and fitted
+cells are stored as native records. A MolTrack group retains display settings,
+project labels and legacy annotations. MolTrack can also open both historical
+`.moltrack` formats. Saving replaces the destination after writing the complete
+snapshot.
 
 The image checkbox controls embedded pixels. Image-free projects retain geometry
 and tables; pixel analysis requires an available source. Their zero-valued display

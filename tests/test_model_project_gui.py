@@ -2,7 +2,13 @@ from copy import deepcopy
 
 import numpy as np
 import pytest
-from molcore import Segmentation
+from molcore import (
+    Acquisition,
+    ArraySource,
+    BactFitCell,
+    Dataset,
+    Segmentation,
+)
 from test_model_persistence import populated
 
 from moltrack import model_io
@@ -369,6 +375,53 @@ def test_actual_project_save_captures_live_contrast_and_shape_annotations(
         )
 
 
+def test_native_fits_are_editable_and_export_dialog_appends_compound_suffix(
+    widget, tmp_path, monkeypatch
+):
+    from moltrack.funcs.export_utils import QFileDialog
+
+    native = Dataset()
+    native.add_acquisition(
+        Acquisition(ArraySource(np.zeros((2, 8, 8))), id="uncalibrated")
+    )
+    native.add_bactfit_cell(
+        BactFitCell(
+            "native-fit",
+            [(1, 1), (4, 1), (4, 3), (1, 3)],
+            [(1, 2), (4, 2)],
+            [(1, 2), (4, 2)],
+            (0, 2),
+            1,
+            frame=1,
+            pixel_size=110,
+        )
+    )
+    source = tmp_path / "native.h5"
+    native.save(source, image_policy="full")
+    widget.import_moltrack_project(path=str(source))
+    assert widget.image_layer.data.shape == (2, 8, 8)
+    assert widget.session.metadata("uncalibrated")["pixel_size"] is None
+    assert widget.cellLayer.shape_type == ["polygon", "path"]
+    cell = widget.get_cell("native-fit", bactfit=True)
+    assert cell.frame_index == 1
+    np.testing.assert_array_equal(cell.cell_midline.coords, [[1, 2], [4, 2]])
+    widget.cellLayer.data = [
+        shape + [0, 1, 0] for shape in widget.cellLayer.data
+    ]
+
+    def choose_path(parent, title, suggested, file_filter):
+        assert suggested.endswith(".moltrack.h5")
+        assert "*.moltrack.h5" in file_filter
+        return str(tmp_path / "edited"), file_filter
+
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", choose_path)
+    widget.export_moltrack_project()
+    with Dataset.open(tmp_path / "edited.moltrack.h5") as exported:
+        fit = exported.bactfit_cells["native-fit"]
+        assert fit.frame == 1
+        assert fit.midline[0] == (1, 3)
+
+
 @pytest.mark.parametrize(
     "malformation", ["scale-dimensions", "mixed-dimensions"]
 )
@@ -382,7 +435,7 @@ def test_malformed_shape_candidate_preserves_live_session_payload_and_layers(
     from moltrack.project_codec import AnnotationCodec
 
     original = populated()
-    good = tmp_path / "good.moltrack"
+    good = tmp_path / "good.moltrack.h5"
     model_io.save_project(original, good)
     widget.session = model_io.load_project(good)
     polygon = original.annotations["cells"]["data"][0]
@@ -400,15 +453,23 @@ def test_malformed_shape_candidate_preserves_live_session_payload_and_layers(
         annotations["cells"]["shape_types"].append("polygon")
         annotations["cells"]["properties"] = {}
     bad = tmp_path / "bad.moltrack"
-    with zipfile.ZipFile(good) as archive:
-        payload = archive.read("model.h5")
-        manifest = json.loads(archive.read("manifest.json"))
+    payload = tmp_path / "model.h5"
+    original.model.save(payload, image_policy="full")
+    manifest = {
+        "format": "moltrack-project",
+        "version": 1,
+        "bindings": [
+            [dataset, channel, *original.partition(dataset, channel)]
+            for dataset in original.datasets()
+            for channel in original.channels(dataset)
+        ],
+    }
     with zipfile.ZipFile(bad, "w") as archive:
         codec = AnnotationCodec(archive)
         manifest["annotations"] = codec.encode(annotations)
         manifest["arrays"] = codec.members
         archive.writestr("manifest.json", json.dumps(manifest))
-        archive.writestr("model.h5", payload)
+        archive.write(payload, "model.h5")
     widget.import_moltrack_project(path=str(bad))
     assert widget.session is previous
     assert tuple(widget.viewer.layers) == previous_layers

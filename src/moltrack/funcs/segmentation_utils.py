@@ -76,18 +76,30 @@ class _segmentation_utils:
         try:
 
             from moltrack.funcs.compute_utils import publish_model_result
+            from moltrack.project_geometry import OUTLINE_SOURCE
             if not publish_model_result(self, result):
                 return
             shapes = []
+            sources = []
             for dataset, channel, segmentations in result.results:
                 view = result.prepared.session._view(dataset, channel)
                 for segmentation in segmentations.values():
                     frame = None if result.prepared.request.settings.frame_index is not None else view.channel_index(segmentation.frame)
-                    shapes.extend(self.mask_to_shape(segmentation.labels, frame=frame))
+                    contours = self.mask_to_shape(segmentation.labels, frame=frame)
+                    shapes.extend(contours)
+                    sources.extend({
+                        "acquisition": segmentation.acquisition_id,
+                        "channel": segmentation.channel,
+                        "frame": segmentation.frame,
+                        "space": str(segmentation.space),
+                    } for _ in contours)
             dataset = result.prepared.request.partitions[0][0]
             pixel_size = result.prepared.session.metadata(dataset)['pixel_size']
             mask_ids = [mask.id for _, _, masks in result.results for mask in masks.values()]
-            self.initialise_segLayer(shapes, pixel_size, model_mask_ids=mask_ids)
+            self.initialise_segLayer(
+                shapes, pixel_size, model_mask_ids=mask_ids,
+                shape_properties={OUTLINE_SOURCE: sources},
+            )
             return
 
         except:

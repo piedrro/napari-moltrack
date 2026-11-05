@@ -16,6 +16,7 @@ class _bactfit_utils:
     def run_bactfit_results(self, celllist):
 
         from moltrack.model_cells import validate_cells
+        from moltrack.project_geometry import FIT_SOURCE
         try:
             celllist = validate_cells(self.session, celllist)
         except Exception as exc:
@@ -34,6 +35,8 @@ class _bactfit_utils:
         cell_params = data["poly_params"]
         cell_poles = data["cell_poles"]
         cell_midlines = data["midlines"]
+        frames = data["frame_indices"]
+        cells_by_name = {cell.name: cell for cell in celllist.data}
 
         layer_names = [layer.name for layer in self.viewer.layers]
 
@@ -44,13 +47,17 @@ class _bactfit_utils:
         shape_types = []
         properties = {"name": [], "cell": []}
 
-        for name, polygon, radius, midline, params, poles in zip(cell_names, cell_polygons,
-                cell_radii, cell_midlines, cell_params, cell_poles):
+        for name, polygon, radius, midline, params, poles, frame in zip(
+                cell_names, cell_polygons, cell_radii, cell_midlines,
+                cell_params, cell_poles, frames, strict=True):
 
             try:
 
+                cell = cells_by_name[name]
                 fit_params = {"name": name, "radius": radius,
-                              "poly_params": params, "cell_poles": poles}
+                              "poly_params": params, "cell_poles": poles,
+                              "fit_error": cell.fit_error, "frame": frame,
+                              FIT_SOURCE: getattr(cell, FIT_SOURCE, None)}
 
                 shapes.append(polygon)
                 shape_types.append("polygon")

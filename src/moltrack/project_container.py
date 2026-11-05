@@ -3,18 +3,61 @@
 import json
 import os
 import re
+import shutil
 import tempfile
 import zipfile
 from pathlib import Path
 
+import h5py
 import numpy as np
-from molcore import Dataset
+from molcore import Dataset, MissingSource
 
 from .project_codec import AnnotationCodec
+from .project_geometry import (
+    GEOMETRY_LAYERS,
+    RECORD_ID,
+    encode_geometry,
+    ensure_record_ids,
+    restore_geometry,
+)
 from .session import ProjectSession
 
 FORMAT = "moltrack-project"
 VERSION = 1
+APP_GROUP = "moltrack"
+
+
+class _HDF5Annotations:
+    """Store the existing pickle-free array encoding as HDF5 byte datasets."""
+
+    def __init__(self, group):
+        self.group = group
+
+    def writestr(self, name, data):
+        self.group.create_dataset(
+            name, data=np.frombuffer(data, dtype=np.uint8)
+        )
+
+    def read(self, name):
+        group = self.group
+        *parents, leaf = name.split("/")
+        for parent in parents:
+            group = _local_member(group, parent, h5py.Group)
+        data = _local_member(group, leaf, h5py.Dataset)
+        if data.ndim != 1 or data.dtype != np.dtype("uint8"):
+            raise ValueError("Invalid MolTrack annotation payload")
+        return data[:].tobytes()
+
+
+def _local_member(group, name, kind):
+    if not isinstance(group.get(name, getlink=True), h5py.HardLink):
+        raise ValueError(
+            f"Missing or nonlocal MolTrack project member {name!r}"
+        )
+    value = group[name]
+    if not isinstance(value, kind):
+        raise ValueError(f"Invalid MolTrack project member {name!r}")
+    return value
 
 
 def validate_session(session):
@@ -98,7 +141,14 @@ def validate_session(session):
 
 
 def save_project(session, path, *, include_images=True):
-    validate_session(session)
+    staged = session.snapshot()
+    validate_session(staged)
+    identities = {
+        name: ensure_record_ids(staged.annotations[name], name)
+        for name in GEOMETRY_LAYERS
+        if name in staged.annotations
+    }
+    encode_geometry(staged, staged._project_geometry)
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     # Everything fallible, including annotation adapters and native storage,
@@ -107,39 +157,148 @@ def save_project(session, path, *, include_images=True):
         prefix=".moltrack-save-", dir=destination.parent
     ) as work:
         work = Path(work)
-        output = work / "project.zip"
-        with zipfile.ZipFile(
-            output, "w", compression=zipfile.ZIP_DEFLATED, allowZip64=True
-        ) as archive:
+        output = work / "model.h5"
+        staged.model.save(
+            output, image_policy="full" if include_images else "none"
+        )
+        with h5py.File(output, "r+") as file:
+            archive = _HDF5Annotations(file.create_group(APP_GROUP))
             codec = AnnotationCodec(archive)
-            annotations = codec.encode(session.annotations)
+            annotations = codec.encode(staged.annotations)
             manifest = {
                 "format": FORMAT,
                 "version": VERSION,
                 "bindings": [
-                    [d, c, *session.partition(d, c)]
-                    for d in session.datasets()
-                    for c in session.channels(d)
+                    [d, c, *staged.partition(d, c)]
+                    for d in staged.datasets()
+                    for c in staged.channels(d)
                 ],
                 "annotations": annotations,
                 "arrays": codec.members,
             }
-            session.model.save(
-                work / "model.h5",
-                image_policy="full" if include_images else "none",
-            )
-            archive.write(work / "model.h5", "model.h5")
-            archive.writestr(
-                "manifest.json", json.dumps(manifest, allow_nan=True)
-            )
+            archive.writestr("manifest.json", json.dumps(manifest).encode())
         os.replace(output, destination)
+    for name, ids in identities.items():
+        session.annotations[name].setdefault("properties", {})[RECORD_ID] = ids
 
 
 def load_project(path, *, include_images=True):
-    if not zipfile.is_zipfile(path):
-        from .project_legacy import from_legacy, read_legacy
+    path = Path(path)
+    if h5py.is_hdf5(path):
+        return _load_hdf5(path, include_images)
+    if zipfile.is_zipfile(path):
+        return _load_zip(path, include_images)
+    if path.suffix.lower() in {".h5", ".hdf5"}:
+        raise ValueError("Invalid MolCore HDF5 project")
+    from .project_legacy import from_legacy, read_legacy
 
-        return from_legacy(read_legacy(path), include_images=include_images)
+    session = from_legacy(read_legacy(path), include_images=include_images)
+    try:
+        _migrate_geometry(session)
+        return session
+    except BaseException:
+        session.close()
+        raise
+
+
+def _migrate_geometry(session):
+    for name in GEOMETRY_LAYERS:
+        if name in session.annotations:
+            ensure_record_ids(session.annotations[name], name)
+    encode_geometry(session, {})
+    restore_geometry(session)
+    validate_session(session)
+
+
+def _read_app_state(path):
+    with h5py.File(path, "r") as file:
+        if APP_GROUP not in file:
+            return None, {}
+        archive = _HDF5Annotations(_local_member(file, APP_GROUP, h5py.Group))
+        manifest = json.loads(archive.read("manifest.json"))
+        if (
+            manifest.get("format") != FORMAT
+            or type(manifest.get("version")) is not int
+            or manifest["version"] != VERSION
+        ):
+            raise ValueError("Unsupported MolTrack annotation format/version")
+        codec = AnnotationCodec(archive)
+        codec.members = manifest["arrays"]
+        if not isinstance(codec.members, list) or any(
+            not isinstance(name, str)
+            or not re.fullmatch(r"annotations/[0-9]+\.npy", name)
+            for name in codec.members
+        ):
+            raise ValueError("Invalid MolTrack annotation array names")
+        return manifest["bindings"], codec.decode(manifest["annotations"])
+
+
+def _load_hdf5(path, include_images):
+    resource = tempfile.TemporaryDirectory(prefix="moltrack-project-")
+    model = None
+    try:
+        bindings, annotations = _read_app_state(path)
+        payload = Path(resource.name) / "model.h5"
+        if include_images:
+            # Keep lazy readers on a private snapshot if the user exports over
+            # the original file, including an export that omits the images.
+            shutil.copyfile(path, payload)
+        else:
+            with Dataset.open(path) as original:
+                original.save(payload, image_policy="none")
+        model = Dataset.open(payload)
+        if include_images:
+            _restore_relative_sources(model, path)
+        session = ProjectSession(model)
+        if bindings is None:
+            bindings = [
+                (acquisition.id, channel, acquisition.id, channel)
+                for acquisition in model.acquisitions.values()
+                for channel in acquisition.channels
+            ]
+            for acquisition in model.acquisitions.values():
+                if acquisition.metadata.get("role") == "segmentation_image":
+                    annotations["segmentation_image_binding"] = (
+                        acquisition.id,
+                        next(iter(acquisition.channels)),
+                    )
+                    break
+        for binding in bindings:
+            session.bind(*binding)
+        session.annotations = annotations
+        restore_geometry(session)
+        validate_session(session)
+        session._project_resources = resource
+        return session
+    except BaseException:
+        if model is not None:
+            model.close()
+        resource.cleanup()
+        raise
+
+
+def _restore_relative_sources(model, path):
+    # An HDF5 payload selected from a directory snapshot may resolve image
+    # references relative to its original location.
+    unresolved = [
+        acquisition
+        for acquisition in model.acquisitions.values()
+        if isinstance(acquisition.source, MissingSource)
+        and acquisition.source.reason.startswith(
+            "External images unavailable:"
+        )
+    ]
+    if unresolved:
+        with Dataset.open(path) as original:
+            for acquisition in unresolved:
+                source_acquisition = original.acquisitions[acquisition.id]
+                acquisition.source, source_acquisition.source = (
+                    source_acquisition.source,
+                    acquisition.source,
+                )
+
+
+def _load_zip(path, include_images):
     resource = tempfile.TemporaryDirectory(prefix="moltrack-project-")
     session = None
     model = None
@@ -175,8 +334,6 @@ def load_project(path, *, include_images=True):
                 payload.open("wb") as target,
                 archive.open("model.h5") as source,
             ):
-                import shutil
-
                 shutil.copyfileobj(source, target)
         model = Dataset.open(payload)
         if not include_images:
@@ -191,6 +348,7 @@ def load_project(path, *, include_images=True):
             session.bind(*binding)
         session.annotations = annotations
         validate_session(session)
+        _migrate_geometry(session)
         session._project_resources = resource
         return session
     except BaseException:

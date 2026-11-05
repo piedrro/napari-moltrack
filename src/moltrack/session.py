@@ -29,6 +29,7 @@ class ProjectSession:
         self._partitions = {}
         self._analysis_cache = {}
         self._project_resources = None
+        self._project_geometry = {}
 
     def close(self):
         """Close lazy sources before releasing their extracted native payload."""
@@ -656,6 +657,7 @@ class ProjectSession:
         staged = ProjectSession(self.model.snapshot())
         staged._partitions = deepcopy(self._partitions)
         staged.annotations = deepcopy(self.annotations)
+        staged._project_geometry = deepcopy(self._project_geometry)
         return staged
 
     def analyze_tracks(

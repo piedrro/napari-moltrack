@@ -9,6 +9,12 @@ from bactfit.utils import manual_fit
 from shapely.geometry import LineString, Point, Polygon
 
 
+def _with_frame(points, frame):
+    if frame is None:
+        return points
+    return np.column_stack((np.full(len(points), frame), points))
+
+
 class _cell_events:
 
     def moltrack_undo(self, viewer=None, event=None):
@@ -244,7 +250,7 @@ class _cell_events:
                         polygon_index = cell["polygon_index"]
                         midline_index = cell["midline_index"]
 
-                        cell_shapes[polygon_index] = polygon_coords
+                        cell_shapes[polygon_index] = _with_frame(polygon_coords, cell["layer_frame"])
                         properties["cell"][polygon_index]["radius"] = radius
                         properties["cell"][midline_index]["radius"] = radius
 
@@ -269,7 +275,6 @@ class _cell_events:
             name_list = properties.get("name", [])
             cell_list = properties.get("cell", [])
 
-            cell_list = [cell for cell in cell_list if isinstance(cell, dict)]
 
             shape_types = annotations.get("shape_types", [])
             shapes = annotations.get("data", [])
@@ -287,13 +292,23 @@ class _cell_events:
 
                 if len(path_index) == 1 and len(polygon_index) == 1:
 
-                    midline_coords = shapes[path_index[0]]
-                    polygon_coords = shapes[polygon_index[0]]
+                    midline = np.asarray(shapes[path_index[0]])
+                    midline_coords = midline[:, -2:]
+                    polygon_coords = np.asarray(shapes[polygon_index[0]])[:, -2:]
+                    layer_frame = int(midline[0, 0]) if midline.shape[1] == 3 else None
                     cell_properties = cell_list[path_index[0]]
+                    if not isinstance(cell_properties, dict):
+                        return None
 
                     if bactfit:
                         midline_coords = np.fliplr(midline_coords)
                         polygon_coords = np.fliplr(polygon_coords)
+                        cell_properties["cell_poles"] = np.asarray(
+                            cell_properties["cell_poles"]
+                        )[:, -2:][:, ::-1]
+                        frame = cell_properties.get("frame", layer_frame)
+                        if frame is not None:
+                            cell_properties["frame_index"] = frame
 
                     if json is True:
                         midline_coords = midline_coords.tolist()
@@ -316,12 +331,16 @@ class _cell_events:
                         "midline_index": int(path_index[0]),
                         "polygon_index": int(polygon_index[0]),
                         "pixel_size": pixel_size,
+                        "layer_frame": layer_frame,
                     }
 
                     cell = {**cell_coords, **cell_properties}
 
                     if bactfit:
-                        cell = Cell(cell)
+                        fitted = Cell(cell)
+                        fitted.cell_polygon = Polygon(polygon_coords)
+                        fitted.cell_poles = cell_properties["cell_poles"]
+                        cell = fitted
 
         except:
             print(traceback.format_exc())
@@ -428,8 +447,8 @@ class _cell_events:
                     shape_types = copy.deepcopy(self.cellLayer.shape_type)
                     properties = copy.deepcopy(self.cellLayer.properties)
 
-                    shapes[polygon_index] = polygon_fit_coords
-                    shapes[midline_index] = midline_fit_coords
+                    shapes[polygon_index] = _with_frame(polygon_fit_coords, cell["layer_frame"])
+                    shapes[midline_index] = _with_frame(midline_fit_coords, cell["layer_frame"])
 
                     cell_poles = [
                         midline_fit_coords[0],
@@ -484,7 +503,7 @@ class _cell_events:
                 shapes = copy.deepcopy(self.cellLayer.data)
                 properties = copy.deepcopy(self.cellLayer.properties)
 
-                shapes[midline_index] = midline_coords
+                shapes[midline_index] = _with_frame(midline_coords, cell["layer_frame"])
                 properties["cell"][midline_index]["cell_poles"] = cell_poles
 
                 self.update_cellLayer_shapes(shapes, properties=properties)
@@ -693,7 +712,9 @@ class _cell_events:
                 random.choices(string.ascii_uppercase + string.digits, k=10)
             )
 
-            midline_coords = shapes[last_index]
+            vertices = np.asarray(shapes[last_index])
+            frame = int(vertices[0, 0]) if vertices.shape[1] == 3 else None
+            midline_coords = vertices[:, -2:]
             cell_poles = [midline_coords[0], midline_coords[-1]]
 
             midline = LineString(midline_coords)
@@ -706,7 +727,7 @@ class _cell_events:
                 fit
             )
 
-            shapes[last_index] = midline_fit_coords
+            shapes[last_index] = _with_frame(midline_fit_coords, frame)
 
             cell = {
                 "name": name,
@@ -737,7 +758,7 @@ class _cell_events:
             }
 
             # self.cellLayer.current_properties = {"name": name, "cell": cell}
-            self.cellLayer.add_polygons(polygon_fit_coords)
+            self.cellLayer.add_polygons(_with_frame(polygon_fit_coords, frame))
             self.cellLayer.properties["cell"][-1] = cell
 
             self.cellLayer.events.data.connect(self.update_cells)
