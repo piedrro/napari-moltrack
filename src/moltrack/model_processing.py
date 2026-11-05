@@ -31,6 +31,7 @@ from .backend import (
     MoltrackDetection,
     PicassoGpu,
     _filter_candidates,
+    localisation_cpu_workers,
     progress_adapter,
 )
 from .model_views import channel_rows
@@ -157,8 +158,8 @@ def _detect_partition(
     if settings.frame_index is not None:
         camera_frame = int(view.source_frames[settings.frame_index])
         frame_range = (camera_frame, camera_frame + 1)
+    workers = localisation_cpu_workers()
     options = {
-        "num_cpus": 1,
         "progress": progress_adapter(progress),
         "cancel_event": cancel_event,
     }
@@ -175,6 +176,7 @@ def _detect_partition(
             backend=MoltrackDetection(settings.kernel_size)
             if settings.detect_mode.lower() != "picasso"
             else None,
+            num_cpus=workers,
             **options,
         )
         original = None
@@ -192,6 +194,7 @@ def _detect_partition(
             name,
             settings=params,
             frame_range=(0, 0),
+            num_cpus=workers,
             **options,
         )
         columns = {k: original[k].to_numpy(copy=True) for k in ("x", "y")}
@@ -219,14 +222,14 @@ def _detect_partition(
         ),
     )
     if settings.fit:
+        use_gpu = settings.fit_mode == "Picasso GPU"
         fitted = localisation.fit(
             session.model,
             detected,
             camera=CameraSettings(100.0, 1.0, 1.0),
             apply=False,
-            backend=PicassoGpu()
-            if settings.fit_mode == "Picasso GPU"
-            else None,
+            backend=PicassoGpu() if use_gpu else None,
+            num_cpus=1 if use_gpu else workers,
             **options,
         )
         if fitted.failed_fits and not len(fitted.columns["frame"]):

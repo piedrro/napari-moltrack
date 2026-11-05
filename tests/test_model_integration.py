@@ -1,5 +1,6 @@
 """One persistent model carries an odd-frame ALEX workflow through a project."""
 
+import os
 from dataclasses import asdict
 from types import SimpleNamespace
 
@@ -17,6 +18,7 @@ def test_alex_import_fit_track_measure_edit_correct_project_chain(monkeypatch, t
         raise AssertionError("normal model workflows cannot construct array facades")
 
     monkeypatch.setattr(backend, "_model", forbidden_facade)
+    monkeypatch.setattr(os, "process_cpu_count", lambda: 8, raising=False)
     movie = np.full((5, 17, 34), 100., dtype=np.float32)
     movie[:, 8, 8] = 1100.
     session = ProjectSession()
@@ -34,6 +36,7 @@ def test_alex_import_fit_track_measure_edit_correct_project_chain(monkeypatch, t
     cameras = []
 
     def detect(model, acquisition_id, channel, settings, frame_range=None, **kwargs):
+        assert kwargs["num_cpus"] == 6
         view = model.acquisitions[acquisition_id].channels[channel]
         frames = view.source_frames if frame_range != (0, 0) else []
         return proc.localisation.DetectionResult(
@@ -47,6 +50,7 @@ def test_alex_import_fit_track_measure_edit_correct_project_chain(monkeypatch, t
         )
 
     def fit(model, detected, camera, **kwargs):
+        assert kwargs["num_cpus"] == 6
         cameras.append(asdict(camera))
         return SimpleNamespace(failed_fits=0, columns=dict(
             detected.columns, photons=np.full(len(detected.columns["frame"]), 1000.),

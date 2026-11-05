@@ -4,6 +4,7 @@ Each operation owns a detached model. No GUI objects or application dictionaries
 are sent to worker processes, and source pixels/records are never mutated.
 """
 
+import os
 from concurrent.futures import CancelledError
 from dataclasses import replace
 
@@ -216,6 +217,13 @@ def _filter_candidates(columns, roi, remove_overlapping, box_size):
     return {k: np.asarray(v)[keep].copy() for k, v in columns.items()}
 
 
+def localisation_cpu_workers():
+    available = getattr(os, "process_cpu_count", os.cpu_count)() or 1
+    workers = max(1, available - 2)
+    # MolCore uses ProcessPoolExecutor, which has this limit on Windows.
+    return min(workers, 61) if os.name == "nt" else workers
+
+
 def localize_movie(
     movie,
     *,
@@ -238,8 +246,8 @@ def localize_movie(
     settings = LocalisationSettings(
         min_net_gradient=threshold, box_size=box_size
     )
+    workers = localisation_cpu_workers()
     options = {
-        "num_cpus": 1,
         "progress": progress_adapter(progress_callback),
         "cancel_event": cancel_event,
     }
@@ -259,6 +267,7 @@ def localize_movie(
             settings=settings,
             frame_range=frame_range,
             backend=custom,
+            num_cpus=workers,
             **options,
         )
     else:
@@ -269,6 +278,7 @@ def localize_movie(
             CHANNEL,
             settings=settings,
             frame_range=(0, 0),
+            num_cpus=workers,
             **options,
         )
         data = pd.DataFrame(candidates).reset_index(drop=True)
@@ -295,6 +305,7 @@ def localize_movie(
             camera=CameraSettings(100.0, 1.0, 1.0),
             apply=False,
             backend=PicassoGpu() if use_gpu else None,
+            num_cpus=1 if use_gpu else workers,
             **options,
         )
         if result.failed_fits and not len(result.columns["frame"]):
