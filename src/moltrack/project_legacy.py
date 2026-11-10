@@ -270,11 +270,9 @@ def from_legacy(project, *, include_images=True):
         pixels = np.asarray(value["data"])
         if pixels.ndim == 2:
             pixels = pixels[None]
-        source = (
-            ArraySource(pixels)
-            if include_images
-            else MissingSource(pixels.shape, pixels.dtype)
-        )
+        # The standalone segmentation image is required project data even when
+        # the user omits ordinary microscopy stacks.
+        source = ArraySource(pixels)
         acquisition = Acquisition(
             source,
             pixel_size=value.get("pixel_size"),
@@ -300,7 +298,7 @@ def from_legacy(project, *, include_images=True):
             }
         }
     )
-    session.model.metadata["migration_report"] = messages
+    session.model.update_metadata({"migration_report": messages})
     from .project_container import validate_session
 
     validate_session(session)

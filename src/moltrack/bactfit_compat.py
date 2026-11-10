@@ -19,6 +19,53 @@ from .model_processing import _cancel
 from .project_geometry import outline_fingerprint
 
 
+def _render_cell_locs(locs, *, viewport, oversampling, blur_method,
+                      min_blur_width, ang=0):
+    """Translate BactFit's legacy render call to Picasso 0.11's pixel-size API."""
+    import pandas as pd
+    from napari.utils.notifications import show_info
+    from picasso.render import render
+
+    rows = pd.DataFrame(locs).copy(deep=True)
+    if blur_method in ("convolve", "gaussian", "gaussian_iso"):
+        (y0, x0), (y1, x1) = viewport
+        in_view = (rows.x > x0) & (rows.x < x1) & (rows.y > y0) & (rows.y < y1)
+        precision = rows.reindex(columns=["lpx", "lpy"])
+        valid = np.isfinite(precision) & (precision > 0)
+        available = precision[in_view].where(valid[in_view]).median()
+        if blur_method == "convolve" and available.notna().all():
+            # A global kernel needs one width per axis. Missing measurements
+            # must not poison its median or discard otherwise valid positions.
+            rows["lpx"], rows["lpy"] = available["lpx"], available["lpy"]
+            if not valid[in_view].to_numpy().all():
+                show_info("Global blur estimated from available valid localisation precisions.")
+        elif not {"lpx", "lpy"} <= set(rows) or not valid[in_view].to_numpy().all():
+            # Individual uncertainty cannot be recovered from other detections.
+            # Retain every position with an explicit, fixed-width render instead.
+            blur_method = "smooth"
+            show_info("Localisation precision is missing or invalid; using one-pixel blur for this cell render.")
+
+    return render(
+        rows, {"Pixelsize": 1.0},
+        disp_px_size=1.0 / oversampling, viewport=viewport,
+        blur_method=blur_method, min_blur_width=min_blur_width,
+        ang=None if np.isscalar(ang) and ang == 0 else ang,
+    )
+
+
+def plot_cell_render(celllist, **settings):
+    """Use BactFit's plot layout without changing its module's render function."""
+    original = CellList.plot_render
+    plot = FunctionType(
+        original.__code__, {**original.__globals__, "render": _render_cell_locs},
+        argdefs=original.__defaults__, closure=original.__closure__,
+    )
+    image = plot(celllist, **settings)
+    if image is None or np.ndim(image) < 2:
+        raise ValueError("Cell rendering did not produce an image")
+    return image
+
+
 def _numpy2_fit_cell():
     # BactFit's polynomial helper references np.RankWarning, removed in NumPy 2.
     # Copy only its function globals; never patch NumPy or BactFit globally.

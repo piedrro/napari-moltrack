@@ -2,7 +2,7 @@ __all__ = (
     "MolTrack",
 )
 
-__version__ = "0.1.9"
+__version__ = "2.0.0"
 
 
 def __getattr__(name):

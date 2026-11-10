@@ -156,3 +156,11 @@ If you encounter any problems, please [file an issue] along with a detailed desc
 [tox]: https://tox.readthedocs.io/en/latest/
 [pip]: https://pypi.org/project/pip/
 [PyPI]: https://pypi.org/
+
+## MolCore 0.2 integration
+
+This checkout uses MolCore 0.2 at the revision recorded in `uv.lock`. Processing captures immutable snapshots, passes selections and an
+execution context, then publishes results on the GUI thread. Project storage uses
+MolCore format 7 only; older native MolCore files require explicit conversion
+with the previous release. Keep originals before upgrading. Legacy MolTrack
+project import remains available.

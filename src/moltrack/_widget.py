@@ -331,6 +331,7 @@ class MolTrack(QWidget, gui, *subclasses):
         self.gui.segment_active.clicked.connect(partial(self.initialise_cellpose, mode="active"))
         self.gui.cellpose_load_model.clicked.connect(self.load_cellpose_model)
         self.gui.dilate_segmentations.clicked.connect(self.dilate_segmentations)
+        self.initialise_cellpose_sliders()
 
         self.gui.smlm_detect_mode.currentIndexChanged.connect(self.update_detect_options)
 

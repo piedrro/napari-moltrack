@@ -11,7 +11,9 @@ from molcore import (
     ApertureShape,
     Calibration,
     CameraSettings,
+    ExecutionContext,
     LocalisationSettings,
+    PartitionSelection,
     RenderSettings,
     SegmentationRequest,
     StaleResultError,
@@ -22,10 +24,14 @@ from molcore import (
     tracking,
     undrifting,
 )
-from molcore import (
-    PhotometrySettings as ApertureSettings,
+from molcore import PhotometrySettings as ApertureSettings
+from molcore.staging import (
+    clone_dataset,
+    state_token,
+    transact,
+    validate_expected,
 )
-from molcore.staging import state_token, transact, validate_expected
+from molcore.types import ProgressUpdate
 
 from . import config
 from .backend import (
@@ -137,9 +143,9 @@ def prepare(session, request):
         request.settings, settings_types[request.operation]
     ):
         raise ValueError("Unsupported processing request")
-    bindings = tuple(session.partition(*p) for p in request.partitions)
+    bindings = tuple((session.partition(*p) for p in request.partitions))
     expected = state_token(session.model)
-    staged = ProjectSession(session.model.snapshot())
+    staged = ProjectSession(clone_dataset(session.model))
     for (dataset, channel), (acquisition, name) in zip(
         request.partitions, bindings, strict=True
     ):
@@ -167,16 +173,14 @@ def _detect_partition(
     )
     if settings.detect:
         detected = localisation.detect(
-            session.model,
-            acquisition,
-            name,
+            session.model.snapshot(),
+            PartitionSelection(acquisition, name),
             settings=params,
             frame_range=frame_range,
             backend=MoltrackDetection(settings.kernel_size)
             if settings.detect_mode.lower() != "picasso"
             else None,
-            num_cpus=config.NUM_CPUS,
-            **options,
+            context=ExecutionContext(num_cpus=config.NUM_CPUS, **options),
         )
         original = None
     else:
@@ -188,13 +192,11 @@ def _detect_partition(
                 original.frame == settings.frame_index
             ].reset_index(drop=True)
         detected = localisation.detect(
-            session.model,
-            acquisition,
-            name,
+            session.model.snapshot(),
+            PartitionSelection(acquisition, name),
             settings=params,
             frame_range=(0, 0),
-            num_cpus=config.NUM_CPUS,
-            **options,
+            context=ExecutionContext(num_cpus=config.NUM_CPUS, **options),
         )
         columns = {k: original[k].to_numpy(copy=True) for k in ("x", "y")}
         columns["frame"] = view.source_frames[
@@ -223,15 +225,15 @@ def _detect_partition(
     if settings.fit:
         use_gpu = settings.fit_mode == "Picasso GPU"
         fitted = localisation.fit(
-            session.model,
+            session.model.snapshot(),
             detected,
             camera=CameraSettings(100.0, 1.0, 1.0),
-            apply=False,
             backend=PicassoGpu() if use_gpu else None,
-            num_cpus=1 if use_gpu else config.NUM_CPUS,
-            **options,
+            context=ExecutionContext(
+                num_cpus=1 if use_gpu else config.NUM_CPUS, **options
+            ),
         )
-        if fitted.failed_fits and not len(fitted.columns["frame"]):
+        if fitted.failed_fits and (not len(fitted.columns["frame"])):
             raise ValueError(
                 "No fits converged; previous localisations were preserved"
             )
@@ -252,8 +254,6 @@ def _detect_partition(
 def _filter_detection_candidates(
     model, acquisition, channel, columns, roi, remove_overlapping, box_size
 ):
-    # Fitting boxes and overlap distances are defined on original channel pixels.
-    # Evaluate overlap before ROI filtering, retaining outside-ROI competitors.
     columns = _filter_candidates(columns, None, remove_overlapping, box_size)
     if roi is None or not len(columns["frame"]):
         return columns
@@ -297,7 +297,7 @@ def publish(session, pending, *, cancel_event=None):
     prepared = pending.prepared
     try:
         bindings = tuple(
-            session.partition(*p) for p in prepared.request.partitions
+            (session.partition(*p) for p in prepared.request.partitions)
         )
     except KeyError as exc:
         raise StaleResultError("Partition bindings changed") from exc
@@ -358,7 +358,7 @@ def _measure_partition(session, dataset, channel, settings, options):
     )(dataset, channel)
     ids = rows.id.to_numpy(dtype=np.uint64)
     result = photometry.measure_localizations(
-        session.model,
+        session.model.snapshot(),
         ids,
         settings=ApertureSettings(
             spot_size=settings.spot_size,
@@ -367,9 +367,7 @@ def _measure_partition(session, dataset, channel, settings, options):
             background_width=settings.background_width,
             exclude_neighbours=False,
         ),
-        apply=False,
-        num_cpus=config.NUM_CPUS,
-        **options,
+        context=ExecutionContext(num_cpus=config.NUM_CPUS, **options),
     )
     values = (
         pd.DataFrame(result.columns).set_index("localization_id").reindex(ids)
@@ -387,13 +385,32 @@ def _measure_partition(session, dataset, channel, settings, options):
     return output
 
 
+def _progress_slice(callback, index, total):
+    """Map one backend call into its share of the enclosing operation."""
+    if callback is None:
+        return None
+
+    def report(update):
+        fraction = float(np.clip(update.percent / 100, 0, 1))
+        callback(ProgressUpdate(index + fraction, total, update.description))
+
+    return report
+
+
 def _compute_workflow(prepared, *, progress, cancel_event):
-    session, request = prepared.session, prepared.request
-    model, settings = session.model, request.settings
+    session, request = (prepared.session, prepared.request)
+    model, settings = (session.model, request.settings)
     options = {
         "progress": progress_adapter(progress),
         "cancel_event": cancel_event,
     }
+    tracking_progress = (
+        options["progress"] if request.operation == "tracking" else None
+    )
+    if tracking_progress is not None:
+        options["progress"] = lambda update: tracking_progress(
+            ProgressUpdate(min(update.percent, 99), 100, update.description)
+        )
     results = []
     if request.operation == "drift":
         references = {}
@@ -404,13 +421,11 @@ def _compute_workflow(prepared, *, progress, cancel_event):
                 dataset, channel, space="raw"
             ).id.to_numpy(dtype=np.uint64)
             references[dataset] = undrifting.estimate_drift(
-                model,
-                acquisition,
-                name,
+                model.snapshot(),
+                PartitionSelection(acquisition, name),
                 ids=ids,
                 settings=settings.drift,
-                num_cpus=config.NUM_CPUS,
-                **options,
+                context=ExecutionContext(num_cpus=config.NUM_CPUS, **options),
             )
         seen = set()
         for dataset, channel in request.partitions:
@@ -434,7 +449,9 @@ def _compute_workflow(prepared, *, progress, cancel_event):
                 )
             results.append((dataset, channel, (frames, displacement)))
     else:
-        for dataset, channel in request.partitions:
+        for partition_index, (dataset, channel) in enumerate(
+            request.partitions
+        ):
             _cancel(cancel_event)
             acquisition, name = session.partition(dataset, channel)
             if request.operation == "photometry":
@@ -449,9 +466,8 @@ def _compute_workflow(prepared, *, progress, cancel_event):
                     -2:
                 ]
                 value = rendering.render_localizations(
-                    model,
-                    acquisition,
-                    name,
+                    model.snapshot(),
+                    PartitionSelection(acquisition, name),
                     ids=ids,
                     settings=RenderSettings(
                         oversampling=settings.oversampling,
@@ -459,8 +475,9 @@ def _compute_workflow(prepared, *, progress, cancel_event):
                         min_blur_width=settings.min_blur_width,
                     ),
                     viewport=((0.0, 0.0), (float(height), float(width))),
-                    progress=options["progress"],
-                    cancel_event=cancel_event,
+                    context=ExecutionContext(
+                        progress=options["progress"], cancel_event=cancel_event
+                    ),
                 )
             elif request.operation == "registration":
                 from .backend import _matrix
@@ -474,29 +491,42 @@ def _compute_workflow(prepared, *, progress, cancel_event):
                     else [view.source_frames[settings.frame_index]]
                 )
                 requests = tuple(
-                    SegmentationRequest(
-                        acquisition,
-                        name,
-                        frame=int(frame),
-                        segmentation_id=f"{acquisition}:{name}:cellpose:{frame}",
-                        space="corrected",
+                    (
+                        SegmentationRequest(
+                            acquisition,
+                            name,
+                            frame=int(frame),
+                            segmentation_id=f"{acquisition}:{name}:cellpose:{frame}",
+                            space="corrected",
+                        )
+                        for frame in frames
                     )
-                    for frame in frames
                 )
                 value = cellpose.segment_many(
-                    model,
+                    model.snapshot(),
                     requests,
                     settings=settings.cellpose,
-                    apply=False,
-                    num_cpus=(
-                        1 if getattr(settings.cellpose, "gpu", False)
-                        else config.NUM_CPUS
+                    context=ExecutionContext(
+                        num_cpus=1
+                        if getattr(settings.cellpose, "gpu", False)
+                        else config.NUM_CPUS,
+                        **options,
                     ),
-                    **options,
                 )
             elif request.operation == "tracking":
                 value = _track_partition(
-                    session, dataset, channel, settings, options
+                    session,
+                    dataset,
+                    channel,
+                    settings,
+                    {
+                        **options,
+                        "progress": _progress_slice(
+                            options["progress"],
+                            partition_index,
+                            len(request.partitions),
+                        ),
+                    },
                 )
             else:
                 raise ValueError("Unsupported processing request")
@@ -504,13 +534,15 @@ def _compute_workflow(prepared, *, progress, cancel_event):
     _cancel(cancel_event)
     if request.operation == "photometry" and settings.calculate_fret:
         results = _photometry_fret(results)
+    if tracking_progress is not None:
+        tracking_progress(ProgressUpdate(1, 1, "Tracking complete"))
     return PendingOperation(prepared, tuple(results))
 
 
 def _photometry_fret(results):
     """Retain GUI FRET formulas with explicit row correspondence by track/frame."""
     output = [(d, c, rows.copy()) for d, c, rows in results]
-    for dataset in dict.fromkeys(d for d, _, _ in output):
+    for dataset in dict.fromkeys((d for d, _, _ in output)):
         channels = {c.lower(): rows for d, c, rows in output if d == dataset}
         pair = (
             ("dd", "da")
@@ -523,8 +555,7 @@ def _photometry_fret(results):
         keys = [
             k for k in ("particle", "frame") if k in donor and k in acceptor
         ]
-        left, right = donor.copy(), acceptor.copy()
-        # Distinct same-frame localisations correspond by their original row order.
+        left, right = (donor.copy(), acceptor.copy())
         left["ordinal"] = left.groupby(keys, dropna=False).cumcount()
         right["ordinal"] = right.groupby(keys, dropna=False).cumcount()
         keys += ["ordinal"]
@@ -598,18 +629,17 @@ def _track_partition(session, dataset, channel, settings, options):
                 for x, y in zip(rows.x, rows.y, strict=True)
             ]
             groups.append((index, rows.id.to_numpy(dtype=np.uint64)[inside]))
-    memberships, labels = [], {}
+    memberships, labels = ([], {})
     used = set()
-    for label, ids in groups:
+    for group_index, (label, ids) in enumerate(groups):
         ids = np.asarray(
             [i for i in ids if int(i) not in used], dtype=np.uint64
         )
         if not len(ids):
             continue
         result = tracking.track(
-            session.model,
-            acquisition,
-            name,
+            session.model.snapshot(),
+            PartitionSelection(acquisition, name),
             ids=ids,
             settings=LinkSettings(
                 search_range=settings.search_range,
@@ -617,20 +647,26 @@ def _track_partition(session, dataset, channel, settings, options):
                 min_length=settings.min_length,
                 frame_clock="channel",
             ),
-            apply=False,
-            num_cpus=config.NUM_CPUS,
-            **options,
+            context=ExecutionContext(
+                num_cpus=config.NUM_CPUS,
+                **{
+                    **options,
+                    "progress": _progress_slice(
+                        options.get("progress"), group_index, len(groups)
+                    ),
+                },
+            ),
         )
         memberships.extend(result.memberships)
         for members in result.memberships:
             used.update(map(int, members))
             if label is not None:
-                labels.update((int(i), label) for i in members)
-    return tuple(memberships), labels
+                labels.update(((int(i), label) for i in members))
+    return (tuple(memberships), labels)
 
 
 def _publish_workflow(session, pending, *, cancel_event):
-    prepared, request = pending.prepared, pending.prepared.request
+    prepared, request = (pending.prepared, pending.prepared.request)
     settings = request.settings
     if request.operation == "render":
         validate_expected(session.model, prepared.expected)
@@ -668,8 +704,7 @@ def _publish_workflow(session, pending, *, cancel_event):
                     acquisition, value[1], frames=value[0]
                 )
             elif request.operation == "segmentation":
-                for segmentation in value.values():
-                    model.add_segmentation(segmentation)
+                model.apply_all(value.values())
             elif request.operation == "tracking":
                 memberships, labels = value
                 detections = staged.query_localizations(
@@ -706,8 +741,8 @@ def _publish_workflow(session, pending, *, cancel_event):
                 for track_id in track_ids:
                     while particle in occupied:
                         particle += 1
-                    model.tracks.metadata[int(track_id)]["parameters"].update(
-                        particle=particle
+                    model.tracks.update_metadata(
+                        int(track_id), {"particle": particle}
                     )
                     occupied.add(particle)
                     particle += 1
@@ -730,16 +765,26 @@ def _publish_workflow(session, pending, *, cancel_event):
                     model.localizations.delete(
                         detections[~np.isin(detections, linked)]
                     )
-            # App-captured settings use a per-acquisition namespace so native
-            # source cascade deletion removes provenance. Native photometry
-            # run records retain their own schema and are never overwritten.
-            model.processing.settings.setdefault(
-                "moltrack_operations", {}
-            ).setdefault(acquisition, {}).setdefault(name, {})[
+            operations = _mutable(
+                model.processing.settings.get("moltrack_operations", {})
+            )
+            operations.setdefault(acquisition, {}).setdefault(name, {})[
                 request.operation
             ] = {"settings": asdict(settings)}
+            model.update_processing({"moltrack_operations": operations})
         clear_statistics(model)
         _cancel(cancel_event)
 
     transact(session.model, commit, expected=prepared.expected)
     return pending.results
+
+
+def _mutable(value):
+    """Detach immutable model annotations for a public replacement mutator."""
+    from collections.abc import Mapping
+
+    if isinstance(value, Mapping):
+        return {key: _mutable(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_mutable(item) for item in value]
+    return deepcopy(value)

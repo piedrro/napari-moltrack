@@ -68,5 +68,6 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="MolTrack",
+          icon=str(root / "packaging/windows/moltrack.ico"),
           debug=False, strip=False, upx=False, console=False, version=version_info)
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="MolTrack")

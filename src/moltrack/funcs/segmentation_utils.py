@@ -13,6 +13,20 @@ from moltrack.funcs.compute_utils import Worker
 
 class _segmentation_utils:
 
+    def initialise_cellpose_sliders(self):
+        for name in ("flowthresh", "maskthresh", "minsize", "diameter"):
+            getattr(self.gui, f"cellpose_{name}").valueChanged.connect(
+                self.update_cellpose_slider_labels
+            )
+        self.update_cellpose_slider_labels()
+
+    def update_cellpose_slider_labels(self, value=None):
+        for name in ("flowthresh", "maskthresh", "minsize", "diameter"):
+            value = getattr(self.gui, f"cellpose_{name}").value()
+            if name in ("flowthresh", "maskthresh"):
+                value /= 100
+            getattr(self.gui, f"cellpose_{name}_label").setText(str(value))
+
     def _capture_cellpose_settings(self):
         import torch
         from molcore import CellposeSettings
@@ -22,10 +36,10 @@ class _segmentation_utils:
             if not os.path.isfile(model):
                 raise ValueError('Please select Cellpose 3 custom weights')
         return CellposeSettings(pretrained_model=model,
-            diameter=float(self.gui.cellpose_diameter_label.text()) or None,
-            flow_threshold=float(self.gui.cellpose_flowthresh_label.text()),
-            cellprob_threshold=float(self.gui.cellpose_maskthresh_label.text()),
-            min_size=int(self.gui.cellpose_minsize_label.text()), gpu=torch.cuda.is_available(),
+            diameter=float(self.gui.cellpose_diameter.value()) or None,
+            flow_threshold=self.gui.cellpose_flowthresh.value() / 100,
+            cellprob_threshold=self.gui.cellpose_maskthresh.value() / 100,
+            min_size=int(self.gui.cellpose_minsize.value()), gpu=torch.cuda.is_available(),
             invert=self.gui.cellpose_invert_images.isChecked())
 
     def _prepare_model_segmentation(self, mode):

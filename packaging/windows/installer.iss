@@ -25,6 +25,7 @@ ArchitecturesInstallIn64BitMode=x64
 MinVersion=10.0.17763
 OutputDir={#OutputDir}
 OutputBaseFilename=MolTrack-Setup-{#AppVersion}-x64
+SetupIconFile=moltrack.ico
 UninstallDisplayIcon={app}\MolTrack.exe
 LicenseFile=..\..\LICENSE
 Compression=lzma2/fast

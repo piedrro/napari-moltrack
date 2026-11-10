@@ -4,28 +4,64 @@ MolTrack's desktop installer opens the napari viewer with MolTrack already open.
 End users do not install Python, napari, Git or CUDA development tools.
 Target: Windows 10 (1809 or later)/11 on Intel/AMD x64 with an OpenGL-capable graphics driver.
 
-## Build
+## Build the Windows executable and installer
 
-On a Windows x64 build computer, install [uv](https://docs.astral.sh/uv/)
-and [Inno Setup 6](https://jrsoftware.org/isdl.php). From the repository root:
+### 1. Install the build tools
+
+Use 64-bit PowerShell on Windows x64. Install uv if `uv --version` fails.
+See the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/#winget).
 
 ```powershell
-./packaging/windows/build.ps1
-# If the compiler is installed elsewhere:
-./packaging/windows/build.ps1 -IsccPath 'C:/tools/Inno Setup 6/ISCC.exe'
+winget install --id astral-sh.uv -e
+```
+
+Install Inno Setup 6 to build the setup EXE. Choose **Install for all users**
+if prompted and keep the default Program Files location. Windows may ask for
+administrator approval. If WinGet is unavailable, run the installer from the
+**Inno Setup 6** section of the [official downloads page](https://jrsoftware.org/isdl.php).
+
+```powershell
+winget install --id JRSoftware.InnoSetup -e -s winget -i
+```
+
+### 2. Build MolTrack
+
+Open a new 64-bit PowerShell window and change to the root of your
+`napari-moltrack` checkout. Then run the build script.
+
+```powershell
+.\packaging\windows\build.ps1
+```
+
+If the script reports that it cannot find Inno Setup, pass the full path to
+`ISCC.exe`. For example, if you already have the compiler in the repository's
+`.cache\inno-setup` folder, run this from the repository root.
+
+```powershell
+.\packaging\windows\build.ps1 -IsccPath (Resolve-Path '.\.cache\inno-setup\ISCC.exe').Path
 ```
 
 The script creates an isolated environment under `packaging/windows/.venv`,
 installs the separate locked Windows dependency set, runs the tests, freezes the
 application, runs a packaged smoke test and compiles the installer. Python 3.12
 is provided by uv if needed. Allow several GB for downloads and build outputs.
-`-BundleOnly` builds and verifies the application folder without Inno Setup;
-`-SkipTests` skips the source tests but always runs the packaged smoke check.
+`-SkipTests` skips the source tests and still runs the packaged smoke check.
 
-Outputs are under `dist/windows`: `MolTrack-Setup-<version>-x64.exe`, its SHA256
-checksum, `dependencies.txt`, `uv.lock` and `smoke-test.json`. The full application
-folder is `dist/windows/MolTrack`; copying only its EXE is insufficient.
-Builds are unsigned until a signing identity is configured.
+### 3. Find the build output
+
+- Run `dist\windows\MolTrack-Setup-<version>-x64.exe` to install MolTrack.
+- Run `dist\windows\MolTrack\MolTrack.exe` to launch the bundled app directly.
+  Keep the entire `MolTrack` folder together when moving or copying it.
+
+To build just the application folder without Inno Setup, run:
+
+```powershell
+.\packaging\windows\build.ps1 -BundleOnly
+```
+
+`dist/windows` also contains the installer's SHA256 checksum (for installer
+builds), `dependencies.txt`, `uv.lock` and `smoke-test.json`. Builds are unsigned
+until a signing identity is configured.
 
 Alternatively, run **Actions → Windows installer → Run workflow** on GitHub and
 download the `MolTrack-Windows-x64` artifact. The workflow builds only on demand

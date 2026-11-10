@@ -202,6 +202,51 @@ def test_gui_track_filter_empty_result_clears_all_memberships_retains_detections
     assert len(h.session.query_localizations("data", "donor")) == 3
 
 
+@pytest.mark.parametrize("imported", [False, True])
+def test_gui_track_filter_preserves_statistics_and_can_filter_again(imported):
+    from moltrack.model_analysis import compute_analysis, prepare_analysis, publish_analysis
+
+    h = Host()
+    for channel in ("donor", "acceptor"):
+        incoming = pd.concat([
+            rows().assign(particle=1),
+            rows().iloc[:2].assign(particle=2, photons=1.0),
+        ], ignore_index=True)
+        if imported:
+            h.session.import_tracks("data", channel, incoming)
+        else:
+            ids = h.session.replace_localizations("data", channel, incoming)
+            h.session.model.tracks.add(ids[:3])
+            h.session.model.tracks.add(ids[3:])
+    publish_analysis(h.session, compute_analysis(prepare_analysis(h.session, fit_lags=2)))
+    before = {
+        channel: h.session.query_tracks("data", channel).iloc[:3].reset_index(drop=True)
+        for channel in ("donor", "acceptor")
+    }
+    for name, value in {
+        "track_filter_dataset": "data",
+        "track_filter_channel": "All Channels",
+        "track_filter_criterion": "Photons",
+        "track_filter_metric": "Mean",
+        "track_filter_subtract_bg": False,
+        "track_filter_min": 10,
+        "track_filter_max": 40,
+    }.items():
+        setattr(h.gui, name, control(value))
+
+    h.filter_tracks()
+    for channel, expected in before.items():
+        pd.testing.assert_frame_equal(h.session.query_tracks("data", channel), expected)
+
+    h.moltrack_metrics["Speed"] = "speed"
+    h.gui.track_filter_criterion = control("Speed")
+    h.gui.track_filter_min = control(1.0)
+    h.gui.track_filter_max = control(2.0)
+    h.filter_tracks()
+    for channel, expected in before.items():
+        pd.testing.assert_frame_equal(h.session.query_tracks("data", channel), expected)
+
+
 def test_gui_segtrack_removal_empty_result_retains_detection_rows():
     h = populated()
     for name, value in {

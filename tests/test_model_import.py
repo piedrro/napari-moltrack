@@ -86,7 +86,7 @@ def test_average_import_records_derived_source():
     np.testing.assert_array_equal(
         s.image("test", "Donor")[0], j["source_images"][:, :, :4].mean(axis=0)
     )
-    assert acq.metadata["source_frames"]["Donor"] == [0, 1, 2, 3, 4]
+    assert acq.metadata["source_frames"]["Donor"] == (0, 1, 2, 3, 4)
 
 
 def test_explicit_concatenation_retains_boundary_provenance():
@@ -136,7 +136,9 @@ def test_display_projection_does_not_read_full_movie(monkeypatch):
     calls = []
     original = acq.source._frame
     monkeypatch.setattr(
-        acq.source, "_frame", lambda i: (calls.append(i), original(i))[1]
+        type(acq.source),
+        "_frame",
+        lambda source, i: (calls.append(i), original(i))[1],
     )
     data = s.image("test", "Donor").as_dask()
     assert calls == []
@@ -147,7 +149,9 @@ def test_display_projection_does_not_read_full_movie(monkeypatch):
 def test_worker_import_returns_descriptors_without_publication(monkeypatch):
     from moltrack.funcs import import_utils
 
-    monkeypatch.setattr(import_utils, "process_compute_jobs", lambda jobs, *args: jobs)
+    monkeypatch.setattr(
+        import_utils, "process_compute_jobs", lambda jobs, *args: jobs
+    )
     result = import_utils.import_data(import_jobs=[job()])
     assert result["jobs"][0]["dataset_name"] == "test"
 
@@ -268,7 +272,9 @@ def test_odd_alex_concatenation_preserves_source_timing():
         assert segments[1]["timestamp_offset_s"] == 0.1
         for segment in segments:
             original = s.model.acquisitions[segment["acquisition_id"]]
-            source_times = original.timestamps[segment["source_frames"]]
+            source_times = original.timestamps[
+                np.asarray(segment["source_frames"], dtype=int)
+            ]
             np.testing.assert_allclose(
                 segment["source_timestamps_s"], source_times
             )

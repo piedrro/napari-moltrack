@@ -10,6 +10,57 @@ from napari.components import ViewerModel
 from moltrack.funcs.events_utils import _events_utils
 
 
+@pytest.mark.parametrize("target", ["Segmentations", "Cells"])
+@pytest.mark.parametrize("framed", [False, True])
+def test_shape_translation_reuses_meshes_and_records_vertices(target, framed):
+    from napari.layers import Shapes
+
+    from moltrack.model_views import connect_layer_annotations
+    from moltrack.session import ProjectSession
+
+    host = _events_utils()
+    host.session = ProjectSession()
+    polygon = np.array([[1., 1.], [1., 4.], [4., 4.], [4., 1.]])
+    shapes = [polygon, polygon[:3] + 10]
+    if framed:
+        shapes = [np.column_stack((np.full(len(s), i), s)) for i, s in enumerate(shapes)]
+    shape_types = ["polygon", "path"] if target == "Cells" else "polygon"
+    layer = Shapes(shapes, shape_type=shape_types, properties={"name": ["a", "b"]})
+    name = "segmentations" if target == "Segmentations" else "cells"
+    setattr(host, "segLayer" if target == "Segmentations" else "cellLayer", layer)
+    for callback in (
+        "seg_drag_event", "delete_clicked", "update_shapes", "dilate_segmentation",
+        "celllayer_clicked", "dilate_cell", "update_cells", "store_cell_shapes",
+    ):
+        setattr(host, callback, lambda *args: None)
+    layer.mouse_drag_callbacks.append(host.seg_drag_event if target == "Segmentations" else host.celllayer_clicked)
+    layer.mouse_double_click_callbacks.append(host.delete_clicked)
+    layer.mouse_wheel_callbacks.append(host.dilate_segmentation if target == "Segmentations" else host.dilate_cell)
+    handler = host.update_shapes if target == "Segmentations" else host.update_cells
+    layer.events.data.connect(handler)
+    connect_layer_annotations(host.session, layer, name)
+    host.gui = SimpleNamespace(
+        translation_target=SimpleNamespace(currentText=lambda: target),
+        translation_size=SimpleNamespace(value=lambda: 2),
+    )
+    before = [s.copy() for s in layer.data]
+    models = list(layer._data_view.shapes)
+    triangles = layer._data_view._mesh.triangles.copy()
+    mesh_vertices = layer._data_view._mesh.vertices.copy()
+
+    host.moltract_translation(direction="right")
+
+    for old, translated, saved in zip(before, layer.data, host.session.annotations[name]["data"], strict=True):
+        expected = old.copy()
+        expected[:, -1] += 2
+        np.testing.assert_array_equal(translated, expected)
+        np.testing.assert_array_equal(saved, expected)
+    assert all(old is current for old, current in zip(models, layer._data_view.shapes, strict=True))
+    np.testing.assert_array_equal(layer._data_view._mesh.triangles, triangles)
+    np.testing.assert_allclose(layer._data_view._mesh.vertices, mesh_vertices + [0, 2])
+    assert list(layer.properties["name"]) == ["a", "b"]
+
+
 def test_auto_contrast_computes_and_applies_limits():
     host = _events_utils()
     host.contrast_dict = {}

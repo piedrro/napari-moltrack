@@ -237,6 +237,50 @@ def test_track_retain_preserves_detection_rows_and_track_id():
     assert len(s.query_localizations("data", "donor")) == 3
 
 
+@pytest.mark.parametrize("retained", ["all", "whole", "partial", "none"])
+def test_track_filter_preserves_statistics_of_unchanged_tracks(retained):
+    from moltrack.model_analysis import (
+        compute_analysis,
+        prepare_analysis,
+        publish_analysis,
+    )
+
+    s = make_session()
+    ids = s.replace_localizations(
+        "data", "donor", pd.concat([rows(), rows()], ignore_index=True)
+    )
+    s.model.tracks.add(ids[:3])
+    s.model.tracks.add(ids[3:])
+    other_ids = s.replace_localizations("data", "acceptor", rows())
+    s.model.tracks.add(other_ids)
+    publish_analysis(s, compute_analysis(prepare_analysis(s, fit_lags=2)))
+    before = s.query_tracks("data", "donor")
+    other_before = s.query_tracks("data", "acceptor")
+    kept = {"all": ids, "whole": ids[:3], "partial": ids[1:], "none": []}[
+        retained
+    ]
+
+    s.retain_rows("data", "donor", kept, tracks=True)
+
+    pd.testing.assert_frame_equal(
+        s.query_tracks("data", "acceptor"), other_before
+    )
+    after = s.query_tracks("data", "donor")
+    if retained in ("all", "whole"):
+        pd.testing.assert_frame_equal(
+            after.reset_index(drop=True),
+            before[before.id.isin(kept)].reset_index(drop=True),
+        )
+    elif retained == "partial":
+        assert after[after.id.isin(ids[1:3])].speed.isna().all()
+        pd.testing.assert_frame_equal(
+            after[after.id.isin(ids[3:])].reset_index(drop=True),
+            before[before.id.isin(ids[3:])].reset_index(drop=True),
+        )
+    else:
+        assert after.empty
+
+
 def test_detection_delete_cascades_memberships_and_empty_retain_clears():
     s = make_session()
     ids = s.replace_localizations("data", "donor", rows())
@@ -407,14 +451,22 @@ def test_application_provenance_roundtrips_and_cascades_without_native_run_colli
     for ch in ("donor", "acceptor"):
         s.replace_localizations("data", ch, rows())
     native = {"acquisitions": ["a"], "settings": {"native": True}}
-    s.model.processing.settings["photometry"] = {"native-run": native}
+    s.model.update_processing({"photometry": {"native-run": native}})
     request = proc.ProcessingRequest(
         "photometry",
         s.selected_partitions(),
         proc.PhotometrySettings(spot_size=3),
     )
     proc.publish(s, proc.compute(proc.prepare(s, request)))
-    assert s.model.processing.settings["photometry"] == {"native-run": native}
+    assert s.model.processing.settings["photometry"]["native-run"][
+        "acquisitions"
+    ] == ("a",)
+    assert (
+        s.model.processing.settings["photometry"]["native-run"]["settings"][
+            "native"
+        ]
+        is True
+    )
     assert (
         s.model.processing.settings["moltrack_operations"]["a"]["image"][
             "photometry"

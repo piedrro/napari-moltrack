@@ -10,9 +10,29 @@ import numpy as np
 import pandas as pd
 
 
-def channel_rows(rows, view):
+def channel_rows(rows, view, *, validity=None):
     """Copy a model query and translate camera frames to GUI channel indices."""
     data = pd.DataFrame({k: deepcopy(v) for k, v in rows.items()})
+    for name, valid in (
+        getattr(rows, "validity", {}) if validity is None else validity
+    ).items():
+        if name not in data or np.all(valid):
+            continue
+        values = np.asarray(rows[name])
+        kind = values.dtype.kind
+        if kind in "iu":
+            column = pd.array(
+                values,
+                dtype=("UInt" if kind == "u" else "Int")
+                + str(values.dtype.itemsize * 8),
+            )
+        elif kind == "b":
+            column = pd.array(values, dtype="boolean")
+        else:
+            column = pd.array(values)
+        column[~np.asarray(valid)] = pd.NA
+        data[name] = column
+
     data["frame"] = np.asarray(
         [view.channel_index(int(f)) for f in data.frame], dtype=np.int64
     )
@@ -21,7 +41,17 @@ def channel_rows(rows, view):
 
 def gui_records(rows):
     """Return detached structured records, including stable identity columns."""
-    return deepcopy(pd.DataFrame(rows).to_records(index=False))
+    data = pd.DataFrame(rows).copy()
+    for name in data:
+        column = data[name]
+        if (
+            isinstance(column.dtype, pd.api.extensions.ExtensionDtype)
+            and column.dtype.kind in "iu"
+        ):
+            # Pandas otherwise promotes nullable integers to float in to_records,
+            # rounding uint64 values above 2**53. Object fields retain exact ints.
+            data[name] = column.astype(object).where(column.notna(), np.nan)
+    return deepcopy(data.to_records(index=False))
 
 
 def localization_points(rows):
@@ -36,8 +66,6 @@ def track_points(rows):
         .loc[:, ["track_id", "frame", "y", "x"]]
         .to_numpy(copy=True)
     )
-
-
 
 
 def gui_query(
@@ -182,6 +210,45 @@ def connect_layer_annotations(session, layer, name):
     layer.events.properties.connect(changed, position="first")
     layer.events.scale.connect(changed, position="first")
     return changed
+
+
+def translate_shape_vertices(layer, shift):
+    """Translate spatial vertices while reusing napari 0.9's existing meshes."""
+    if not len(layer.data) or not np.any(shift):
+        return
+    spatial_axes = tuple(range(layer.ndim - 2, layer.ndim))
+    view = layer._data_view
+    if view.ndisplay != 2 or any(
+        tuple(shape.dims_displayed) != spatial_axes for shape in view.shapes
+    ):
+        # Other slice orientations require the normal geometry rebuild.
+        data = [vertices.copy() for vertices in layer.data]
+        for vertices in data:
+            vertices[:, -2:] += shift
+        layer.data = data
+        return
+
+    layer._finish_drawing()
+    layer.selected_data = set()
+    indices = tuple(range(len(layer.data)))
+    layer.events.data(
+        value=layer.data,
+        action="changing",
+        data_indices=indices,
+        vertex_indices=((),),
+    )
+    # This is napari's drag translation path, batched so the combined display
+    # mesh is refreshed once instead of once per polygon.
+    with view.batched_updates():
+        for index in indices:
+            view.shift(index, shift)
+    layer.refresh()
+    layer.events.data(
+        value=layer.data,
+        action="changed",
+        data_indices=indices,
+        vertex_indices=((),),
+    )
 
 
 def refresh_row_projections(host, *, localizations=False, update_vis=False):

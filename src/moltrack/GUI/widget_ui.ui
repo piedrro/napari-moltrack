@@ -529,8 +529,11 @@
            </item>
            <item>
             <widget class="QCheckBox" name="import_project_images">
+             <property name="toolTip">
+              <string>Import ordinary image stacks. The segmentation image is always retained when available.</string>
+             </property>
              <property name="text">
-              <string>Import Images</string>
+              <string>Import Image Stacks</string>
              </property>
              <property name="checked">
               <bool>true</bool>
@@ -4785,8 +4788,11 @@
            </item>
            <item>
             <widget class="QCheckBox" name="export_project_images">
+             <property name="toolTip">
+              <string>Include ordinary image stacks. The segmentation image is always stored when available.</string>
+             </property>
              <property name="text">
-              <string>Include Images (large files)</string>
+              <string>Include Image Stacks (large files)</string>
              </property>
             </widget>
            </item>

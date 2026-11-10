@@ -66,7 +66,7 @@ def test_repeat_drift_does_not_accumulate(monkeypatch):
     monkeypatch.setattr(
         proc.undrifting,
         "estimate_drift",
-        lambda model, acquisition, channel, **kw: SimpleNamespace(
+        lambda model, selection, **kw: SimpleNamespace(
             frames=np.array([0, 1]),
             displacement=np.array([[1.0, 2.0], [2.0, 3.0]]),
         ),
@@ -467,7 +467,7 @@ def test_gui_workflows_capture_detached_requests(operation):
     }
     host = types.get(operation, _tracking_utils)()
     host.session = make_session()
-    host.session.update_metadata("a", pixel_size=100.)
+    host.session.update_metadata("a", pixel_size=100.0)
     host.session.annotations["partitions"] = {"a": {"image": {"fitted": True}}}
     if operation == "registration":
         host.session.bind("a", "Donor", "camera", "image")
@@ -660,7 +660,7 @@ def test_drift_applies_same_correction_to_pixels_and_points(monkeypatch):
         "a", "image", space="raw"
     ).id.to_numpy()
 
-    def estimate(model, acquisition, channel, **kwargs):
+    def estimate(model, selection, **kwargs):
         np.testing.assert_array_equal(kwargs["ids"], original_ids)
         return SimpleNamespace(
             frames=np.array([0, 1]),
@@ -739,6 +739,55 @@ def test_tracking_segmentation_groups_keep_detection_ids():
     assert len(session.query_localizations("a", "image")) == 4
 
 
+@pytest.mark.parametrize("segmented", [False, True])
+@pytest.mark.parametrize("partition_count", [1, 2])
+def test_tracking_progress_covers_whole_run(
+    monkeypatch, segmented, partition_count
+):
+    from types import SimpleNamespace
+
+    from molcore.types import ProgressUpdate
+    from moltrack import model_processing as proc
+
+    session = make_session()
+    session.bind("b", "image", "camera", "image")
+    calls, progress = [], []
+
+    def track(*args, ids, context, **kwargs):
+        progress = context.progress
+        calls.append(ids.copy())
+        for percent in (0, 50, 100, 100):
+            progress(ProgressUpdate(percent, 100))
+        return SimpleNamespace(memberships=(ids,))
+
+    monkeypatch.setattr(proc.tracking, "track", track)
+    polygons = (
+        ((4, 4), (5.5, 4), (5.5, 5.5), (4, 5.5)),
+        ((5.5, 5.5), (7, 5.5), (7, 7), (5.5, 7)),
+        ((20, 20), (21, 20), (21, 21), (20, 21)),
+    )
+    settings = proc.TrackingSettings(
+        polygons=polygons if segmented else (),
+        segmentation_column="cell_index" if segmented else None,
+    )
+    pending = proc.compute(
+        proc.prepare(
+            session,
+            proc.ProcessingRequest(
+                "tracking",
+                (("a", "image"), ("b", "image"))[:partition_count],
+                settings,
+            ),
+        ),
+        progress=progress.append,
+    )
+    assert len(pending.results) == partition_count
+    assert len(calls) == partition_count * (2 if segmented else 1)
+    assert progress == sorted(progress)
+    assert progress[-1] == 100
+    assert progress.count(100) == 1
+
+
 def test_processing_settings_publish_with_results():
     from moltrack import model_processing as proc
 
@@ -750,9 +799,9 @@ def test_processing_settings_publish_with_results():
     assert "photometry" not in session.model.processing.settings
     proc.publish(session, pending)
     assert (
-        session.model.processing.settings["moltrack_operations"]["camera"]["image"]["photometry"][
-            "settings"
-        ]["spot_size"]
+        session.model.processing.settings["moltrack_operations"]["camera"][
+            "image"
+        ]["photometry"]["settings"]["spot_size"]
         == 5
     )
 

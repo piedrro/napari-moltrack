@@ -239,6 +239,7 @@ class _cell_heatmap_utils:
             oversampling = self.heatmap_oversampling.value()
 
             self.heatmap_canvas.clear()
+            self.heatmap_image = None
 
             if hasattr(self, "celllist") == False:
                 return
@@ -294,7 +295,9 @@ class _cell_heatmap_utils:
 
             elif heatmap_mode == "Render":
 
-                render = celllist.plot_render(symmetry=symmetry, oversampling=oversampling,
+                from moltrack.bactfit_compat import plot_cell_render
+
+                render = plot_cell_render(celllist, symmetry=symmetry, oversampling=oversampling,
                     blur_method=blur_method, min_blur_width=min_blur_width,
                     cmap=colourmap_name, draw_outline=draw_outline,
                     show=False, save=False, path=None, dpi=500)
@@ -307,8 +310,9 @@ class _cell_heatmap_utils:
 
             self.update_ui()
 
-        except:
+        except Exception as exc:
             self.update_ui()
+            show_info(f"Cell heatmap could not be generated: {exc}")
             print(traceback.format_exc())
 
 

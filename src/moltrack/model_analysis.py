@@ -117,11 +117,14 @@ def _trajectory(model, track_id, ids, interval, fit_lags):
         "unit": SpatialUnit.PIXELS,
         "frame_interval": interval,
     }
-    result = trajectory_statistics(model, track_id, **options)
+    result = trajectory_statistics(model.snapshot(), track_id, **options)
     lags = result.msd["lag"][:fit_lags]
     if len(lags) >= 2:
         result = trajectory_statistics(
-            model, track_id, fit_lag_range=(lags[0], lags[-1]), **options
+            model.snapshot(),
+            track_id,
+            fit_lag_range=(lags[0], lags[-1]),
+            **options,
         )
     return result
 
@@ -136,7 +139,6 @@ def analyze_tracks(
     cancel_event=None,
 ):
     _cancel(cancel_event)
-    # GUI-only geometry extensions share no ownership with the model tables.
     from moltrack.funcs.trackstats_utils import _trackstats_utils
     from moltrack.model_views import gui_query
 
@@ -156,9 +158,8 @@ def analyze_tracks(
         )
         acquisition, _ = session.partition(dataset, channel)
         source = session.model.acquisitions[acquisition]
-        scale = source.pixel_size * 1e-3
+        scale = source.pixel_size * 0.001
         interval = source.metadata.get("exposure_s", 0)
-        # A missing legacy exposure retains the historical 1-second fallback.
         interval = interval if interval > 0 else 1.0
         ids = rows.id.to_numpy()
         result = _trajectory(
@@ -178,7 +179,7 @@ def analyze_tracks(
             if sigma is not None
             else np.nan
         )
-        rolling, corrected = [], []
+        rolling, corrected = ([], [])
         for offset in range(len(rows)):
             _cancel(cancel_event)
             first = max(0, offset - rolling_window // 2)
@@ -205,7 +206,7 @@ def analyze_tracks(
                 if sigma is not None
                 else np.nan
             )
-        rows["rD"], rows["rD*"] = rolling, corrected
+        rows["rD"], rows["rD*"] = (rolling, corrected)
         msd = np.full(len(rows), np.nan)
         msd[0] = 0.0
         count = min(len(rows) - 1, len(result.msd["msd"]))

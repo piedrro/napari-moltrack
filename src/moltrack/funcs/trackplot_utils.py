@@ -51,7 +51,7 @@ class _trackplot_utils:
                 if "track_id" in tracks.columns:
 
                     particle_list = tracks.track_id.unique().tolist()
-                    n_tracks = len(particle_list) - 1
+                    n_tracks = max(0, len(particle_list) - 1)
 
                     slider = self.gui.trackplot_slider
 
@@ -61,6 +61,7 @@ class _trackplot_utils:
                     slider.setMaximum(n_tracks)
 
                     slider.blockSignals(False)
+                    self.update_trackplot_slider()
 
         except:
             print(traceback.format_exc())
@@ -71,6 +72,7 @@ class _trackplot_utils:
         try:
 
             if hasattr(self, "trackplot_tracks") == False:
+                self.gui.trackplot_slider_label.setText("0")
                 return
 
             slider = self.gui.trackplot_slider
@@ -78,7 +80,8 @@ class _trackplot_utils:
 
             tracks = self.trackplot_tracks
 
-            if isinstance(tracks, pd.DataFrame) == False:
+            if isinstance(tracks, pd.DataFrame) == False or tracks.empty:
+                slider_label.setText("0")
                 return
 
             particle_list = tracks.track_id.unique().tolist()

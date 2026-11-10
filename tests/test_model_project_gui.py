@@ -375,6 +375,27 @@ def test_actual_project_save_captures_live_contrast_and_shape_annotations(
         )
 
 
+def test_project_actions_retain_segmentation_image_with_image_checkboxes_off(
+    widget, tmp_path
+):
+    from test_segmentation_image_persistence import segmentation_session
+
+    widget.session.close()
+    widget.session, binding = segmentation_session(averaged=True)
+    pixels = widget.session.image(*binding)[:].copy()
+    path = tmp_path / "segmentation.moltrack.h5"
+    widget.gui.export_project_images.setChecked(False)
+    widget.export_moltrack_project(path=str(path))
+    widget.gui.import_project_images.setChecked(False)
+    widget.import_moltrack_project(path=str(path))
+
+    assert widget.session.image_available(*binding)
+    assert not widget.session.image_available("test", "image")
+    np.testing.assert_array_equal(widget.segmentation_image, pixels)
+    np.testing.assert_array_equal(widget.segmentation_layer.data, pixels)
+    assert widget.segmentation_image_pixel_size == 117
+
+
 def test_native_fits_are_editable_and_export_dialog_appends_compound_suffix(
     widget, tmp_path, monkeypatch
 ):

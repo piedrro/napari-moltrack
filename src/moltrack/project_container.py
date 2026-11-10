@@ -11,6 +11,7 @@ from pathlib import Path
 import h5py
 import numpy as np
 from molcore import Dataset, MissingSource
+from molcore.staging import clone_dataset
 
 from .project_codec import AnnotationCodec
 from .project_geometry import (
@@ -158,8 +159,18 @@ def save_project(session, path, *, include_images=True):
     ) as work:
         work = Path(work)
         output = work / "model.h5"
-        staged.model.save(
-            output, image_policy="full" if include_images else "none"
+        _save_model(
+            staged.model,
+            output,
+            include_images=include_images,
+            segmentation_ids=_bound_segmentation_ids(
+                staged.annotations,
+                [
+                    (d, c, *staged.partition(d, c))
+                    for d in staged.datasets()
+                    for c in staged.channels(d)
+                ],
+            ),
         )
         with h5py.File(output, "r+") as file:
             archive = _HDF5Annotations(file.create_group(APP_GROUP))
@@ -180,6 +191,36 @@ def save_project(session, path, *, include_images=True):
         os.replace(output, destination)
     for name, ids in identities.items():
         session.annotations[name].setdefault("properties", {})[RECORD_ID] = ids
+
+
+def _bound_segmentation_ids(annotations, bindings):
+    binding = annotations.get("segmentation_image_binding")
+    return {
+        acquisition
+        for dataset, channel, acquisition, _ in bindings or ()
+        if binding is not None and (dataset, channel) == tuple(binding)
+    }
+
+
+def _save_model(model, path, *, include_images, segmentation_ids=()):
+    """Always embed segmentation pixels; the image option controls movie stacks.
+
+    MolCore's image policy applies to every acquisition. Replace only ordinary
+    sources on a detached snapshot so native storage can embed the required
+    segmentation sources without reading omitted stacks or changing live state.
+    """
+    if not include_images:
+        model = clone_dataset(model)
+        for acquisition in model.acquisitions.values():
+            if (
+                acquisition.id not in segmentation_ids
+                and acquisition.metadata.get("role") != "segmentation_image"
+            ):
+                source = acquisition.source
+                model.rebind_source(
+                    acquisition.id, MissingSource(source.shape, source.dtype)
+                )
+    model.save(path, image_policy="full")
 
 
 def load_project(path, *, include_images=True):
@@ -245,7 +286,14 @@ def _load_hdf5(path, include_images):
             shutil.copyfile(path, payload)
         else:
             with Dataset.open(path) as original:
-                original.save(payload, image_policy="none")
+                _save_model(
+                    original,
+                    payload,
+                    include_images=False,
+                    segmentation_ids=_bound_segmentation_ids(
+                        annotations, bindings
+                    ),
+                )
         model = Dataset.open(payload)
         if include_images:
             _restore_relative_sources(model, path)
@@ -292,10 +340,8 @@ def _restore_relative_sources(model, path):
         with Dataset.open(path) as original:
             for acquisition in unresolved:
                 source_acquisition = original.acquisitions[acquisition.id]
-                acquisition.source, source_acquisition.source = (
-                    source_acquisition.source,
-                    acquisition.source,
-                )
+                model.rebind_source(acquisition.id, source_acquisition.source)
+                original.rebind_source(acquisition.id, acquisition.source)
 
 
 def _load_zip(path, include_images):
@@ -337,10 +383,16 @@ def _load_zip(path, include_images):
                 shutil.copyfileobj(source, target)
         model = Dataset.open(payload)
         if not include_images:
-            # Native save performs the lossless descriptor conversion without
-            # reading scientific pixels or mutating acquisition identities.
+            # Retain standalone segmentation pixels while omitting movie stacks.
             stripped = Path(resource.name) / "without-images.h5"
-            model.save(stripped, image_policy="none")
+            _save_model(
+                model,
+                stripped,
+                include_images=False,
+                segmentation_ids=_bound_segmentation_ids(
+                    annotations, manifest["bindings"]
+                ),
+            )
             model.close()
             model = Dataset.open(stripped)
         session = ProjectSession(model)

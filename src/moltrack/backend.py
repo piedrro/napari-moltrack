@@ -19,7 +19,9 @@ from molcore import (
     CoordinateSpace,
     Dataset,
     DriftSettings,
+    ExecutionContext,
     LocalisationSettings,
+    PartitionSelection,
     PhotometrySettings,
     RenderSettings,
     TrackingSettings,
@@ -29,6 +31,7 @@ from molcore import (
     tracking,
     undrifting,
 )
+from molcore.backends import LocalisationOutput
 from molcore.transforms import project_points
 
 from . import config
@@ -50,11 +53,11 @@ def _check_cancelled(event):
 
 
 def _model(movie=None, rows=None, shape=None):
+    geometry_only = movie is None
     if movie is None:
         frame_count = (
             max(1, int(np.max(rows["frame"])) + 1) if len(rows) else 1
         )
-        # Broadcast geometry without allocating a synthetic movie.
         height, width = shape or (1, 1)
         movie = np.broadcast_to(
             np.zeros((1, 1, 1), dtype=np.uint8), (frame_count, height, width)
@@ -65,7 +68,7 @@ def _model(movie=None, rows=None, shape=None):
     dataset = Dataset()
     dataset.add_acquisition(
         Acquisition(
-            ArraySource(data),
+            ArraySource.borrow(data) if geometry_only else ArraySource(data),
             id=ACQUISITION,
             channel_specs={CHANNEL: ChannelSpec()},
         )
@@ -96,14 +99,14 @@ def _model(movie=None, rows=None, shape=None):
             y=frame["y"].to_numpy(dtype=float),
             **measurements,
         )
-    return dataset, ids
+    return (dataset, ids)
 
 
 def transform_locs(locs, transform_matrix, progress_callback=None):
     matrix = _matrix(transform_matrix)
     result = np.array(locs, copy=True).view(np.recarray)
     points = project_points(matrix, np.column_stack([locs["x"], locs["y"]]))
-    result.x, result.y = points[:, 0], points[:, 1]
+    result.x, result.y = (points[:, 0], points[:, 1])
     if progress_callback is not None:
         getattr(progress_callback, "emit", progress_callback)(100)
     return result
@@ -147,24 +150,24 @@ def link_locs(
     _check_cancelled(cancel_event)
     dataset, ids = _model(rows=frame)
     result = tracking.track(
-        dataset,
-        ACQUISITION,
-        CHANNEL,
+        dataset.snapshot(),
+        PartitionSelection(ACQUISITION, CHANNEL),
         settings=TrackingSettings(
             search_range=search_range,
             memory=memory,
             min_length=min_length,
             space=CoordinateSpace.RAW,
         ),
-        apply=False,
-        num_cpus=config.NUM_CPUS,
-        progress=progress_adapter(progress_callback),
-        cancel_event=cancel_event,
+        context=ExecutionContext(
+            num_cpus=config.NUM_CPUS,
+            progress=progress_adapter(progress_callback),
+            cancel_event=cancel_event,
+        ),
     )
     lookup = {int(lid): index for index, lid in enumerate(ids)}
-    indices, particles = [], []
+    indices, particles = ([], [])
     for particle, members in enumerate(result.memberships, 1):
-        indices.extend(lookup[int(lid)] for lid in members)
+        indices.extend((lookup[int(lid)] for lid in members))
         particles.extend([particle] * len(members))
     output = frame.iloc[indices].copy()
     output["particle"] = np.asarray(particles, dtype=np.int64)
@@ -183,9 +186,8 @@ def render_locs(
     dataset, _ = _model(rows=locs, shape=image_shape[-2:])
     height, width = image_shape[-2:]
     result = rendering.render_localizations(
-        dataset,
-        ACQUISITION,
-        CHANNEL,
+        dataset.snapshot(),
+        PartitionSelection(ACQUISITION, CHANNEL),
         space="raw",
         settings=RenderSettings(
             oversampling=oversampling,
@@ -193,9 +195,9 @@ def render_locs(
             min_blur_width=min_blur_width,
         ),
         viewport=((0.0, 0.0), (float(height), float(width))),
-        progress=progress_adapter(progress_callback),
+        context=ExecutionContext(progress=progress_adapter(progress_callback)),
     )
-    return result.count, result.image
+    return (result.count, result.image)
 
 
 def _filter_candidates(columns, roi, remove_overlapping, box_size):
@@ -254,25 +256,20 @@ def localize_movie(
             else None
         )
         detected = localisation.detect(
-            dataset,
-            ACQUISITION,
-            CHANNEL,
+            dataset.snapshot(),
+            PartitionSelection(ACQUISITION, CHANNEL),
             settings=settings,
             frame_range=frame_range,
             backend=custom,
-            num_cpus=config.NUM_CPUS,
-            **options,
+            context=ExecutionContext(num_cpus=config.NUM_CPUS, **options),
         )
     else:
-        # Obtain the public source token without processing any frames.
         detected = localisation.detect(
-            dataset,
-            ACQUISITION,
-            CHANNEL,
+            dataset.snapshot(),
+            PartitionSelection(ACQUISITION, CHANNEL),
             settings=settings,
             frame_range=(0, 0),
-            num_cpus=config.NUM_CPUS,
-            **options,
+            context=ExecutionContext(num_cpus=config.NUM_CPUS, **options),
         )
         data = pd.DataFrame(candidates).reset_index(drop=True)
         if frame_index is not None:
@@ -283,9 +280,7 @@ def localize_movie(
             if "net_gradient" in data
             else np.zeros(len(data))
         )
-        # Picasso preserves its public cross-channel row identifier through fits.
-        # Keep arbitrary application columns in the caller, keyed by that ID.
-        columns['n_id'] = data.index.to_numpy(dtype=np.uint32)
+        columns["n_id"] = data.index.to_numpy(dtype=np.uint32)
         detected = replace(detected, columns=columns, frame_range=frame_range)
     filtered = _filter_candidates(
         detected.columns, roi, remove_overlapping, box_size
@@ -293,28 +288,30 @@ def localize_movie(
     detected = replace(detected, columns=filtered)
     if fit:
         result = localisation.fit(
-            dataset,
+            dataset.snapshot(),
             detected,
             camera=CameraSettings(100.0, 1.0, 1.0),
-            apply=False,
             backend=PicassoGpu() if use_gpu else None,
-            num_cpus=1 if use_gpu else config.NUM_CPUS,
-            **options,
+            context=ExecutionContext(
+                num_cpus=1 if use_gpu else config.NUM_CPUS, **options
+            ),
         )
-        if result.failed_fits and not len(result.columns["frame"]):
+        if result.failed_fits and (not len(result.columns["frame"])):
             raise ValueError(
                 "No fits converged; previous localisations were preserved"
             )
-        columns = result.columns
+        columns = dict(result.columns)
     else:
-        columns = detected.columns
+        columns = dict(detected.columns)
     if candidates is not None:
-        identity = columns.pop('n_id', np.array([], dtype=np.uint32))
-        if len(identity) != len(columns['frame']):
-            raise ValueError('Fitter did not preserve candidate row identities')
+        identity = columns.pop("n_id", np.array([], dtype=np.uint32))
+        if len(identity) != len(columns["frame"]):
+            raise ValueError(
+                "Fitter did not preserve candidate row identities"
+            )
         original = pd.DataFrame(candidates).reset_index(drop=True)
         for name in original:
-            if name not in columns or name == 'n_id':
+            if name not in columns or name == "n_id":
                 columns[name] = original[name].to_numpy()[identity]
     _check_cancelled(cancel_event)
     return pd.DataFrame(columns).to_records(index=False)
@@ -339,7 +336,6 @@ class MoltrackDetection:
         gaussian = cv2.filter2D(gaussian, -1, gaussian)
         box = np.ones((size, size)) / size**2
         box = cv2.filter2D(box, -1, box)
-        # Filtering separately also supports unequal kernel dimensions.
         rows = []
         border = max(5, self.kernel_size, settings.box_size // 2)
         for index, (image, frame) in enumerate(
@@ -360,10 +356,13 @@ class MoltrackDetection:
                 rows.append((frame, x, y, float(filtered[y, x])))
             reporter.report(index + 1, len(frames), "MolTrack detection")
         data = pd.DataFrame(rows, columns=["frame", "x", "y", "net_gradient"])
-        return {
-            k: data[k].to_numpy(dtype=np.int64 if k == "frame" else float)
-            for k in data
-        }, 0
+        return LocalisationOutput(
+            {
+                k: data[k].to_numpy(dtype=np.int64 if k == "frame" else float)
+                for k in data
+            },
+            0,
+        )
 
 
 class PicassoGpu:
@@ -379,7 +378,7 @@ class PicassoGpu:
         from picasso import localize
 
         images, frames, settings, camera, candidates, _ = payload
-        rows, failed = [], 0
+        rows, failed = ([], 0)
         for index, (image, frame) in enumerate(
             zip(images, frames, strict=False)
         ):
@@ -448,11 +447,22 @@ class PicassoGpu:
                         "sy",
                         "lpx",
                         "lpy",
+                        "ellipticity",
+                        "fit_state",
+                        "iterations",
                     )
                 }
             )
         )
-        return {k: data[k].to_numpy(copy=True) for k in data}, failed
+        return LocalisationOutput(
+            {
+                k: data[k].to_numpy(
+                    dtype=np.int64 if k == "frame" else None, copy=True
+                )
+                for k in data
+            },
+            failed,
+        )
 
 
 def measure_locs(
@@ -469,10 +479,8 @@ def measure_locs(
     data = pd.DataFrame(rows).copy()
     dataset, ids = _model(movie, data)
     result = photometry.measure_localizations(
-        dataset,
+        dataset.snapshot(),
         ids,
-        apply=False,
-        num_cpus=config.NUM_CPUS,
         settings=PhotometrySettings(
             spot_size=spot_size,
             shape=ApertureShape(spot_shape.lower()),
@@ -480,8 +488,11 @@ def measure_locs(
             background_width=background_width,
             exclude_neighbours=False,
         ),
-        progress=progress_adapter(progress_callback),
-        cancel_event=cancel_event,
+        context=ExecutionContext(
+            num_cpus=config.NUM_CPUS,
+            progress=progress_adapter(progress_callback),
+            cancel_event=cancel_event,
+        ),
     )
     measurements = (
         pd.DataFrame(result.columns).set_index("localization_id").reindex(ids)
@@ -510,40 +521,59 @@ def estimate_drift(
 ):
     dataset, _ = _model(movie, locs)
     return undrifting.estimate_drift(
-        dataset,
-        ACQUISITION,
-        CHANNEL,
+        dataset.snapshot(),
+        PartitionSelection(ACQUISITION, CHANNEL),
         settings=DriftSettings(
             method=method.lower(),
             segment_frames=segment_frames,
             intersect_distance=intersect_distance,
             search_radius=search_radius,
         ),
-        num_cpus=config.NUM_CPUS,
-        progress=progress_adapter(progress_callback),
-        cancel_event=cancel_event,
+        context=ExecutionContext(
+            num_cpus=config.NUM_CPUS,
+            progress=progress_adapter(progress_callback),
+            cancel_event=cancel_event,
+        ),
     )
 
 
-def correct_drift(movie, locs, result, *, images=True, cancel_event=None,
-                  source_frames=None, target_frames=None):
+def correct_drift(
+    movie,
+    locs,
+    result,
+    *,
+    images=True,
+    cancel_event=None,
+    source_frames=None,
+    target_frames=None,
+):
     """Correct measured coverage; leave uncovered frames unchanged."""
     _check_cancelled(cancel_event)
     dataset, _ = _model(movie, locs)
     displacement = np.zeros((len(movie), 2), dtype=float)
-    reference = result.frames if source_frames is None else np.asarray(source_frames)[result.frames]
-    target = np.arange(len(movie)) if target_frames is None else np.asarray(target_frames)
+    reference = (
+        result.frames
+        if source_frames is None
+        else np.asarray(source_frames)[result.frames]
+    )
+    target = (
+        np.arange(len(movie))
+        if target_frames is None
+        else np.asarray(target_frames)
+    )
     if len(reference):
         covered = (target >= reference[0]) & (target <= reference[-1])
         for axis in (0, 1):
-            displacement[covered, axis] = np.interp(target[covered], reference, result.displacement[:, axis])
+            displacement[covered, axis] = np.interp(
+                target[covered], reference, result.displacement[:, axis]
+            )
     dataset.transforms.set_drift(ACQUISITION, displacement)
     corrected_locs = None
     if locs is not None:
         corrected_locs = np.array(locs, copy=True).view(np.recarray)
         if len(locs):
             rows = dataset.localizations.query(space="corrected")
-            corrected_locs.x, corrected_locs.y = rows["x"], rows["y"]
+            corrected_locs.x, corrected_locs.y = (rows["x"], rows["y"])
     corrected_movie = None
     if images:
         corrected_movie = np.empty_like(movie)
@@ -553,7 +583,7 @@ def correct_drift(movie, locs, result, *, images=True, cancel_event=None,
                 ACQUISITION, CHANNEL, index
             )
     _check_cancelled(cancel_event)
-    return corrected_movie, corrected_locs
+    return (corrected_movie, corrected_locs)
 
 
 def _trajectory(rows, time_step, fit_lags):
@@ -567,11 +597,14 @@ def _trajectory(rows, time_step, fit_lags):
         "unit": SpatialUnit.PIXELS,
         "frame_interval": time_step,
     }
-    result = trajectory_statistics(dataset, track_id, **kwargs)
+    result = trajectory_statistics(dataset.snapshot(), track_id, **kwargs)
     lags = result.msd["lag"][:fit_lags]
     if len(lags) >= 2:
         result = trajectory_statistics(
-            dataset, track_id, fit_lag_range=(lags[0], lags[-1]), **kwargs
+            dataset.snapshot(),
+            track_id,
+            fit_lag_range=(lags[0], lags[-1]),
+            **kwargs,
         )
     return result
 
@@ -600,7 +633,7 @@ def track_statistics(
         if sigma is not None
         else np.nan
     )
-    rolling, rolling_corrected = [], []
+    rolling, rolling_corrected = ([], [])
     for index in range(len(data)):
         first = max(0, index - rolling_window // 2)
         last = min(len(data), index + rolling_window // 2 + 1)
@@ -663,14 +696,15 @@ def segment_images(
             SegmentationRequest(name, CHANNEL, frame=0, segmentation_id=name)
         )
     results = segment_many(
-        dataset,
+        dataset.snapshot(),
         requests,
         settings=settings,
-        apply=False,
-        num_cpus=1 if getattr(settings, "gpu", False) else config.NUM_CPUS,
-        progress=progress_adapter(progress_callback),
-        cancel_event=cancel_event,
         backend=backend,
+        context=ExecutionContext(
+            num_cpus=1 if getattr(settings, "gpu", False) else config.NUM_CPUS,
+            progress=progress_adapter(progress_callback),
+            cancel_event=cancel_event,
+        ),
     )
     return [results[str(index)].labels for index in range(len(images))]
 
@@ -687,7 +721,6 @@ def filter_locs(locs, metric, minimum, maximum, *, subtract_background=False):
         values = values - data[metric + "_bg"].to_numpy(dtype=float)
     data["_filter_value"] = values
     model, ids = _model(rows=data)
-    # MolCore bounds are inclusive; the existing GUI uses open bounds.
     low, high = (
         np.nextafter(float(minimum), np.inf),
         np.nextafter(float(maximum), -np.inf),
@@ -695,9 +728,8 @@ def filter_locs(locs, metric, minimum, maximum, *, subtract_background=False):
     if low > high:
         return np.array(locs[:0], copy=True).view(np.recarray)
     result = filter_results(
-        model,
-        ACQUISITION,
-        CHANNEL,
+        model.snapshot(),
+        PartitionSelection(ACQUISITION, CHANNEL),
         settings=FilterSettings(
             metric="_filter_value", minimum=low, maximum=high
         ),
@@ -716,9 +748,8 @@ def merge_locs(rows, radius, progress_callback=None):
     for index, (_, group) in enumerate(groups):
         model, ids = _model(rows=group)
         result = cluster_localizations(
-            model,
-            ACQUISITION,
-            CHANNEL,
+            model.snapshot(),
+            PartitionSelection(ACQUISITION, CHANNEL),
             settings=ClusteringSettings(radius=radius, min_samples=2),
         )
         labels = (

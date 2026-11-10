@@ -5,7 +5,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 from molcore import Dataset
-from molcore.staging import transact
+from molcore.staging import clone_dataset, transact
 
 from .model_views import channel_rows
 
@@ -429,13 +429,15 @@ class ProjectSession:
         acquisition, name = self.partition(dataset, channel)
         rows = self.model.localizations.query(
             acquisition_id=acquisition, channel=name, space=space
-        ).to_columns()
+        )
         keep = (
             rows.get(ORIGIN, np.full(len(rows["id"]), DETECTION))
             != IMPORTED_TRACK
         )
         data = channel_rows(
-            {k: v[keep] for k, v in rows.items()}, self._view(dataset, channel)
+            {k: v[keep] for k, v in rows.items()},
+            self._view(dataset, channel),
+            validity={k: valid[keep] for k, valid in rows.validity.items()},
         )
         return data.drop(columns=ORIGIN, errors="ignore")
 
@@ -514,6 +516,8 @@ class ProjectSession:
             raise ValueError(
                 "IDs must belong to the selected partition and row kind"
             )
+        if not len(selected):
+            return
 
         def delete(model):
             if tracks:
@@ -522,15 +526,17 @@ class ProjectSession:
                         ~np.isin(group.id, selected)
                     ]
                     if len(remaining) != len(group):
+                        # Only changed memberships invalidate trajectory statistics.
+                        clear_statistics(model, ids=group.id.to_numpy())
                         model.tracks.retain_members(int(track_id), remaining)
             else:
                 model.localizations.delete(selected)
+                clear_statistics(model)
             if tracks and len(selected):
                 native = model.localizations.query(ids=selected, space="raw")
                 if ORIGIN in native:
                     imported = native["id"][native[ORIGIN] == IMPORTED_TRACK]
                     model.localizations.delete(imported)
-            clear_statistics(model)
 
         transact(self.model, delete)
         self._analysis_cache.clear()
@@ -598,7 +604,7 @@ class ProjectSession:
             )
             if tracks:
                 for track_id, group in rows.groupby("track_id", sort=False):
-                    meta = deepcopy(
+                    meta = dict(
                         self.model.tracks.metadata[int(track_id)]["parameters"]
                     )
                     meta.update(
@@ -645,8 +651,13 @@ class ProjectSession:
                     model.remove_segmentation(mask_id)
             if name in ("segmentations", "cells"):
                 clear_statistics(model)
-            model.metadata["moltrack_annotation_revision"] = (
-                model.metadata.get("moltrack_annotation_revision", 0) + 1
+            model.update_metadata(
+                {
+                    "moltrack_annotation_revision": model.metadata.get(
+                        "moltrack_annotation_revision", 0
+                    )
+                    + 1
+                }
             )
 
         transact(self.model, update)
@@ -654,7 +665,7 @@ class ProjectSession:
         self._analysis_cache.clear()
 
     def snapshot(self):
-        staged = ProjectSession(self.model.snapshot())
+        staged = ProjectSession(clone_dataset(self.model))
         staged._partitions = deepcopy(self._partitions)
         staged.annotations = deepcopy(self.annotations)
         staged._project_geometry = deepcopy(self._project_geometry)

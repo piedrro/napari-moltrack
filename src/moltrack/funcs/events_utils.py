@@ -837,56 +837,16 @@ class _events_utils:
 
             if translation_target in ["Segmentations", "All"]:
                 if hasattr(self, "segLayer"):
-                    seg_data = self.segLayer.data.copy()
-
-                    if len(seg_data) > 0:
-
-                        self.segLayer.mouse_drag_callbacks.remove(self.seg_drag_event)
-                        self.segLayer.mouse_double_click_callbacks.remove(self.delete_clicked)
-                        self.segLayer.events.data.disconnect(self.update_shapes)
-                        self.segLayer.mouse_wheel_callbacks.remove(self.dilate_segmentation)
-
-                        for seg_index, seg in enumerate(seg_data):
-                            if seg.shape[1] == 2:
-                                seg = seg + shift_vector
-                                seg_data[seg_index] = seg
-                            if seg.shape[1] == 3:
-                                seg[:, 1:] = seg[:, 1:] + shift_vector
-                                seg_data[seg_index] = seg
-
-                        self.segLayer.data = seg_data
-
-                        self.segLayer.mouse_drag_callbacks.append(self.seg_drag_event)
-                        self.segLayer.mouse_double_click_callbacks.append(self.delete_clicked)
-                        self.segLayer.events.data.connect(self.update_shapes)
-                        self.segLayer.mouse_wheel_callbacks.append(self.dilate_segmentation)
-
+                    from moltrack.model_views import translate_shape_vertices
+                    with self.segLayer.events.data.blocker(self.update_shapes):
+                        translate_shape_vertices(self.segLayer, shift_vector)
 
             if translation_target in ["Cells", "All"]:
                 if hasattr(self, "cellLayer"):
-                    cell_data = self.cellLayer.data.copy()
-
-                    if len(cell_data) > 0:
-
-                        self.cellLayer.mouse_drag_callbacks.remove(self.celllayer_clicked)
-                        self.cellLayer.mouse_wheel_callbacks.remove(self.dilate_cell)
-                        self.cellLayer.events.data.disconnect(self.update_cells)
-
-                        for cell_index, cell in enumerate(cell_data):
-                            if cell.shape[1] == 2:
-                                cell = cell + shift_vector
-                                cell_data[cell_index] = cell
-                            if cell.shape[1] == 3:
-                                cell[:, 1:] = cell[:, 1:] + shift_vector
-                                cell_data[cell_index] = cell
-
-                        self.cellLayer.data = cell_data
-
-                        self.store_cell_shapes()
-
-                        self.cellLayer.mouse_drag_callbacks.append(self.celllayer_clicked)
-                        self.cellLayer.mouse_wheel_callbacks.append(self.dilate_cell)
-                        self.cellLayer.events.data.connect(self.update_cells)
+                    from moltrack.model_views import translate_shape_vertices
+                    with self.cellLayer.events.data.blocker(self.update_cells):
+                        translate_shape_vertices(self.cellLayer, shift_vector)
+                    self.store_cell_shapes()
 
         except:
             print(traceback.format_exc())
