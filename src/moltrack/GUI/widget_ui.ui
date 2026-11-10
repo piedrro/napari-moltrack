@@ -1044,6 +1044,16 @@
             </widget>
            </item>
            <item>
+            <widget class="QLabel" name="extend_segmentation_hint">
+             <property name="text">
+              <string>Extend segmentation [E]: drag from inside a segmentation, around the area to add, and release inside the same segmentation. [Escape] cancels.</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QLabel" name="label_18">
              <property name="text">
               <string>Join segmentations [J]</string>

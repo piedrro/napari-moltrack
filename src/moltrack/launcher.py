@@ -181,7 +181,7 @@ def create_viewer(*, show=True):
 
     notification_manager.notification_ready.connect(_log_notification)
 
-    viewer = napari.Viewer(title=f"MolTrack v{__version__}", show=False)
+    viewer = napari.Viewer(title=f"napari-moltrack v{__version__}", show=False)
     try:
         widget = MolTrack(viewer, load_dev_data=False)
         viewer.window.add_dock_widget(widget, name=widget.windowTitle(), area="right")
@@ -213,7 +213,7 @@ def main(argv=None):
         logger = logging.getLogger("moltrack.desktop")
         logger.info("Starting MolTrack")
         import argparse
-        parser = argparse.ArgumentParser(description="MolTrack desktop application")
+        parser = argparse.ArgumentParser(description="napari-moltrack desktop application")
         parser.add_argument("--smoke-test", metavar="REPORT.json",
                             help="check the installed application, write a report and exit")
         args = parser.parse_args(argv)

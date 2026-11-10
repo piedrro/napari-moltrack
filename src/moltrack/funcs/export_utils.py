@@ -522,7 +522,9 @@ class _export_utils:
                     proposed = proposed.with_suffix(".moltrack.h5")
                 path = QFileDialog.getSaveFileName(
                     self, "Export MolTrack Project", str(proposed),
-                    "MolTrack project (*.moltrack.h5)",
+                    # Native Windows dialogs use this wildcard as the default
+                    # extension; a compound suffix can be appended twice.
+                    "MolTrack project (*.h5)",
                 )[0]
                 if path and Path(path).suffix.lower() not in {".h5", ".hdf5"}:
                     suffix = ".h5" if path.lower().endswith(".moltrack") else ".moltrack.h5"

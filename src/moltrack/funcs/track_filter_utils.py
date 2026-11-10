@@ -3,6 +3,11 @@ import traceback
 import numpy as np
 import pandas as pd
 from napari.utils.notifications import show_info
+from moltrack.funcs.filter_range_utils import (
+    HistogramFilterRange,
+    clear_filter_plot,
+    reset_filter_limits,
+)
 
 
 class _track_filter_utils:
@@ -61,6 +66,10 @@ class _track_filter_utils:
     def update_track_criterion_ranges(self, viewer=None, plot=True):
 
         try:
+            clear_filter_plot(self.track_graph_canvas)
+            reset_filter_limits(
+                [], self.gui.track_filter_min, self.gui.track_filter_max,
+            )
             criterion = self.gui.track_filter_criterion.currentText()
 
             if "pixel" not in criterion.lower():
@@ -77,28 +86,14 @@ class _track_filter_utils:
 
             if len(stats) > 0:
 
-                values = np.array(stats['stat'])
-
-                values = values.tolist()
-                values = [v for v in values if v not in [None, np.nan]]
-                values = np.array(values)
-
-                stat_min = min(values)
-                stat_max = max(values)
-
-                self.gui.track_filter_min.blockSignals(True)
-                self.gui.track_filter_max.blockSignals(True)
-
-                self.gui.track_filter_min.setValue(stat_min)
-                self.gui.track_filter_max.setValue(stat_max)
-
-                self.gui.track_filter_min.blockSignals(False)
-                self.gui.track_filter_max.blockSignals(False)
+                values = np.asarray(stats['stat'], dtype=float)
+                values = values[np.isfinite(values)]
+                reset_filter_limits(
+                    values, self.gui.track_filter_min, self.gui.track_filter_max,
+                )
 
             if len(values) > 0 and plot:
                 self.plot_track_filter_graph(values)
-            else:
-                self.track_graph_canvas.clear()
 
         except:
             traceback.print_exc()
@@ -203,51 +198,55 @@ class _track_filter_utils:
             criterion = self.gui.track_filter_criterion.currentText()
             metric = self.gui.track_filter_metric.currentText()
 
-            self.track_graph_canvas.clear()
+            clear_filter_plot(self.track_graph_canvas)
+            values = np.asarray(values) if values is not None else np.array([])
+            values = values[np.isfinite(values)]
+            reset_filter_limits(
+                values, self.gui.track_filter_min, self.gui.track_filter_max,
+            )
+            if len(values) > 0:
 
-            if values is not None:
+                if criterion == "Track Length":
+                    xlabel = "Track Length (frames)"
+                elif criterion == "Track Duration":
+                    xlabel = "Track Duration (s)"
+                elif criterion == "Mean Squared Displacement" or criterion == "MSD":
+                    xlabel = f"{metric} MSD (µm²)"
+                elif criterion == "Speed":
+                    xlabel = f"{metric} Speed (µm/s)"
+                elif criterion in ["D","Rolling D"]:
+                    xlabel = f"{metric} D (µm²/s)"
+                elif criterion in ["D*","Rolling D*"]:
+                    xlabel = f"{metric} D* (µm²/s)"
+                elif criterion == "Step Size":
+                    xlabel = f"{metric} Step Size (µm)"
+                elif criterion == "Rolling MSD":
+                    xlabel = f"{metric} Rolling MSD (µm²)"
+                elif criterion ==  "Membrane Distance":
+                    xlabel = f"{metric} Membrane Distance (µm)"
+                elif criterion ==  "Midline Distance":
+                    xlabel = f"{metric} Midline Distance (µm)"
+                elif criterion ==  "Centroid Distance":
+                    xlabel = f"{metric} Centroid Distance (µm)"
+                elif criterion ==  "Cell Pole Distance":
+                    xlabel = f"{metric} Cell Pole Distance (µm)"
+                elif criterion ==  "Angle":
+                    xlabel = f"{metric} Angle (degrees)"
+                else:
+                    xlabel = criterion
 
-                if len(values) > 0:
+                ax = self.track_graph_canvas.addPlot()
 
-                    values = values[~np.isnan(values)]
+                # Create histogram
+                y, x = np.histogram(values, bins=50)
 
-                    if criterion == "Track Length":
-                        xlabel = "Track Length (frames)"
-                    elif criterion == "Track Duration":
-                        xlabel = "Track Duration (s)"
-                    elif criterion == "Mean Squared Displacement" or criterion == "MSD":
-                        xlabel = f"{metric} MSD (µm²)"
-                    elif criterion == "Speed":
-                        xlabel = f"{metric} Speed (µm/s)"
-                    elif criterion in ["D","Rolling D"]:
-                        xlabel = f"{metric} D (µm²/s)"
-                    elif criterion in ["D*","Rolling D*"]:
-                        xlabel = f"{metric} D* (µm²/s)"
-                    elif criterion == "Step Size":
-                        xlabel = f"{metric} Step Size (µm)"
-                    elif criterion == "Rolling MSD":
-                        xlabel = f"{metric} Rolling MSD (µm²)"
-                    elif criterion ==  "Membrane Distance":
-                        xlabel = f"{metric} Membrane Distance (µm)"
-                    elif criterion ==  "Midline Distance":
-                        xlabel = f"{metric} Midline Distance (µm)"
-                    elif criterion ==  "Centroid Distance":
-                        xlabel = f"{metric} Centroid Distance (µm)"
-                    elif criterion ==  "Cell Pole Distance":
-                        xlabel = f"{metric} Cell Pole Distance (µm)"
-                    elif criterion ==  "Angle":
-                        xlabel = f"{metric} Angle (degrees)"
-                    else:
-                        xlabel = criterion
-
-                    ax = self.track_graph_canvas.addPlot()
-
-                    # Create histogram
-                    y, x = np.histogram(values, bins=50)
-
-                    ax.plot(x, y, stepMode=True, fillLevel=0, brush=(0, 0, 255, 75))
-                    ax.setLabel('bottom', xlabel)
-                    ax.setLabel('left', 'Frequency')
+                ax.plot(x, y, stepMode=True, fillLevel=0, brush=(0, 0, 255, 75))
+                ax.setLabel('bottom', xlabel)
+                ax.setLabel('left', 'Frequency')
+                HistogramFilterRange(
+                    self.track_graph_canvas, ax,
+                    self.gui.track_filter_min, self.gui.track_filter_max,
+                )
 
 
         except:

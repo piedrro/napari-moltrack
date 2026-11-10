@@ -66,6 +66,29 @@ Napari-moltrack is also compatible with **FRET** and **ALEX FRET** image data, c
 Segmentations can be used to exclude regions from single molecule localisation and tracking.
 Segmentations can be added automatically using Cellpose or can be added manually. Includes tools for editing/modifying segmentations at a sub-pixel resolution.
 
+With the Cells or Segmentations layer selected, press `M` to draw a cell
+midline using the default cell radius, or `S` to edit existing midlines.
+Press `E` to extend a segmentation: click and drag from inside its outline,
+around the area to add, and release back inside the same segmentation.
+The original segmentation keeps its properties; neighbouring segmentations
+stay unchanged, including where the extension overlaps them. Each extension
+returns to pan/zoom. Press `E` again for another extension, or `Escape` to cancel.
+Crossing outlines and strokes ending outside the starting segmentation are
+rejected without changing its outline.
+
+Manual midline fitting requires the NumPy compatibility fix prepared in
+BactFit 0.1.7. Until that release is published, developers can use the patched
+sibling checkout:
+
+```powershell
+uv pip install --python .venv/Scripts/python.exe --no-deps --editable ../BactFit
+```
+
+Use `.verify312/Scripts/python.exe` instead for the verification environment.
+Launch with the environment's Python or `uv run --no-sync` to retain this local
+installation. The distribution dependency and lockfile must be updated to the
+published fixed release before shipping this feature.
+
 Compatible with both single and multi-channel .tif and .fits files.
 
 napari-moltrack was written by Piers Turner, Kapanidis Group, University of Oxford.
@@ -92,7 +115,7 @@ Windows desktop builds install MolTrack with its own Python runtime and open the
 MolTrack interface directly from a Start menu shortcut. Build instructions and
 release checks are in [Windows desktop distribution](docs/windows-installer.md).
 The manually triggered **Windows installer** GitHub Actions workflow produces
-`MolTrack-Setup-<version>-x64.exe` and verification artifacts.
+`napari-moltrack-Setup-<version>-x64.exe` and verification artifacts.
 The Windows installer uses CPU processing to keep downloads smaller. Python
 installations from GitHub can still use CUDA-enabled dependencies for acceleration.
 

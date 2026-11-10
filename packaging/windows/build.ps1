@@ -20,7 +20,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $project = $PSScriptRoot
 $python = Join-Path $project '.venv/Scripts/python.exe'
 $output = Join-Path $repoRoot 'dist/windows'
-$bundle = Join-Path $output 'MolTrack'
+$bundle = Join-Path $output 'napari-moltrack'
 $work = Join-Path $repoRoot 'build/windows'
 $previousQtApi = $env:QT_API
 $previousUvEnvironment = $env:UV_PROJECT_ENVIRONMENT
@@ -86,7 +86,7 @@ print(torch.__version__, torchvision.__version__)
     # Windowed executables must be awaited explicitly; & alone can return early.
     $report = Join-Path $output 'smoke-test.json'
     if (Test-Path -LiteralPath $report) { Remove-Item -LiteralPath $report }
-    $process = Start-Process -FilePath (Join-Path $bundle 'MolTrack.exe') `
+    $process = Start-Process -FilePath (Join-Path $bundle 'napari-moltrack.exe') `
         -ArgumentList @('--smoke-test', ('"' + $report + '"')) -PassThru -WindowStyle Hidden
     if (-not $process.WaitForExit(300000)) {
         Stop-Process -Id $process.Id -Force
@@ -110,7 +110,7 @@ print(torch.__version__, torchvision.__version__)
     }
     Invoke-Checked $IsccPath @("/DAppVersion=$version", "/DBundleDir=$bundle",
         "/DOutputDir=$output", (Join-Path $project 'installer.iss'))
-    $installer = Join-Path $output "MolTrack-Setup-$version-x64.exe"
+    $installer = Join-Path $output "napari-moltrack-Setup-$version-x64.exe"
     $hash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
     "$hash  $([IO.Path]::GetFileName($installer))" |
         Set-Content -LiteralPath "$installer.sha256" -Encoding ascii

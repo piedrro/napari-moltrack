@@ -6,6 +6,11 @@ from shapely.geometry import Point, Polygon
 from moltrack.funcs.compute_utils import Worker
 from moltrack.model_edits import compute_merge, prepare_merge, publish_merge
 from moltrack.model_views import refresh_row_projections
+from moltrack.funcs.filter_range_utils import (
+    HistogramFilterRange,
+    clear_filter_plot,
+    reset_filter_limits,
+)
 
 
 class _loc_filter_utils:
@@ -185,7 +190,8 @@ class _loc_filter_utils:
 
     def update_criterion_ranges(self, viewer=None, plot=True):
         try:
-            self.filter_graph_canvas.clear()
+            clear_filter_plot(self.filter_graph_canvas)
+            reset_filter_limits([], self.gui.filter_min, self.gui.filter_max)
             dataset = self.gui.picasso_filter_dataset.currentText()
             channel = self.gui.picasso_filter_channel.currentText()
             criterion_name = self.gui.filter_criterion.currentText()
@@ -211,7 +217,7 @@ class _loc_filter_utils:
                         if bg_criterion in columns:
                             bg_values = locs[bg_criterion]
                             values = values - bg_values
-                    values = values[~np.isnan(values)]
+                    values = values[np.isfinite(values)]
                     if values.dtype in [
                         np.float32,
                         np.float64,
@@ -220,32 +226,37 @@ class _loc_filter_utils:
                         np.uint32,
                         np.uint64,
                     ]:
+                        if not len(values):
+                            return
                         if plot:
                             self.plot_filter_graph(criterion, values)
-                        min_value = np.min(values)
-                        max_value = np.max(values)
-                        self.gui.filter_min.setMinimum(min_value)
-                        self.gui.filter_min.setMaximum(max_value)
-                        self.gui.filter_max.setMinimum(min_value)
-                        self.gui.filter_max.setMaximum(max_value)
-                        self.gui.filter_min.setValue(min_value)
-                        self.gui.filter_max.setValue(max_value)
+                        else:
+                            reset_filter_limits(
+                                values, self.gui.filter_min, self.gui.filter_max,
+                            )
         except:
             print(traceback.format_exc())
 
     def plot_filter_graph(self, criterion="", values=None):
         try:
-            self.filter_graph_canvas.clear()
-            if values is not None:
-                values = values[~np.isnan(values)]
-                if len(values) > 0:
-                    ax = self.filter_graph_canvas.addPlot()
-                    y, x = np.histogram(values, bins=100)
-                    ax.plot(
-                        x, y, stepMode=True, fillLevel=0, brush=(0, 0, 255, 75)
-                    )
-                    ax.setLabel("bottom", f"{criterion} values")
-                    ax.setLabel("left", "Frequency")
+            clear_filter_plot(self.filter_graph_canvas)
+            values = np.asarray(values) if values is not None else np.array([])
+            values = values[np.isfinite(values)]
+            reset_filter_limits(
+                values, self.gui.filter_min, self.gui.filter_max,
+            )
+            if len(values) > 0:
+                ax = self.filter_graph_canvas.addPlot()
+                y, x = np.histogram(values, bins=100)
+                ax.plot(
+                    x, y, stepMode=True, fillLevel=0, brush=(0, 0, 255, 75)
+                )
+                ax.setLabel("bottom", f"{criterion} values")
+                ax.setLabel("left", "Frequency")
+                HistogramFilterRange(
+                    self.filter_graph_canvas, ax,
+                    self.gui.filter_min, self.gui.filter_max,
+                )
         except:
             print(traceback.format_exc())
 

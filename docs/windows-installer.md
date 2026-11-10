@@ -1,6 +1,6 @@
 # Windows desktop distribution
 
-MolTrack's desktop installer opens the napari viewer with MolTrack already open.
+The `napari-moltrack` desktop installer opens the napari viewer with MolTrack already open.
 End users do not install Python, napari, Git or CUDA development tools.
 Target: Windows 10 (1809 or later)/11 on Intel/AMD x64 with an OpenGL-capable graphics driver.
 
@@ -49,9 +49,9 @@ is provided by uv if needed. Allow several GB for downloads and build outputs.
 
 ### 3. Find the build output
 
-- Run `dist\windows\MolTrack-Setup-<version>-x64.exe` to install MolTrack.
-- Run `dist\windows\MolTrack\MolTrack.exe` to launch the bundled app directly.
-  Keep the entire `MolTrack` folder together when moving or copying it.
+- Run `dist\windows\napari-moltrack-Setup-<version>-x64.exe` to install MolTrack.
+- Run `dist\windows\napari-moltrack\napari-moltrack.exe` to launch the bundled app directly.
+  Keep the entire `napari-moltrack` folder together when moving or copying it.
 
 To build just the application folder without Inno Setup, run:
 
@@ -64,7 +64,7 @@ builds), `dependencies.txt`, `uv.lock` and `smoke-test.json`. Builds are unsigne
 until a signing identity is configured.
 
 Alternatively, run **Actions → Windows installer → Run workflow** on GitHub and
-download the `MolTrack-Windows-x64` artifact. The workflow builds only on demand
+download the `napari-moltrack-Windows-x64` artifact. The workflow builds only on demand
 and does not publish a release or modify the existing PyPI deployment workflow.
 
 ## Dependencies and CPU-only installer
@@ -99,9 +99,10 @@ compilation; `packaging/windows/moltrack.spec` defines collection rules.
 
 ## Installation and user files
 
-The installer uses `%LOCALAPPDATA%/Programs/MolTrack`, adds a Start menu shortcut,
+The installer uses `%LOCALAPPDATA%/Programs/napari-moltrack`, adds a Start menu shortcut,
 offers a desktop shortcut and registers an uninstaller. It needs no administrator
-rights. Run a newer installer to update the same application. Close MolTrack
+rights. Run a newer installer to update the same application. Existing installations
+keep their original installation directory when upgraded. Close MolTrack
 before upgrading. Stale bundled libraries are replaced during upgrades.
 
 Models download automatically on first use into `%LOCALAPPDATA%/MolTrack/models`.
@@ -118,7 +119,7 @@ diagnostic report…** to save a ZIP for the user to send to the developer. It
 contains application logs, captured console output, native crash tracebacks
 when available, and package/OS versions; it does not include datasets or upload
 anything. **Help → Open MolTrack log folder** opens the underlying files.
-If the application cannot reopen after a crash, the **MolTrack logs** Start menu
+If the application cannot reopen after a crash, the **napari-moltrack logs** Start menu
 shortcut opens that same folder without starting MolTrack. Python errors are
 logged with tracebacks; native crashes are captured where Python's fault handler
 can report them. Power loss and forced termination may leave no traceback.
@@ -146,7 +147,7 @@ Keep a record of these checks for each release:
 The installed EXE provides a diagnostic mode. In PowerShell, await it explicitly:
 
 ```powershell
-$app = "$env:LOCALAPPDATA/Programs/MolTrack/MolTrack.exe"
+$app = "$env:LOCALAPPDATA/Programs/napari-moltrack/napari-moltrack.exe"
 $report = "$env:TEMP/moltrack-smoke.json"
 $process = Start-Process $app -ArgumentList "--smoke-test `"$report`"" -PassThru -Wait
 $process.ExitCode
@@ -158,3 +159,10 @@ starts a multiprocessing manager and worker, reads a synthetic TIFF, compiles
 Numba numerical code and runs a CPU tensor calculation.
 It exits and writes an OK report only on success. This supplements
 the interactive workflow checks above.
+
+## Application icon
+
+The executable and installer use napari's official Windows icon, copied unchanged
+from `napari/resources/icon.ico` in the installed napari package. The icon is
+credited to the napari contributors and is used with their permission. The running
+viewer uses napari's own application icon.

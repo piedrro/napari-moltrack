@@ -2,7 +2,7 @@ import traceback
 
 import numpy as np
 from napari.utils.notifications import show_info
-from shapely.geometry import Polygon
+from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 
 
@@ -50,6 +50,7 @@ class _segmentation_events:
 
     def register_shape_layer_keybinds(self, layer):
         layer.bind_key("Space", func=lambda event: self.modify_mode(mode="add"), overwrite=True, )
+        layer.bind_key("e", func=lambda event: self.modify_mode(mode="extend"), overwrite=True)
         layer.bind_key("j", func=lambda event: self.modify_mode(mode="join"), overwrite=True, )
         layer.bind_key("d", func=lambda event: self.modify_mode(mode="delete"), overwrite=True, )
         layer.bind_key("p", func=lambda event: self.modify_mode(mode="pan_zoom"), overwrite=True, )
@@ -103,6 +104,7 @@ class _segmentation_events:
         self.segLayer.mouse_drag_callbacks.append(self.seg_drag_event)
         self.segLayer.mouse_double_click_callbacks.append(self.delete_clicked)
         self.segLayer.events.data.connect(self.update_shapes)
+        self.segLayer.events.mode.connect(self.segmentation_layer_mode_changed)
         self.segLayer.mouse_wheel_callbacks.append(self.dilate_segmentation)
 
         self.register_shape_layer_keybinds(self.segLayer)
@@ -124,6 +126,10 @@ class _segmentation_events:
 
     def modify_mode(self, viewer=None, mode="add"):
         try:
+            self._extension_gesture = None
+            self.clear_extension_preview()
+            if hasattr(self, "segLayer"):
+                self.segLayer.mouse_pan = True
             if mode in ["add", "extend", "join"]:
                 self.segLayer = self.get_seglayer()
 
@@ -143,8 +149,11 @@ class _segmentation_events:
 
                 self.interface_mode = "segment"
                 self.segmentation_mode = "extend"
-                self.segLayer.mode = "add_polygon_lasso"
-                show_info("Extend (click/drag to extend)")
+                # Capture the drag ourselves: no temporary segmentation and no
+                # dependency on napari's lasso finalisation event order.
+                self.segLayer.mode = "pan_zoom"
+                self.segLayer.mouse_pan = False
+                show_info("Extend (E): drag from inside a segmentation, around the extra area, back inside; Escape cancels")
 
             if mode == "join":
                 self.viewer.layers.selection.select_only(self.segLayer)
@@ -183,6 +192,7 @@ class _segmentation_events:
                     self.segmentation_mode = "panzoom"
 
             if mode == "midline":
+                self.segmentation_mode = "midline"
                 self.viewer.layers.selection.select_only(self.cellLayer)
                 self.cellLayer.mode = "add_path"
                 self.cellLayer.refresh()
@@ -190,6 +200,7 @@ class _segmentation_events:
                 show_info("Midline (click to add midline)")
 
             if mode == "edit_midlines":
+                self.segmentation_mode = "edit_midlines"
                 self.viewer.layers.selection.select_only(self.cellLayer)
                 self.cellLayer.mode = "direct"
 
@@ -199,6 +210,14 @@ class _segmentation_events:
 
         except:
             print(traceback.format_exc())
+
+    def segmentation_layer_mode_changed(self, event):
+        """Native toolbar modes also cancel the custom extension tool."""
+        if (getattr(self, "segmentation_mode", None) == "extend"
+                and self.segLayer.mode != "pan_zoom"):
+            self._extension_gesture = None
+            self.clear_extension_preview()
+            self.segmentation_mode = "panzoom"
 
     def remove_shapes(self, indices):
         if type(indices) == int:
@@ -247,39 +266,6 @@ class _segmentation_events:
 
                     self.join_coords = None
 
-                if self.segmentation_mode == "extend":
-                    extend_shapes = False
-
-                    if hasattr(self, "extend_indices"):
-                        if type(self.extend_indices) == list:
-                            if len(self.extend_indices) == 2:
-                                extend_shapes = True
-
-                    if extend_shapes:
-                        shape_index, extend_index = self.extend_indices
-
-                        shapes = self.segLayer.data.copy()
-
-                        target = shapes[shape_index].copy()
-                        extension = shapes[extend_index].copy()
-
-                        if len(target) > 4 and len(extension) > 4:
-                            union_shape = self.join_shapes(target, extension)
-
-                            if union_shape is not None:
-                                self.segLayer.events.data.disconnect(self.update_shapes)
-                                self.segLayer.selected_data = [shape_index, extend_index, ]
-                                self.segLayer.remove_selected()
-                                self.segLayer.add(union_shape, shape_type="polygon")
-                                self.segLayer.events.data.connect(self.update_shapes)
-
-                    else:
-                        shapes = self.segLayer.data.copy()
-                        last_index = len(shapes) - 1
-                        self.remove_shapes(last_index)
-
-                    self.extend_indices = None
-
             if event.action in ["added", "changed"]:
                 self.segLayer.mode = "pan_zoom"
 
@@ -288,6 +274,8 @@ class _segmentation_events:
 
     def delete_clicked(self, viewer=None, event=None):
         try:
+            if self.segmentation_mode == "extend":
+                return
             coords = self.segLayer.world_to_data(event.position)
             shape_index = self.segLayer.get_value(coords)[0]
 
@@ -334,23 +322,102 @@ class _segmentation_events:
                             self.join_coords = [coords1, coords2]
 
             if self.segmentation_mode == "extend":
-                canvas_pos = event.position
-                coords = self.segLayer.world_to_data(canvas_pos)
-                shape_index = self.segLayer.get_value(coords)[0]
+                yield from self.extend_segmentation_drag(event)
 
-                if shape_index is not None:
-                    dragged = False
+    def extend_segmentation_drag(self, event):
+        """Collect one extension in layer coordinates, then commit an exact union."""
+        if getattr(event, "button", 1) != 1:
+            return
+        layer = self.segLayer
+        token = object()
+        self._extension_gesture = token
+        # Prevent the camera from panning while the custom drawing mode is active.
+        event.handled = True
+        start = np.asarray(layer.world_to_data(event.position), dtype=float)
+        original = [s.copy() for s in layer.data]
+        shape_types = list(layer.shape_type)
+        target_index = None
+        for index in reversed(range(len(original))):
+            vertices = original[index]
+            if shape_types[index] != "polygon" or not np.isfinite(vertices).all():
+                continue
+            if vertices.shape[1] != len(start) or not np.all(vertices[:, :-2] == start[:-2]):
+                continue
+            polygon = Polygon(vertices[:, -2:])
+            if polygon.is_valid and polygon.covers(Point(start[-2:])):
+                target_index = index
+                break
+        points = [start]
+        try:
+            yield
+            while event.type == "mouse_move":
+                event.handled = True
+                if self._extension_gesture is not token:
+                    return
+                points.append(np.asarray(layer.world_to_data(event.position), dtype=float))
+                if target_index is not None and np.isfinite(points).all():
+                    self.show_extension_preview(points, layer)
+                yield
+            if self._extension_gesture is not token:
+                return
+            points.append(np.asarray(layer.world_to_data(event.position), dtype=float))
+            if target_index is None:
+                raise ValueError("Start inside a segmentation")
+            if len(layer.data) != len(original) or any(
+                not np.array_equal(a, b) for a, b in zip(layer.data, original, strict=True)
+            ) or list(layer.shape_type) != shape_types:
+                raise ValueError("Segmentations changed while drawing; try again")
+            points = np.asarray(points)
+            if not np.isfinite(points).all() or not np.all(points[:, :-2] == start[:-2]):
+                raise ValueError("Keep the extension on the starting frame")
+            target = Polygon(original[target_index][:, -2:])
+            if not target.covers(Point(points[-1, -2:])):
+                raise ValueError("Finish inside the starting segmentation")
+            extension = Polygon(points[:, -2:])
+            if not extension.is_valid or extension.area <= 0:
+                raise ValueError("Draw a non-crossing outline around the extra area")
+            union = target.union(extension)
+            if (union.geom_type != "Polygon" or not union.is_valid
+                    or len(union.interiors) or union.area < target.area):
+                raise ValueError("The extension does not form a valid single outline")
+            vertices = np.asarray(union.exterior.coords)[:-1]
+            if layer.ndim > 2:
+                vertices = np.column_stack((np.tile(start[:-2], (len(vertices), 1)), vertices))
+            replacement = list(layer.data)
+            replacement[target_index] = vertices
+            layer.data = replacement
+        except (ValueError, TypeError) as error:
+            show_info(f"Could not extend segmentation: {error}")
+        finally:
+            if self._extension_gesture is token:
+                self.clear_extension_preview()
+                self._extension_gesture = None
+                self.segmentation_mode = "panzoom"
+                layer.mode = "pan_zoom"
+                layer.mouse_pan = True
 
-                    yield
-                    while event.type == "mouse_move":
-                        dragged = True
-                        yield
+    def clear_extension_preview(self):
+        preview = getattr(self, "_extension_preview", None)
+        if preview is not None and preview in self.viewer.layers:
+            self.viewer.layers.remove(preview)
+        self._extension_preview = None
 
-                    if dragged:
-                        shapes = self.segLayer.data.copy()
-                        last_index = len(shapes) - 1
-
-                        self.extend_indices = [shape_index, last_index]
+    def show_extension_preview(self, points, layer):
+        # This layer is visual feedback only: it has no annotation callbacks
+        # and is removed on release, cancellation, or a mode change.
+        preview = getattr(self, "_extension_preview", None)
+        if preview is None:
+            preview = self.viewer.add_shapes(
+                [np.asarray(points)], name="Extension preview", shape_type="path",
+                edge_color="yellow", edge_width=2, face_color="transparent",
+                scale=layer.scale, translate=layer.translate, rotate=layer.rotate,
+                shear=layer.shear, affine=layer.affine.affine_matrix, units=layer.units,
+            )
+            preview.editable = False
+            self._extension_preview = preview
+            self.viewer.layers.selection.select_only(layer)
+        else:
+            preview.data = [np.asarray(points)]
 
     def join_shapes(self, shape1, shape2, simplify=True, buffer=1):
         union_shape = None

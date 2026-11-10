@@ -6,6 +6,7 @@ import traceback
 import numpy as np
 from bactfit.cell import Cell
 from bactfit.utils import manual_fit
+from napari.utils.notifications import show_info
 from shapely.geometry import LineString, Point, Polygon
 
 
@@ -13,6 +14,35 @@ def _with_frame(points, frame):
     if frame is None:
         return points
     return np.column_stack((np.full(len(points), frame), points))
+
+
+def _object_column(values):
+    column = np.empty(len(values), dtype=object)
+    column[:] = values
+    return column
+
+
+def _validated_cell_fit(polygon_coords, midline_coords, radius):
+    """Validate the dependency result before publishing either companion shape."""
+    polygon, midline, parameters, fitted_radius = manual_fit(
+        polygon_coords, midline_coords, radius
+    )
+    polygon = np.asarray(polygon, dtype=float)
+    midline = np.asarray(midline, dtype=float)
+    parameters = np.asarray(parameters, dtype=float)
+    if (polygon.ndim != 2 or polygon.shape[1] != 2 or len(polygon) < 3
+            or not np.isfinite(polygon).all()
+            or midline.ndim != 2 or midline.shape[1] != 2 or len(midline) < 2
+            or not np.isfinite(midline).all()
+            or parameters.ndim != 1 or not len(parameters)
+            or not np.isfinite(parameters).all()
+            or fitted_radius is None or not np.isfinite(fitted_radius)
+            or fitted_radius <= 0):
+        raise ValueError("Cell fitting returned invalid geometry")
+    outline = Polygon(polygon)
+    if not outline.is_valid or outline.area <= 0 or LineString(midline).length <= 0:
+        raise ValueError("Cell fitting returned an empty or invalid cell")
+    return polygon, midline, parameters, float(fitted_radius)
 
 
 class _cell_events:
@@ -170,8 +200,9 @@ class _cell_events:
                         else:
                             previous_shapes = self.stored_cells[-1]
 
-                            if not np.array_equal(
-                                previous_shapes, current_shapes
+                            if len(previous_shapes) != len(current_shapes) or any(
+                                not np.array_equal(a, b)
+                                for a, b in zip(previous_shapes, current_shapes, strict=True)
                             ):
                                 self.stored_cells.append(current_shapes)
 
@@ -403,24 +434,26 @@ class _cell_events:
     def update_cellLayer_shapes(
         self, shapes, shape_types=None, properties=None
     ):
-        try:
-            self.cellLayer.events.data.disconnect(self.update_cells)
-            self.cellLayer.refresh()
-
-            self.cellLayer.data = shapes
-
-            if properties is not None:
-
-                self.cellLayer.properties = properties
-
-            if shape_types is not None:
-                self.cellLayer.shape_type = shape_types
-
-            self.cellLayer.events.data.connect(self.update_cells)
-            self.cellLayer.refresh()
-
-        except:
-            print(traceback.format_exc())
+        layer = self.cellLayer
+        previous = (copy.deepcopy(layer.data), list(layer.shape_type),
+                    copy.deepcopy(layer.properties))
+        # Observers must only see complete geometry and properties. Always
+        # restore event delivery, including when napari rejects a replacement.
+        with layer.events.blocker_all():
+            try:
+                layer.data = shapes
+                if shape_types is not None:
+                    layer.shape_type = shape_types
+                if properties is not None:
+                    layer.properties = properties
+            except Exception:
+                layer.data, layer.shape_type, layer.properties = previous
+                raise
+        with layer.events.data.blocker(self.update_cells):
+            layer.events.data(value=layer.data, action="changed",
+                              data_indices=tuple(range(len(shapes))),
+                              vertex_indices=((),))
+        layer.refresh()
 
     def update_cell_model(self, name):
         try:
@@ -433,7 +466,7 @@ class _cell_events:
                 midline_index = cell["midline_index"]
                 polygon_index = cell["polygon_index"]
 
-                fit = manual_fit(polygon_coords, midline_coords, radius)
+                fit = _validated_cell_fit(polygon_coords, midline_coords, radius)
                 (
                     polygon_fit_coords,
                     midline_fit_coords,
@@ -700,76 +733,60 @@ class _cell_events:
             print(traceback.format_exc())
 
     def add_manual_cell(self, last_index):
+        layer = self.cellLayer
         try:
-            shapes = self.cellLayer.data.copy()
-            radius = self.gui.default_cell_radius.value()
-            properties = self.cellLayer.properties.copy()
-            shape_types = self.cellLayer.shape_type.copy()
-
-            midline_index = last_index
-
-            name = "".join(
-                random.choices(string.ascii_uppercase + string.digits, k=10)
-            )
-
-            vertices = np.asarray(shapes[last_index])
-            frame = int(vertices[0, 0]) if vertices.shape[1] == 3 else None
+            shapes = copy.deepcopy(layer.data)
+            shape_types = list(layer.shape_type)
+            properties = {key: list(copy.deepcopy(value))
+                          for key, value in layer.properties.items()}
+            radius = float(self.gui.default_cell_radius.value())
+            vertices = np.asarray(shapes[last_index], dtype=float)
+            if (vertices.ndim != 2 or vertices.shape[1] not in (2, 3)
+                    or len(vertices) < 2 or not np.isfinite(vertices).all()
+                    or not np.isfinite(radius) or radius <= 0):
+                raise ValueError("Draw a finite midline with a positive cell radius")
+            frame = vertices[0, 0] if vertices.shape[1] == 3 else None
+            if frame is not None and not np.all(vertices[:, 0] == frame):
+                raise ValueError("A midline must stay on one frame")
             midline_coords = vertices[:, -2:]
-            cell_poles = [midline_coords[0], midline_coords[-1]]
-
-            midline = LineString(midline_coords)
-            polygon = midline.buffer(radius)
-
-            polygon_coords = np.array(polygon.exterior.coords)
-
-            fit = manual_fit(polygon_coords, midline_coords, radius)
-            polygon_fit_coords, midline_fit_coords, poly_params, cell_radius = (
-                fit
+            if LineString(midline_coords).length <= 0:
+                raise ValueError("A midline needs at least two distinct points")
+            polygon_coords = np.asarray(LineString(midline_coords).buffer(radius).exterior.coords)
+            polygon, midline, parameters, fitted_radius = _validated_cell_fit(
+                polygon_coords, midline_coords, radius
             )
-
-            shapes[last_index] = _with_frame(midline_fit_coords, frame)
-
-            cell = {
-                "name": name,
-                "radius": cell_radius,
-                "poly_params": poly_params,
-                "cell_poles": cell_poles,
-            }
-
-            if "name" not in properties.keys():
-                properties["name"] = [name]
-                properties["cell"] = [cell]
-            else:
-                properties["name"][last_index] = name
-                properties["cell"][last_index] = cell
-
-            self.update_cellLayer_shapes(
-                shapes, shape_types=shape_types, properties=properties
-            )
-
-            self.cellLayer.events.data.disconnect(self.update_cells)
-            self.cellLayer.refresh()
-
-            cell = {
-                "name": name,
-                "radius": radius,
-                "poly_params": poly_params,
-                "cell_poles": cell_poles,
-            }
-
-            # self.cellLayer.current_properties = {"name": name, "cell": cell}
-            self.cellLayer.add_polygons(_with_frame(polygon_fit_coords, frame))
-            self.cellLayer.properties["cell"][-1] = cell
-
-            self.cellLayer.events.data.connect(self.update_cells)
-            self.cellLayer.refresh()
-
-        except:
-            print(traceback.format_exc())
+            name = "".join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            while name in properties.get("name", []):
+                name = "".join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            cell = {"name": name, "radius": fitted_radius,
+                    "poly_params": parameters, "cell_poles": midline[[0, -1]].copy()}
+            properties.setdefault("name", [""] * len(shapes))
+            properties.setdefault("cell", [None] * len(shapes))
+            properties["name"][last_index] = name
+            properties["cell"][last_index] = copy.deepcopy(cell)
+            for values in properties.values():
+                values.append(copy.deepcopy(values[last_index]))
+            # Dict-valued properties must remain one-dimensional object columns.
+            properties = {key: _object_column(values) for key, values in properties.items()}
+            shapes[last_index] = _with_frame(midline, frame)
+            shapes.append(_with_frame(polygon, frame))
+            shape_types.append("polygon")
+            self.update_cellLayer_shapes(shapes, shape_types, properties)
+        except Exception as error:  # noqa: BLE001 -- dependency failures must discard the unfinished cell
+            # The freshly drawn path is not a cell until both shapes exist.
+            keep = [i for i in range(len(layer.data)) if i != last_index]
+            shapes = [layer.data[i].copy() for i in keep]
+            shape_types = [layer.shape_type[i] for i in keep]
+            properties = {key: values[keep].copy() for key, values in layer.properties.items()}
+            self.update_cellLayer_shapes(shapes, shape_types, properties)
+            show_info(f"Could not create cell: {error}")
 
     def update_cells(self, event):
 
         try:
+            if event.action == "adding":
+                self._cell_add_start_count = len(self.cellLayer.data)
+                return
 
             if event.action == "changed":
                 modified_indices = self.get_modified_shape_indices()
@@ -792,7 +809,35 @@ class _cell_events:
                         self.store_cell_shapes()
 
             if event.action == "added":
+                # napari 0.9 emits completion after clearing the moving index,
+                # but before clearing _is_creating. Replacing data otherwise
+                # re-enters _finish_drawing with a None shape index.
+                if self.cellLayer._is_creating and self.cellLayer._moving_value[0] is None:
+                    self.cellLayer._is_creating = False
                 shapes = self.cellLayer.data.copy()
+                start_count = getattr(self, "_cell_add_start_count", None)
+                self._cell_add_start_count = None
+                # A one-point native path is discarded before the completion
+                # event. Its predecessor must not be mistaken for a new cell.
+                if start_count is not None and len(shapes) <= start_count:
+                    # napari removes the draft vertices before trimming their
+                    # feature row; publish aligned properties as well.
+                    properties = {
+                        key: values[:len(shapes)].copy()
+                        for key, values in self.cellLayer.properties.items()
+                    }
+                    edge_colors = self.cellLayer.edge_color[:len(shapes)].copy()
+                    face_colors = self.cellLayer.face_color[:len(shapes)].copy()
+                    self.update_cellLayer_shapes(
+                        shapes, list(self.cellLayer.shape_type), properties
+                    )
+                    # The native draft can also leave an extra colour row.
+                    # Restore the surviving styles after rebuilding the view.
+                    self.cellLayer.edge_color = edge_colors
+                    self.cellLayer.face_color = face_colors
+                    return
+                if not shapes:
+                    return
                 last_index = len(shapes) - 1
 
                 shape_types = self.cellLayer.shape_type.copy()

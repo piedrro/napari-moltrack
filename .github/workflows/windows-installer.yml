@@ -43,11 +43,11 @@ jobs:
       - name: Upload installer and verification evidence
         uses: actions/upload-artifact@v4
         with:
-          name: MolTrack-Windows-x64
+          name: napari-moltrack-Windows-x64
           if-no-files-found: error
           compression-level: 0
           path: |
-            dist/windows/MolTrack-Setup-*-x64.exe
+            dist/windows/napari-moltrack-Setup-*-x64.exe
             dist/windows/*.sha256
             dist/windows/dependencies.txt
             dist/windows/uv.lock

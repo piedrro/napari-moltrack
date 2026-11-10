@@ -42,7 +42,7 @@ def test_production_viewer_opens_moltrack_without_dev_data(qtbot, monkeypatch):
         widgets = viewer.window._qt_window.findChildren(MolTrack)
         assert len(widgets) == 1
         assert widgets[0].viewer is viewer
-        assert "MolTrack" in viewer.title
+        assert viewer.title.startswith("napari-moltrack v")
     finally:
         viewer.close()
 

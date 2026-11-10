@@ -45,11 +45,11 @@ version_info = VSVersionInfo(
                       flags=0, OS=0x40004, fileType=1, subtype=0, date=(0, 0)),
     kids=[StringFileInfo([StringTable("040904B0", [
         StringStruct("CompanyName", "MolTrack"),
-        StringStruct("FileDescription", "MolTrack single molecule analysis"),
+        StringStruct("FileDescription", "napari-moltrack single molecule analysis"),
         StringStruct("FileVersion", __version__),
-        StringStruct("ProductName", "MolTrack"),
+        StringStruct("ProductName", "napari-moltrack"),
         StringStruct("ProductVersion", __version__),
-        StringStruct("OriginalFilename", "MolTrack.exe"),
+        StringStruct("OriginalFilename", "napari-moltrack.exe"),
     ])]), VarFileInfo([VarStruct("Translation", [1033, 1200])])],
 )
 a = Analysis(
@@ -67,7 +67,7 @@ a = Analysis(
     noarchive=False,
 )
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="MolTrack",
+exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="napari-moltrack",
           icon=str(root / "packaging/windows/moltrack.ico"),
           debug=False, strip=False, upx=False, console=False, version=version_info)
-coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="MolTrack")
+coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="napari-moltrack")

@@ -432,7 +432,7 @@ def test_native_fits_are_editable_and_export_dialog_appends_compound_suffix(
 
     def choose_path(parent, title, suggested, file_filter):
         assert suggested.endswith(".moltrack.h5")
-        assert "*.moltrack.h5" in file_filter
+        assert file_filter == "MolTrack project (*.h5)"
         return str(tmp_path / "edited"), file_filter
 
     monkeypatch.setattr(QFileDialog, "getSaveFileName", choose_path)
@@ -441,6 +441,36 @@ def test_native_fits_are_editable_and_export_dialog_appends_compound_suffix(
         fit = exported.bactfit_cells["native-fit"]
         assert fit.frame == 1
         assert fit.midline[0] == (1, 3)
+
+
+@pytest.mark.parametrize(
+    "filename, expected",
+    [
+        ("sample", "sample.moltrack.h5"),
+        ("sample.moltrack", "sample.moltrack.h5"),
+        ("sample.moltrack.h5", "sample.moltrack.h5"),
+        ("sample.h5", "sample.h5"),
+        ("sample.H5", "sample.H5"),
+        ("sample.hdf5", "sample.hdf5"),
+    ],
+)
+def test_project_export_dialog_preserves_hdf5_filenames(
+    widget, tmp_path, monkeypatch, filename, expected
+):
+    from moltrack.funcs.export_utils import QFileDialog
+
+    def choose_path(parent, title, suggested, file_filter):
+        # Windows uses the filter as its default extension. A compound
+        # wildcard can append moltrack.h5 even to an existing .h5 filename.
+        assert file_filter == "MolTrack project (*.h5)"
+        return str(tmp_path / filename), file_filter
+
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", choose_path)
+    widget.export_moltrack_project()
+
+    assert sorted(path.name for path in tmp_path.iterdir()) == [expected]
+    with Dataset.open(tmp_path / expected) as exported:
+        assert exported is not None
 
 
 @pytest.mark.parametrize(
