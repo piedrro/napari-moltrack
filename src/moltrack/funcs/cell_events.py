@@ -5,9 +5,10 @@ import traceback
 
 import numpy as np
 from bactfit.cell import Cell
-from bactfit.utils import manual_fit
 from napari.utils.notifications import show_info
 from shapely.geometry import LineString, Point, Polygon
+
+from moltrack.bactfit_compat import manual_fit
 
 
 def _with_frame(points, frame):
@@ -42,6 +43,13 @@ def _validated_cell_fit(polygon_coords, midline_coords, radius):
     outline = Polygon(polygon)
     if not outline.is_valid or outline.area <= 0 or LineString(midline).length <= 0:
         raise ValueError("Cell fitting returned an empty or invalid cell")
+    # BactFit samples in increasing polynomial x, which can swap the poles
+    # after rotating a vertical cell. Keep the user's original pole identity.
+    endpoints = np.asarray(midline_coords, dtype=float)[[0, -1]]
+    forward = np.sum((midline[[0, -1]] - endpoints) ** 2)
+    reverse = np.sum((midline[[-1, 0]] - endpoints) ** 2)
+    if reverse < forward:
+        midline = midline[::-1].copy()
     return polygon, midline, parameters, float(fitted_radius)
 
 
@@ -442,12 +450,15 @@ class _cell_events:
         with layer.events.blocker_all():
             try:
                 layer.data = shapes
-                if shape_types is not None:
+                if shape_types is not None and len(shapes):
                     layer.shape_type = shape_types
                 if properties is not None:
                     layer.properties = properties
             except Exception:
-                layer.data, layer.shape_type, layer.properties = previous
+                layer.data = previous[0]
+                if len(previous[0]):
+                    layer.shape_type = previous[1]
+                layer.properties = previous[2]
                 raise
         with layer.events.data.blocker(self.update_cells):
             layer.events.data(value=layer.data, action="changed",

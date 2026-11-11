@@ -268,7 +268,8 @@ def test_generated_track_labels_do_not_merge_with_imported_tracks():
         "render",
         "segmentation",
         "registration",
-        "drift",
+        "drift-rcc",
+        "drift-aim",
     ],
 )
 def test_gui_publication_runs_on_qt_thread(operation, qtbot, monkeypatch):
@@ -285,6 +286,12 @@ def test_gui_publication_runs_on_qt_thread(operation, qtbot, monkeypatch):
     viewer = napari.Viewer(show=False)
     host = MolTrack(viewer)
     qtbot.addWidget(host)
+    if operation == "registration":
+        selector = host.gui.tform_compute_model
+        assert selector.currentText() == "Auto"
+        assert [selector.itemText(i) for i in range(selector.count())] == [
+            "Auto", "Translation", "Rigid", "Similarity", "Affine", "Homography"
+        ]
     host.session = make_session()
     host.session.update_metadata("a", pixel_size=100.0)
     host.session.annotations["partitions"] = {"a": {"image": {"fitted": True}}}
@@ -353,7 +360,9 @@ def test_gui_publication_runs_on_qt_thread(operation, qtbot, monkeypatch):
                 value = SimpleNamespace(image=np.zeros((15, 15)))
             elif operation == "registration":
                 value = np.eye(3)
-            elif operation == "drift":
+            elif operation in ("drift-rcc", "drift-aim"):
+                method = operation.removeprefix("drift-")
+                assert prepared.request.settings.drift.method == method
                 value = (np.array([0, 1]), np.zeros((2, 2)))
             else:
                 segment = Segmentation(
@@ -388,8 +397,10 @@ def test_gui_publication_runs_on_qt_thread(operation, qtbot, monkeypatch):
             host.initialise_cellpose()
         elif operation == "registration":
             host.apply_fret_transform_matrix()
-        else:
-            host.undrifting_tools.rcc_undrift()
+        elif operation == "drift-rcc":
+            host.gui.picasso_undrift.click()
+        elif operation == "drift-aim":
+            host.gui.aim_undrift.click()
         # This verifies thread affinity, not latency. Busy Windows build hosts
         # can take over ten seconds to deliver the queued GUI publication.
         qtbot.waitUntil(lambda: bool(published), timeout=30000)

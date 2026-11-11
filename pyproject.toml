@@ -38,7 +38,7 @@ dependencies = [
     "originpro; sys_platform == 'win32'",
     "torch",
     "torchvision",
-    "molcore[all] @ git+https://github.com/piedrro/molcore.git",
+    "molcore[all] @ git+https://github.com/piedrro/molcore.git@6fcf9dee9b8e7423912695b7bd4ff3fb61c07766",
     "trackpy>=0.7,<0.8",
     "shapely",
     "astropy",

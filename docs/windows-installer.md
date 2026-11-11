@@ -30,18 +30,20 @@ Open a new 64-bit PowerShell window and change to the root of your
 `napari-moltrack` checkout. Then run the build script.
 
 ```powershell
-.\packaging\windows\build.ps1
+.\build-app.ps1
 ```
 
-If the script reports that it cannot find Inno Setup, pass the full path to
-`ISCC.exe`. For example, if you already have the compiler in the repository's
-`.cache\inno-setup` folder, run this from the repository root.
+The script automatically uses `.cache\inno-setup\ISCC.exe` when available,
+or looks for an installed Inno Setup compiler. To use another compiler, pass
+the full path to `ISCC.exe`:
 
 ```powershell
-.\packaging\windows\build.ps1 -IsccPath (Resolve-Path '.\.cache\inno-setup\ISCC.exe').Path
+.\build-app.ps1 -IsccPath 'C:\path\to\ISCC.exe'
 ```
 
-The script creates an isolated environment under `packaging/windows/.venv`,
+The script first refreshes `packaging/windows/uv.lock` to match the current
+project metadata, preserving existing locked versions where possible. It stops
+if resolution fails. It then creates an isolated environment under `packaging/windows/.venv`,
 installs the separate locked Windows dependency set, runs the tests, freezes the
 application, runs a packaged smoke test and compiles the installer. Python 3.12
 is provided by uv if needed. Allow several GB for downloads and build outputs.
@@ -56,7 +58,7 @@ is provided by uv if needed. Allow several GB for downloads and build outputs.
 To build just the application folder without Inno Setup, run:
 
 ```powershell
-.\packaging\windows\build.ps1 -BundleOnly
+.\build-app.ps1 -BundleOnly
 ```
 
 `dist/windows` also contains the installer's SHA256 checksum (for installer
@@ -72,7 +74,7 @@ and does not publish a release or modify the existing PyPI deployment workflow.
 `packaging/windows/pyproject.toml` and its own `uv.lock` control the distribution;
 the root development lock is independent. The root package is built from the
 current checkout, including local changes. Napari remains 0.9.2, Cellpose 3.0.9,
-and MolCore stays at the revision pinned by the root project.
+and MolCore uses the Git commit recorded in the packaging lockfile.
 
 The installer uses the official CPU-only PyTorch 2.9.1 / TorchVision 0.24.1 wheels.
 It contains no CUDA runtime or toolkit and runs analysis and segmentation on CPU.
@@ -89,9 +91,13 @@ for its ported fitting algorithms are retained.
 After intentionally updating dependencies or the root package's metadata, run:
 
 ```powershell
-uv lock --project packaging/windows --python 3.12
-./packaging/windows/build.ps1
+.\build-app.ps1
 ```
+
+For a reproducible build using the existing lockfile without refreshing it,
+run `.\packaging\windows\build.ps1` directly; CI uses this route too.
+The wrapper refreshes only the packaging lockfile, leaving the root development
+lockfile unchanged. It does not request a blanket dependency upgrade.
 
 Commit the updated packaging lock only after testing. A frozen build needs
 package metadata, Qt/Vispy resources, scientific DLLs and Python source for JIT

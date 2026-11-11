@@ -13,7 +13,7 @@ import numpy as np
 from bactfit.cell import CellList
 from bactfit.fit import bactfit
 from bactfit.preprocess import data_to_cells
-from bactfit.utils import fit_poly
+from bactfit.utils import fit_poly, manual_fit as _manual_fit
 
 from .model_processing import _cancel
 from .project_geometry import outline_fingerprint
@@ -66,7 +66,7 @@ def plot_cell_render(celllist, **settings):
     return image
 
 
-def _numpy2_fit_cell():
+def _numpy2_fit_poly():
     # BactFit's polynomial helper references np.RankWarning, removed in NumPy 2.
     # Copy only its function globals; never patch NumPy or BactFit globally.
     polynomial = fit_poly
@@ -76,9 +76,23 @@ def _numpy2_fit_cell():
             fit_poly.__code__, {**fit_poly.__globals__, "np": numpy_api},
             argdefs=fit_poly.__defaults__, closure=fit_poly.__closure__,
         )
+    return polynomial
+
+
+def manual_fit(cell_coords, midline_coords, radius=None):
+    """Fit a manual cell with the same isolated NumPy adapter as batch fits."""
+    original = _manual_fit
+    fit = FunctionType(
+        original.__code__, {**original.__globals__, "fit_poly": _numpy2_fit_poly()},
+        argdefs=original.__defaults__, closure=original.__closure__,
+    )
+    return fit(cell_coords, midline_coords, radius)
+
+
+def _numpy2_fit_cell():
     original = bactfit.fit_cell
     return FunctionType(
-        original.__code__, {**original.__globals__, "fit_poly": polynomial},
+        original.__code__, {**original.__globals__, "fit_poly": _numpy2_fit_poly()},
         argdefs=original.__defaults__, closure=original.__closure__,
     )
 

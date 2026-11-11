@@ -32,14 +32,13 @@ Development uses Python 3.12, napari 0.9.2 and PyQt6 via QtPy. Segmentation uses
 Cellpose 3 models (cyto3, cyto2, cyto and nuclei) or compatible custom weights.
 Built-in segmentation weights download on first use.
 
-Development is pinned to Cellpose 3.0.9 and MolCore Git revision
-`1f6ea9a8b33796424566fd467567efdb00cac651` in `pyproject.toml` and `uv.lock`.
-Both the default `.venv` and `.verify312` use Python 3.12.3 with this revision.
+Development uses Cellpose 3.0.9 and the Molcore Git revision pinned in
+`pyproject.toml` and `uv.lock`. Run `uv sync --locked` to install them in `.venv`.
 On Windows, run GUI tests with `QT_API=pyqt6`:
 
 ```powershell
 $env:QT_API='pyqt6'
-.verify312/Scripts/python.exe -m pytest tests src/moltrack/_tests -q --tb=short --disable-warnings
+.venv/Scripts/python.exe -m pytest tests src/moltrack/_tests -q --tb=short --disable-warnings
 ```
 
 New projects use `.moltrack.h5`, a native MolCore HDF5 snapshot you can open
@@ -114,6 +113,8 @@ https://napari.org/stable/plugins/index.html
 Windows desktop builds install MolTrack with its own Python runtime and open the
 MolTrack interface directly from a Start menu shortcut. Build instructions and
 release checks are in [Windows desktop distribution](docs/windows-installer.md).
+From the repository root, run `.\build-app.ps1` to refresh the Windows packaging
+lockfile and build the app and installer, including tests and a packaged smoke check.
 The manually triggered **Windows installer** GitHub Actions workflow produces
 `napari-moltrack-Setup-<version>-x64.exe` and verification artifacts.
 The Windows installer uses CPU processing to keep downloads smaller. Python

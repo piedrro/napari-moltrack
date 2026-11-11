@@ -85,7 +85,7 @@ class _transform_utils:
             self.update_ui(init=False)
 
     def compute_fret_transform_matrix(self):
-
+        self.transform_matrix = None
         try:
             if bool(self.session.ordinary_datasets()):
 
@@ -120,15 +120,20 @@ class _transform_utils:
                     dst_points = np.float32([dst_points[m.queryIdx] for m in matches]).reshape(-1, 2)
                     src_points = np.float32([src_points[m.trainIdx] for m in matches]).reshape(-1, 2)
 
-                    model = 'translation' if len(src_points) < 3 else (
-                        'affine' if len(src_points) == 3 else 'homography')
+                    model = self.gui.tform_compute_model.currentText().lower()
+                    if model == "auto":
+                        model = "translation" if len(src_points) < 3 else (
+                            "affine" if len(src_points) == 3 else "homography"
+                        )
                     self.transform_matrix, _, _ = fit_transform(
                         src_points, dst_points, model=model, ransac_threshold=5.)
 
                     if self.gui.save_tform.isChecked():
                         self.save_transform_matrix()
 
-        except:
+        except ValueError as error:
+            show_info(f"Could not fit channel alignment: {error}")
+        except Exception:
             print(traceback.format_exc())
 
 

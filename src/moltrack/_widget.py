@@ -11,6 +11,7 @@ import torch
 from napari.utils.notifications import show_info
 from qtpy.QtWidgets import (
     QApplication,
+    QComboBox,
     QDockWidget,
     QLabel,
     QShortcut,
@@ -81,6 +82,14 @@ class MolTrack(QWidget, gui, *subclasses):
         # create UI
         self.gui = gui()
         self.gui.setupUi(self)
+        self.gui.tform_compute_model = QComboBox(self)
+        self.gui.tform_compute_model.addItems(
+            ["Auto", "Translation", "Rigid", "Similarity", "Affine", "Homography"]
+        )
+        self.gui.tform_compute_model.setToolTip(
+            "Auto chooses a model from the number of matched fiducials."
+        )
+        self.gui.formLayout_13.addRow("Transform model", self.gui.tform_compute_model)
         self.gui.cellpose_model.clear()
         self.gui.cellpose_model.addItems(["cyto3", "cyto2", "cyto", "nuclei", "custom"])
 
@@ -372,6 +381,9 @@ class MolTrack(QWidget, gui, *subclasses):
         self.gui.picasso_vis_edge_width.currentIndexChanged.connect(partial(self.draw_localisations, update_vis=True))
 
         self.gui.picasso_render.clicked.connect(self.initialise_picasso_render)
+
+        self.gui.picasso_undrift.clicked.connect(self.undrifting_tools.rcc_undrift)
+        self.gui.aim_undrift.clicked.connect(self.undrifting_tools.aim_undrift)
 
         self.gui.link_localisations.clicked.connect(self.initialise_tracking)
 

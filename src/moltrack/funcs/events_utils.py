@@ -330,8 +330,16 @@ class _events_utils:
 
             shapes_layers.insert(0,"")
 
-            self.gui.tracking_segmentations.clear()
-            self.gui.tracking_segmentations.addItems(shapes_layers)
+            combo = self.gui.tracking_segmentations
+            selected = combo.currentText()
+            blocked = combo.blockSignals(True)
+            try:
+                combo.clear()
+                combo.addItems(shapes_layers)
+                if selected in shapes_layers:
+                    combo.setCurrentText(selected)
+            finally:
+                combo.blockSignals(blocked)
 
         except:
             print(traceback.format_exc())

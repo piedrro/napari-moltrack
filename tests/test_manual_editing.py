@@ -14,6 +14,20 @@ from moltrack.funcs.segmentation_events import _segmentation_events
 from moltrack.session import ProjectSession
 
 
+@pytest.mark.parametrize("points", [
+    [[1., 3.], [4., 3.]], [[4., 3.], [1., 3.]],
+    [[3., 1.], [3., 4.]], [[3., 4.], [3., 1.]],
+])
+def test_manual_refit_preserves_pole_order(points):
+    from shapely.geometry import LineString
+    from moltrack.funcs.cell_events import _validated_cell_fit
+
+    midline = np.asarray(points)
+    outline = np.asarray(LineString(midline).buffer(1).exterior.coords)
+    _, fitted, _, _ = _validated_cell_fit(outline, midline, 1.)
+    np.testing.assert_allclose(fitted[[0, -1]], midline, atol=1e-6)
+
+
 class EditingHost(_cell_events, _segmentation_events):
     def update_segmentation_combos(self):
         pass
@@ -77,6 +91,33 @@ def test_manual_cells_are_complete_repeatable_editable_and_persisted(framed, tmp
         assert loaded.annotations["cells"]["shape_types"] == list(h.cellLayer.shape_type)
         for actual, expected in zip(loaded.annotations["cells"]["data"], h.cellLayer.data, strict=True):
             np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize("failure", ["fit", "duplicate", "radius", "bad_result"])
+def test_failed_first_creation_leaves_empty_layer_and_can_retry(monkeypatch, failure):
+    import moltrack.funcs.cell_events as module
+
+    h = host()
+    h.initialise_cellLayer()
+    original_fit = module.manual_fit
+    notices = []
+    monkeypatch.setattr(module, "show_info", notices.append)
+    if failure == "fit":
+        def broken(*args):
+            raise RuntimeError("fit failed")
+        monkeypatch.setattr(module, "manual_fit", broken)
+    elif failure == "bad_result":
+        monkeypatch.setattr(module, "manual_fit", lambda *args: (None, None, None, None))
+    elif failure == "radius":
+        h.gui.default_cell_radius = NS(value=lambda: 0)
+    path = [[10., 10.], [10., 30.]] if failure != "duplicate" else [[10., 10.], [10., 10.]]
+    h.cellLayer.add_paths(path)
+    assert len(h.cellLayer.data) == 0
+    assert notices
+    monkeypatch.setattr(module, "manual_fit", original_fit)
+    h.gui.default_cell_radius = NS(value=lambda: 2.)
+    h.cellLayer.add_paths([[10., 10.], [10., 30.]])
+    assert_complete_cells(h, 1)
 
 
 @pytest.mark.parametrize("failure", ["fit", "duplicate", "radius", "bad_result"])
