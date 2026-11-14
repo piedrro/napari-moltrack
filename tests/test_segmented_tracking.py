@@ -30,7 +30,7 @@ def test_layer_changes_preserve_tracking_segmentation(qtbot, selected):
 
 
 def test_segmented_rerun_clears_previous_outside_tracks():
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     ids = session.replace_localizations("a", "image", pd.DataFrame({

@@ -39,7 +39,7 @@ def test_channel_model_is_used(model, monkeypatch):
     tool.compute_fret_transform_matrix()
     np.testing.assert_allclose(tool.transform_matrix, expected, atol=1e-5)
 
-    from moltrack.model_processing import RegistrationSettings
+    from moltrack.model.processing import RegistrationSettings
     from test_model_processing import make_session
     from test_model_workflows import run
 

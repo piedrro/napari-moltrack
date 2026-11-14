@@ -136,7 +136,7 @@ class _pixstats_utils:
                 calculate_fret = False
                 self.gui.tracks_pixstats_fret.setChecked(False)
 
-        from moltrack.model_processing import PhotometrySettings, ProcessingRequest, compute_worker, prepare
+        from moltrack.model.processing import PhotometrySettings, ProcessingRequest, compute_worker, prepare
         partitions = tuple(pixstats_data.groupby(['dataset', 'channel'], sort=False).groups)
         settings = PhotometrySettings(spot_size=spot_size, spot_shape=spot_shape,
             background_buffer=background_buffer, background_width=background_width,

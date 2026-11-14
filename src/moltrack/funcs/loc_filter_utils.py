@@ -4,8 +4,8 @@ import numpy as np
 from napari.utils.notifications import show_info
 from shapely.geometry import Point, Polygon
 from moltrack.funcs.compute_utils import Worker
-from moltrack.model_edits import compute_merge, prepare_merge, publish_merge
-from moltrack.model_views import refresh_row_projections
+from moltrack.model.edits import compute_merge, prepare_merge, publish_merge
+from moltrack.model.views import refresh_row_projections
 from moltrack.funcs.filter_range_utils import (
     HistogramFilterRange,
     clear_filter_plot,
@@ -85,7 +85,7 @@ class _loc_filter_utils:
     def get_locs(
         self, dataset, channel, return_dict=False, include_metadata=True
     ):
-        from moltrack.model_views import gui_query
+        from moltrack.model.views import gui_query
 
         return gui_query(
             self.session,

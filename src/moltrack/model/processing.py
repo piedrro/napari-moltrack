@@ -40,7 +40,7 @@ from .backend import (
     _filter_candidates,
     progress_adapter,
 )
-from .model_views import channel_rows
+from .views import channel_rows
 from .session import ProjectSession, clear_statistics
 
 

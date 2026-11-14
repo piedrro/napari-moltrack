@@ -10,12 +10,12 @@ from molcore import (
 from molcore.localisation import detect
 from test_model_processing import make_session, request
 
-from moltrack import backend, model_processing
+from moltrack.model import backend, processing
 
 
 def test_prepared_processing_owns_mutable_staging_and_shares_immutable_pixels():
     session = make_session()
-    prepared = model_processing.prepare(session, request())
+    prepared = processing.prepare(session, request())
     prepared.session.model.update_metadata({"worker": "private"})
     assert "worker" not in session.model.metadata
     assert (
@@ -57,7 +57,7 @@ def test_gui_projection_preserves_integer_nulls_and_large_values():
     rows = session.query_localizations("a", "image", space="raw")
     assert int(rows.quality.iloc[0]) == 2**63 + 1
     assert pd.isna(rows.quality.iloc[1])
-    from moltrack.model_views import gui_records
+    from moltrack.model.views import gui_records
 
     records = gui_records(rows)
     assert int(records["quality"][0]) == 2**63 + 1
@@ -65,7 +65,7 @@ def test_gui_projection_preserves_integer_nulls_and_large_values():
 
 
 def test_image_free_project_preserves_scientific_measurements(tmp_path):
-    from moltrack.model_io import load_project, save_project
+    from moltrack.model.io import load_project, save_project
 
     session = make_session()
     session.model.observations.add(

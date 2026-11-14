@@ -255,19 +255,19 @@ def select_table_columns(data, columns):
 
 
 def save_project(session, path, *, include_images=True):
-    from .project_container import save_project as save
+    from moltrack.project.container import save_project as save
 
     return save(session, path, include_images=include_images)
 
 
 def load_project(path, *, include_images=True):
-    from .project_container import load_project as load
+    from moltrack.project.container import load_project as load
 
     return load(path, include_images=include_images)
 
 
 def from_legacy(project, *, include_images=True):
-    from .project_legacy import from_legacy as convert
+    from moltrack.project.legacy import from_legacy as convert
 
     return convert(project, include_images=include_images)
 

@@ -15,8 +15,8 @@ from moltrack.funcs.events_utils import _events_utils
 def test_shape_translation_reuses_meshes_and_records_vertices(target, framed):
     from napari.layers import Shapes
 
-    from moltrack.model_views import connect_layer_annotations
-    from moltrack.session import ProjectSession
+    from moltrack.model.views import connect_layer_annotations
+    from moltrack.model.session import ProjectSession
 
     host = _events_utils()
     host.session = ProjectSession()
@@ -112,7 +112,7 @@ def test_shape_layers_use_units_compatible_with_images(kind):
     from moltrack.funcs.segmentation_events import _segmentation_events
 
     host = _segmentation_events() if kind == "segmentations" else _cell_events()
-    from moltrack.session import ProjectSession
+    from moltrack.model.session import ProjectSession
     host.session = ProjectSession()
     host.viewer = ViewerModel()
     host.viewer.add_image(np.zeros((2, 10, 10)), units=("pixel", "nm", "nm"))
@@ -141,7 +141,7 @@ def test_smlm_render_uses_units_compatible_with_images():
     import threading
     from test_model_processing import make_session
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
     from moltrack.funcs.picasso_render_utils import _picasso_render_utils
 
     host = _picasso_render_utils()
@@ -165,8 +165,8 @@ def test_active_image_sets_spatial_units_and_preserves_frame_units(shape):
     host = _events_utils()
     host.viewer = ViewerModel()
     image = np.arange(np.prod(shape), dtype=float).reshape(shape)
-    from moltrack.session import ProjectSession
-    from moltrack.model_io import import_images
+    from moltrack.model.session import ProjectSession
+    from moltrack.model.io import import_images
     host.session = ProjectSession()
     import_images(host.session, [dict(dataset_name="a", path="camera", source_images=image[None] if image.ndim == 2 else image,
         pixel_size=100, exposure_time=20, multichannel_mode="None", channel_name="image")])
@@ -200,8 +200,8 @@ def test_active_image_sets_spatial_units_and_preserves_frame_units(shape):
 
 
 def test_model_backed_active_image_and_pixel_size():
-    from moltrack.model_io import import_images
-    from moltrack.session import ProjectSession
+    from moltrack.model.io import import_images
+    from moltrack.model.session import ProjectSession
 
     host = _events_utils()
     host.session = ProjectSession()

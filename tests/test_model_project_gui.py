@@ -11,7 +11,7 @@ from molcore import (
 )
 from test_model_persistence import populated
 
-from moltrack import model_io
+from moltrack.model import io as model_io
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def widget(qtbot, monkeypatch):
 
 
 def clear_import_fixture(widget, tmp_path, *, loaded):
-    from moltrack.model_processing import (
+    from moltrack.model.processing import (
         ProcessingRequest,
         RegistrationSettings,
         compute,
@@ -121,7 +121,7 @@ def test_clear_import_preserves_segmentation_source_annotations_and_listeners(
     from molcore import StaleResultError
     from molcore.staging import state_token
 
-    from moltrack.model_processing import publish
+    from moltrack.model.processing import publish
 
     descriptor, session, binding, polygon, pending = clear_import_fixture(
         widget, tmp_path, loaded=loaded
@@ -483,7 +483,7 @@ def test_malformed_shape_candidate_preserves_live_session_payload_and_layers(
     import zipfile
     from pathlib import Path
 
-    from moltrack.project_codec import AnnotationCodec
+    from moltrack.project.codec import AnnotationCodec
 
     original = populated()
     good = tmp_path / "good.moltrack.h5"

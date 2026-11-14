@@ -8,7 +8,7 @@ from test_session_mutations import make_session
 
 
 def test_cell_worker_result_rejects_shape_edits():
-    from moltrack.model_cells import (
+    from moltrack.model.cells import (
         finish_cells,
         prepare_cells,
         validate_cells,

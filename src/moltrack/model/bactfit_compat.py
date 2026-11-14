@@ -15,8 +15,8 @@ from bactfit.fit import bactfit
 from bactfit.preprocess import data_to_cells
 from bactfit.utils import fit_poly, manual_fit as _manual_fit
 
-from .model_processing import _cancel
-from .project_geometry import outline_fingerprint
+from .processing import _cancel
+from moltrack.project.geometry import outline_fingerprint
 
 
 def _render_cell_locs(locs, *, viewport, oversampling, blur_method,

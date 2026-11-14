@@ -10,7 +10,7 @@ from molcore import CoordinateSpace, SpatialUnit, StaleResultError
 from molcore.staging import state_token, transact, validate_expected
 from molcore.trajectory import trajectory_statistics
 
-from .model_processing import _cancel
+from .processing import _cancel
 
 STAT_COLUMNS = (
     "step_size",
@@ -140,7 +140,7 @@ def analyze_tracks(
 ):
     _cancel(cancel_event)
     from moltrack.funcs.trackstats_utils import _trackstats_utils
-    from moltrack.model_views import gui_query
+    from moltrack.model.views import gui_query
 
     data = pd.DataFrame(
         gui_query(session, "All Datasets", "All Channels", tracks=True)

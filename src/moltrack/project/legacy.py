@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from molcore import Acquisition, ArraySource, ChannelSpec, MissingSource
 
-from .session import ProjectSession
+from moltrack.model.session import ProjectSession
 
 
 class _LegacyObjects(pickle.Unpickler):
@@ -229,7 +229,7 @@ def from_legacy(project, *, include_images=True):
             for tracks in (False, True):
                 rows = _rows(project, dataset, channel, tracks)
                 if rows is not None:
-                    from .model_io import import_rows
+                    from moltrack.model.io import import_rows
 
                     import_rows(session, dataset, channel, rows, tracks=tracks)
             old = (
@@ -299,7 +299,7 @@ def from_legacy(project, *, include_images=True):
         }
     )
     session.model.update_metadata({"migration_report": messages})
-    from .project_container import validate_session
+    from .container import validate_session
 
     validate_session(session)
     return session

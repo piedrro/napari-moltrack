@@ -124,7 +124,7 @@ class _tracking_utils:
             print(traceback.format_exc())
 
     def get_tracks(self, dataset, channel, return_dict=False, include_metadata=True):
-        from moltrack.model_views import gui_query
+        from moltrack.model.views import gui_query
         return gui_query(self.session, dataset, channel, tracks=True,
                          return_dict=return_dict, include_metadata=include_metadata)
 
@@ -190,7 +190,7 @@ class _tracking_utils:
                 self.gui.trackplot_focus.setChecked(False)
                 self.gui.trackplot_focus.blockSignals(False)
 
-                from moltrack.model_processing import (
+                from moltrack.model.processing import (
                     ProcessingRequest, TrackingSettings, compute_worker, prepare,
                 )
                 segchannel = self.gui.tracking_segmentations.currentText()

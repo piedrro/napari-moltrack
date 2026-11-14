@@ -43,7 +43,7 @@ class _segmentation_utils:
             invert=self.gui.cellpose_invert_images.isChecked())
 
     def _prepare_model_segmentation(self, mode):
-        from moltrack.model_processing import ProcessingRequest, SegmentationSettings, prepare
+        from moltrack.model.processing import ProcessingRequest, SegmentationSettings, prepare
         dataset = self.gui.cellpose_dataset.currentText()
         channel = self.gui.cellpose_channel.currentText()
         if dataset == 'Segmentation Image':
@@ -69,7 +69,7 @@ class _segmentation_utils:
 
         try:
 
-            from moltrack.model_processing import compute_worker
+            from moltrack.model.processing import compute_worker
             prepared = self._prepare_model_segmentation(mode)
             self.update_ui(init=True)
             self.worker = Worker(compute_worker, prepared, self.stop_event)
@@ -90,7 +90,7 @@ class _segmentation_utils:
         try:
 
             from moltrack.funcs.compute_utils import publish_model_result
-            from moltrack.project_geometry import OUTLINE_SOURCE
+            from moltrack.project.geometry import OUTLINE_SOURCE
             if not publish_model_result(self, result):
                 return
             shapes = []

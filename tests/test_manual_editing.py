@@ -11,7 +11,7 @@ from shapely.geometry import Polygon
 
 from moltrack.funcs.cell_events import _cell_events
 from moltrack.funcs.segmentation_events import _segmentation_events
-from moltrack.session import ProjectSession
+from moltrack.model.session import ProjectSession
 
 
 @pytest.mark.parametrize("points", [
@@ -67,7 +67,7 @@ def assert_complete_cells(h, count):
 
 @pytest.mark.parametrize("framed", [False, True])
 def test_manual_cells_are_complete_repeatable_editable_and_persisted(framed, tmp_path):
-    from moltrack import model_io
+    from moltrack.model import io as model_io
 
     h = host()
     ndim = 3 if framed else 2
@@ -187,7 +187,7 @@ def drag(h, coords, *, cancel=False):
 
 @pytest.mark.parametrize("framed", [False, True])
 def test_extend_exact_union_preserves_identity_neighbours_and_saved_geometry(framed, tmp_path):
-    from moltrack import model_io
+    from moltrack.model import io as model_io
 
     h = segmentation_host(framed)
     neighbour = h.segLayer.data[1].copy()

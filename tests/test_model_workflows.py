@@ -9,7 +9,7 @@ from test_model_processing import make_session
 
 
 def run(session, operation, settings, partitions=(("a", "image"),)):
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     pending = proc.compute(
         proc.prepare(
@@ -21,7 +21,7 @@ def run(session, operation, settings, partitions=(("a", "image"),)):
 
 
 def test_photometry_preserves_identity_and_metric_correspondence():
-    from moltrack.model_processing import PhotometrySettings
+    from moltrack.model.processing import PhotometrySettings
 
     session = make_session()
     ids = session.query_localizations("a", "image").id.to_numpy()
@@ -34,7 +34,7 @@ def test_photometry_preserves_identity_and_metric_correspondence():
 
 
 def test_registration_points_and_pixels_use_same_transform():
-    from moltrack.model_processing import RegistrationSettings
+    from moltrack.model.processing import RegistrationSettings
 
     session = make_session()
     raw_image = session.image("a", "image", space="raw")[:].copy()
@@ -59,7 +59,7 @@ def test_registration_points_and_pixels_use_same_transform():
 def test_repeat_drift_does_not_accumulate(monkeypatch):
     from types import SimpleNamespace
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     raw = session.query_localizations("a", "image", space="raw").copy()
@@ -87,7 +87,7 @@ def test_repeat_drift_does_not_accumulate(monkeypatch):
 
 
 def test_render_result_rejects_stale_rows():
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     pending = proc.compute(
@@ -109,7 +109,7 @@ def test_render_result_rejects_stale_rows():
 def test_segmentation_publishes_model_bound_masks(monkeypatch):
     from molcore import Segmentation
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
 
@@ -140,7 +140,7 @@ def test_segmentation_publishes_model_bound_masks(monkeypatch):
 def test_cancelled_photometry_does_not_publish():
     from concurrent.futures import CancelledError
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     pending = proc.compute(
@@ -161,7 +161,7 @@ def test_cancelled_photometry_does_not_publish():
 def test_tracking_uses_detection_ids_and_preserves_independent_imports():
     import pandas as pd
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     session.replace_localizations(
@@ -235,7 +235,7 @@ def test_segmentation_image_import_retains_persistent_source():
 def test_generated_track_labels_do_not_merge_with_imported_tracks():
     import pandas as pd
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     session.import_tracks(
@@ -279,7 +279,7 @@ def test_gui_publication_runs_on_qt_thread(operation, qtbot, monkeypatch):
     from molcore import Segmentation
     from qtpy.QtCore import QThread
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
     from moltrack._widget import MolTrack
 
     monkeypatch.setattr(MolTrack, "import_dev_data", lambda self: None)
@@ -537,7 +537,7 @@ def test_photometry_alex_fret_aligns_rows_and_clears_previous_metrics():
     import pandas as pd
     from molcore import Acquisition, ArraySource
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     session.model.add_acquisition(
@@ -587,7 +587,7 @@ def test_failed_photometry_second_publication_is_atomic():
     import pandas as pd
     from molcore import Acquisition, ArraySource
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     session.model.add_acquisition(
@@ -617,8 +617,8 @@ def test_registration_pixels_and_points_remain_aligned():
     import pandas as pd
     from molcore import Acquisition, ArraySource, Dataset
 
-    from moltrack import model_processing as proc
-    from moltrack.session import ProjectSession
+    from moltrack.model import processing as proc
+    from moltrack.model.session import ProjectSession
 
     image = np.zeros((2, 15, 15), dtype=np.float32)
     image[0, 5, 5] = image[1, 6, 6] = 100.0
@@ -653,8 +653,8 @@ def test_drift_applies_same_correction_to_pixels_and_points(monkeypatch):
     import pandas as pd
     from molcore import Acquisition, ArraySource, Dataset
 
-    from moltrack import model_processing as proc
-    from moltrack.session import ProjectSession
+    from moltrack.model import processing as proc
+    from moltrack.model.session import ProjectSession
 
     movie = np.zeros((2, 15, 15), dtype=np.float32)
     movie[0, 5, 5] = movie[1, 6, 6] = 100.0
@@ -695,7 +695,7 @@ def test_drift_applies_same_correction_to_pixels_and_points(monkeypatch):
 
 
 def test_deleted_acquisition_rejects_pending_registration():
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     pending = proc.compute(
@@ -719,7 +719,7 @@ def test_deleted_acquisition_rejects_pending_registration():
 def test_tracking_segmentation_groups_keep_detection_ids():
     import pandas as pd
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     ids = session.replace_localizations(
@@ -758,7 +758,7 @@ def test_tracking_progress_covers_whole_run(
     from types import SimpleNamespace
 
     from molcore.types import ProgressUpdate
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     session.bind("b", "image", "camera", "image")
@@ -800,7 +800,7 @@ def test_tracking_progress_covers_whole_run(
 
 
 def test_processing_settings_publish_with_results():
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     request = proc.ProcessingRequest(
@@ -835,8 +835,8 @@ def test_gui_tracking_memory_uses_logical_channel_frames(
     import pandas as pd
     from molcore import Acquisition, ArraySource, ChannelSpec, Dataset
 
-    from moltrack import model_processing as proc
-    from moltrack.session import ProjectSession
+    from moltrack.model import processing as proc
+    from moltrack.model.session import ProjectSession
 
     model = Dataset()
     irregular = source_frames == [0, 1, 3, 4, 6]

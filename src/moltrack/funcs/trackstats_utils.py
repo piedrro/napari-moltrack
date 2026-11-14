@@ -151,7 +151,7 @@ class _trackstats_utils:
         if track_data is None:
             return
 
-        from moltrack.model_analysis import publish_analysis
+        from moltrack.model.analysis import publish_analysis
         try:
             return publish_analysis(self.session, track_data)
         except Exception as exc:
@@ -236,7 +236,7 @@ class _trackstats_utils:
 
     def initialise_track_stats(self):
         try:
-            from moltrack.model_analysis import prepare_analysis, compute_analysis
+            from moltrack.model.analysis import prepare_analysis, compute_analysis
             if not len(self.get_tracks("All Datasets", "All Channels")):
                 show_info("No tracks found")
                 return

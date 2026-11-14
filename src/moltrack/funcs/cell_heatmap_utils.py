@@ -114,7 +114,7 @@ class _cell_heatmap_utils:
 
     def process_cell_heatmap(self, pending):
         from molcore.staging import state_token
-        from moltrack.model_cells import validate_cells
+        from moltrack.model.cells import validate_cells
         try:
             self.celllist = validate_cells(self.session, pending)
             self._heatmap_token = state_token(self.session.model)
@@ -198,7 +198,7 @@ class _cell_heatmap_utils:
 
             show_info(f"Computing cell heatmap for {n_cells} cells")
 
-            from moltrack.model_cells import prepare_cells
+            from moltrack.model.cells import prepare_cells
             prepared = prepare_cells(self.session, {"celllist": celllist, "model": model, "method": method}, cancel_event=self.stop_event)
             worker = Worker(cell_heatmap_worker, prepared)
             worker.signals.result.connect(self.process_cell_heatmap)
@@ -295,7 +295,7 @@ class _cell_heatmap_utils:
 
             elif heatmap_mode == "Render":
 
-                from moltrack.bactfit_compat import plot_cell_render
+                from moltrack.model.bactfit_compat import plot_cell_render
 
                 render = plot_cell_render(celllist, symmetry=symmetry, oversampling=oversampling,
                     blur_method=blur_method, min_blur_width=min_blur_width,
@@ -492,8 +492,8 @@ class _cell_heatmap_utils:
 
 
 def cell_heatmap_worker(prepared, progress_callback=None):
-    from moltrack.model_cells import finish_cells
-    from moltrack.model_processing import _cancel
+    from moltrack.model.cells import finish_cells
+    from moltrack.model.processing import _cancel
     _cancel(prepared.cancel_event)
     cells = prepared.payload["celllist"]
     cells.transform_cells(prepared.payload["model"], method=prepared.payload["method"], progress_callback=progress_callback)

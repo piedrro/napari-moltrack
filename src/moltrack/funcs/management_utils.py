@@ -4,7 +4,7 @@ import traceback
 
 from napari.utils.notifications import show_info
 
-from moltrack.model_views import refresh_row_projections
+from moltrack.model.views import refresh_row_projections
 
 
 class _management_utils:

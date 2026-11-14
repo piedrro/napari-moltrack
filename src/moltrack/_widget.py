@@ -233,7 +233,7 @@ class MolTrack(QWidget, gui, *subclasses):
         self.tracks_pixstats_canvas.ui.roiBtn.hide()
         self.tracks_pixstats_canvas.ui.menuBtn.hide()
 
-        from moltrack.session import ProjectSession
+        from moltrack.model.session import ProjectSession
         self.session = ProjectSession()
         self.contrast_dict = {}
         self.diffusion_dict = {}

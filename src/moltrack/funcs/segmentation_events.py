@@ -108,7 +108,7 @@ class _segmentation_events:
         self.segLayer.mouse_wheel_callbacks.append(self.dilate_segmentation)
 
         self.register_shape_layer_keybinds(self.segLayer)
-        from moltrack.model_views import record_layer_annotations, connect_layer_annotations
+        from moltrack.model.views import record_layer_annotations, connect_layer_annotations
         if restore_annotations is None:
             record_layer_annotations(self.session, self.segLayer, "segmentations", mask_ids=model_mask_ids)
         connect_layer_annotations(self.session, self.segLayer, "segmentations")

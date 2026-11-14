@@ -170,7 +170,7 @@ class _picasso_render_utils:
 
                 self.update_ui(init=True)
 
-                from moltrack.model_processing import ProcessingRequest, RenderingSettings, compute_worker, prepare
+                from moltrack.model.processing import ProcessingRequest, RenderingSettings, compute_worker, prepare
                 request = ProcessingRequest('render', tuple((d['dataset'], d['channel']) for d in loc_data),
                     RenderingSettings(blur_method=blur_method, min_blur_width=min_blur_width))
                 worker = Worker(compute_worker, prepare(self.session, request), self.stop_event)

@@ -71,8 +71,8 @@ def test_preview_populates_partition_metadata(monkeypatch):
     import pandas as pd
     from test_model_processing import make_session
 
-    from moltrack import model_processing as proc
-    from moltrack.model_views import gui_query
+    from moltrack.model import processing as proc
+    from moltrack.model.views import gui_query
 
     session = make_session()
     monkeypatch.setattr(proc, "_detect_partition", lambda *a: pd.DataFrame(
@@ -91,7 +91,7 @@ def test_full_empty_result_replaces_old_localizations(monkeypatch):
     import pandas as pd
     from test_model_processing import make_session
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     monkeypatch.setattr(proc, "_detect_partition", lambda *args:
@@ -105,7 +105,7 @@ def test_tracking_short_segmentation_does_not_discard_valid_group():
     import pandas as pd
     from test_model_processing import make_session
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     session.replace_localizations("a", "image", pd.DataFrame({
@@ -130,7 +130,7 @@ def test_cancelled_tracking_batch_does_not_return_partial_results(monkeypatch):
     import pytest
     from test_model_processing import make_session
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     session.bind("a", "second", "camera", "image")
@@ -154,7 +154,7 @@ def test_cancelled_tracking_batch_does_not_return_partial_results(monkeypatch):
 def test_empty_tracking_result_clears_previous_partition():
     from test_model_processing import make_session
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     for minimum in (1, 3):

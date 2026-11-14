@@ -15,8 +15,8 @@ class _bactfit_utils:
 
     def run_bactfit_results(self, celllist):
 
-        from moltrack.model_cells import validate_cells
-        from moltrack.project_geometry import FIT_SOURCE
+        from moltrack.model.cells import validate_cells
+        from moltrack.project.geometry import FIT_SOURCE
         try:
             celllist = validate_cells(self.session, celllist)
         except Exception as exc:
@@ -89,7 +89,7 @@ class _bactfit_utils:
 
             self.update_ui(init=True)
 
-            from moltrack.model_cells import prepare_cells
+            from moltrack.model.cells import prepare_cells
             prepared = prepare_cells(self.session, {"segmentations": segmentations, "settings": {
                 "min_radius": float(self.gui.fit_min_radius.value()),
                 "max_radius": float(self.gui.fit_max_radius.value()),
@@ -104,8 +104,8 @@ class _bactfit_utils:
 
 
 def fit_cells_worker(prepared, progress_callback=None):
-    from moltrack.bactfit_compat import fit_segmentations
-    from moltrack.model_cells import finish_cells
+    from moltrack.model.bactfit_compat import fit_segmentations
+    from moltrack.model.cells import finish_cells
     cells = fit_segmentations(
         prepared.payload["segmentations"], prepared.payload["settings"],
         progress_callback=progress_callback, cancel_event=prepared.cancel_event,

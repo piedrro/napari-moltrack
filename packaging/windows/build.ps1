@@ -71,7 +71,7 @@ print(torch.__version__, torchvision.__version__)
         throw "Expected a numeric three-part MolTrack version, got: $version"
     }
     if (-not $SkipTests) {
-        Invoke-Checked $python @('-m', 'pytest', 'tests', 'src/moltrack/_tests', '-q', '--tb=short', '--disable-warnings')
+        Invoke-Checked $python @('-m', 'pytest', 'tests', '-q', '--tb=short', '--disable-warnings')
     }
     # Native dependency discovery must not pick up unrelated DLLs from tools
     # on the caller's PATH (for example Poppler's incompatible ICU build).

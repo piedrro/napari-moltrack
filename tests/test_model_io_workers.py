@@ -8,9 +8,9 @@ import tifffile
 
 from moltrack.funcs.export_utils import _export_utils
 from moltrack.funcs.import_utils import _import_utils
-from moltrack.model_io import import_images
-from moltrack.model_views import gui_query
-from moltrack.session import ProjectSession
+from moltrack.model.io import import_images
+from moltrack.model.views import gui_query
+from moltrack.model.session import ProjectSession
 
 
 def test_queued_image_import_keeps_captured_clear_and_concatenate(monkeypatch, tmp_path):

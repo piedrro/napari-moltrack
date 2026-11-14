@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from moltrack import backend
+from moltrack.model import backend
 
 
 def test_transform_preserves_measurements_and_input():

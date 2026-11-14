@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 from molcore import Acquisition, ArraySource, Dataset, StaleResultError
 
-from moltrack.session import ProjectSession
+from moltrack.model.session import ProjectSession
 
 
 def make_session():
@@ -25,7 +25,7 @@ def make_session():
 
 
 def request(frame=None):
-    from moltrack.model_processing import DetectionSettings, ProcessingRequest
+    from moltrack.model.processing import DetectionSettings, ProcessingRequest
 
     return ProcessingRequest(
         "detect", (("a", "image"),), DetectionSettings(frame_index=frame)
@@ -33,7 +33,7 @@ def request(frame=None):
 
 
 def test_empty_preview_clears_only_selected_frame(monkeypatch):
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     monkeypatch.setattr(
@@ -47,7 +47,7 @@ def test_empty_preview_clears_only_selected_frame(monkeypatch):
 
 
 def test_changed_rows_reject_pending(monkeypatch):
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     monkeypatch.setattr(
@@ -65,7 +65,7 @@ def test_changed_rows_reject_pending(monkeypatch):
 
 
 def test_cancelled_batch_preserves_model(monkeypatch):
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     event = threading.Event()
@@ -82,7 +82,7 @@ def test_cancelled_batch_preserves_model(monkeypatch):
 
 
 def test_failed_second_partition_preserves_first(monkeypatch):
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     session.model.add_acquisition(
@@ -105,7 +105,7 @@ def test_failed_second_partition_preserves_first(monkeypatch):
 
 
 def test_deleted_binding_rejects_pending(monkeypatch):
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     monkeypatch.setattr(
@@ -122,7 +122,7 @@ def test_deleted_binding_rejects_pending(monkeypatch):
 def test_gui_detection_captures_settings_and_publishes_on_result(monkeypatch):
     from types import SimpleNamespace
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
     from moltrack.funcs.picasso_detect_utils import _picasso_detect_utils
 
     session = make_session()
@@ -174,7 +174,7 @@ def test_gui_detection_captures_settings_and_publishes_on_result(monkeypatch):
 
 
 def test_fit_retains_candidate_identity_and_metadata():
-    from moltrack.model_processing import (
+    from moltrack.model.processing import (
         DetectionSettings,
         ProcessingRequest,
         compute,
@@ -215,7 +215,7 @@ def test_fit_retains_candidate_identity_and_metadata():
 
 
 def test_changed_calibration_rejects_pending(monkeypatch):
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     monkeypatch.setattr(
@@ -231,7 +231,7 @@ def test_changed_calibration_rejects_pending(monkeypatch):
 
 
 def test_real_detection_uses_persistent_source():
-    from moltrack.model_processing import (
+    from moltrack.model.processing import (
         DetectionSettings,
         ProcessingRequest,
         compute,
@@ -280,7 +280,7 @@ def test_detection_roi_uses_corrected_candidates_and_retains_raw_positions(
 ):
     from molcore import Calibration
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     y, x = np.indices((23, 23))
     image = 100 + 1000 * np.exp(-((x - 11.0) ** 2 + (y - 12.0) ** 2) / 2)
@@ -322,7 +322,7 @@ def test_detection_roi_uses_corrected_candidates_and_retains_raw_positions(
 def test_display_roi_keeps_half_open_bounds_and_raw_overlap_distances():
     from molcore import Calibration
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     session = make_session()
     session.model.transforms.add_calibration(

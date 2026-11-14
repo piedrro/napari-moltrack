@@ -38,7 +38,7 @@ def initialise_data_export(loc_data):
 
 def export_localisation_data(loc_data):
     from molcore.files import write_table
-    from moltrack.model_io import table_columns
+    from moltrack.model.io import table_columns
 
     data = pd.DataFrame(loc_data["data"])
     if loc_data["export_mode"] == "POS.OUT":
@@ -51,7 +51,7 @@ def export_localisation_data(loc_data):
 
 def export_picasso_localisation(loc_data):
     from molcore.files import write_table
-    from moltrack.model_io import table_columns
+    from moltrack.model.io import table_columns
 
     # The export dialog already selected these columns; retain arbitrary
     # measurements instead of applying a second hard-coded field whitelist.
@@ -341,7 +341,7 @@ class _export_utils:
             self.gui.shapes_export_mode.addItems(["Binary Mask", "JSON", "Oufti/MicrobTracker Mesh"])
 
     def get_export_locs(self, dataset, channel):
-        from moltrack.model_views import gui_records
+        from moltrack.model.views import gui_records
         annotations = self.session.annotations.get("partitions", {}).get(dataset, {}).get(channel, {})
         query = self.session.query_tracks if self.gui.locs_export_data.currentText() == "Tracks" else self.session.query_localizations
         locs = gui_records(query(dataset, channel))
@@ -507,9 +507,9 @@ class _export_utils:
 
     def export_moltrack_project(self, viewer=None, path=None):
         from copy import deepcopy
-        from moltrack.model_io import save_project
-        from moltrack.model_views import layer_annotations
-        from moltrack.project_geometry import RECORD_ID, ensure_record_ids
+        from moltrack.model.io import save_project
+        from moltrack.model.views import layer_annotations
+        from moltrack.project.geometry import RECORD_ID, ensure_record_ids
 
         try:
             if path is None:

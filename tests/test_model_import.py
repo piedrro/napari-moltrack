@@ -1,6 +1,6 @@
 import numpy as np
 
-from moltrack.session import ProjectSession
+from moltrack.model.session import ProjectSession
 
 
 def job(mode="FRET", **extra):
@@ -20,7 +20,7 @@ def job(mode="FRET", **extra):
 
 
 def test_split_channels_share_source_and_roi():
-    from moltrack.model_io import import_images
+    from moltrack.model.io import import_images
 
     s = ProjectSession()
     j = job()
@@ -35,7 +35,7 @@ def test_split_channels_share_source_and_roi():
 
 
 def test_odd_alex_frame_maps_and_units():
-    from moltrack.model_io import import_images, import_rows
+    from moltrack.model.io import import_images, import_rows
 
     s = ProjectSession()
     j = job("ALEX")
@@ -58,7 +58,7 @@ def test_odd_alex_frame_maps_and_units():
 
 
 def test_multifile_channels_have_independent_sources():
-    from moltrack.model_io import import_images
+    from moltrack.model.io import import_images
 
     s = ProjectSession()
     a = job("Multi File")
@@ -73,7 +73,7 @@ def test_multifile_channels_have_independent_sources():
 
 
 def test_average_import_records_derived_source():
-    from moltrack.model_io import import_images
+    from moltrack.model.io import import_images
 
     s = ProjectSession()
     j = job()
@@ -90,7 +90,7 @@ def test_average_import_records_derived_source():
 
 
 def test_explicit_concatenation_retains_boundary_provenance():
-    from moltrack.model_io import import_images
+    from moltrack.model.io import import_images
 
     s = ProjectSession()
     a = job()
@@ -106,8 +106,8 @@ def test_explicit_concatenation_retains_boundary_provenance():
 
 
 def test_gui_queries_are_detached_and_keep_identity():
-    from moltrack.model_io import import_images, import_rows
-    from moltrack.model_views import gui_query
+    from moltrack.model.io import import_images, import_rows
+    from moltrack.model.views import gui_query
 
     s = ProjectSession()
     import_images(s, [job()])
@@ -128,7 +128,7 @@ def test_gui_queries_are_detached_and_keep_identity():
 
 
 def test_display_projection_does_not_read_full_movie(monkeypatch):
-    from moltrack.model_io import import_images
+    from moltrack.model.io import import_images
 
     s = ProjectSession()
     import_images(s, [job()])
@@ -162,7 +162,7 @@ def test_failed_clear_import_preserves_existing_session():
     import pytest
 
     from moltrack.funcs.import_utils import _import_utils
-    from moltrack.model_io import import_images
+    from moltrack.model.io import import_images
 
     host = _import_utils()
     host.session = ProjectSession()
@@ -204,7 +204,7 @@ def test_failed_nonclear_import_is_atomic():
     import pytest
     from molcore.staging import state_token
 
-    from moltrack.model_io import import_images
+    from moltrack.model.io import import_images
 
     s = ProjectSession()
     import_images(s, [job()])
@@ -228,7 +228,7 @@ def test_failure_while_adding_acquisitions_is_atomic(monkeypatch):
     from molcore import Dataset
     from molcore.staging import state_token
 
-    from moltrack.model_io import import_images
+    from moltrack.model.io import import_images
 
     s = ProjectSession()
     import_images(s, [job()])
@@ -252,7 +252,7 @@ def test_failure_while_adding_acquisitions_is_atomic(monkeypatch):
 
 
 def test_odd_alex_concatenation_preserves_source_timing():
-    from moltrack.model_io import import_images
+    from moltrack.model.io import import_images
 
     s = ProjectSession()
     a = job("ALEX")

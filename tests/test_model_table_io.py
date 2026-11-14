@@ -99,7 +99,7 @@ def test_csv_and_pos_keep_explicit_columns_and_frame_convention(tmp_path):
 def test_external_table_ids_are_provenance_and_never_reuse_live_ids():
     from test_session_mutations import make_session, rows
 
-    from moltrack.model_io import import_rows
+    from moltrack.model.io import import_rows
 
     s = make_session()
     live = s.replace_localizations("data", "acceptor", rows())
@@ -121,7 +121,7 @@ def test_external_track_groups_survive_shared_labels_overlap_and_native_roundtri
 ):
     from test_session_mutations import make_session
 
-    from moltrack.model_io import import_rows, load_project, save_project
+    from moltrack.model.io import import_rows, load_project, save_project
 
     s = make_session()
     incoming = pd.DataFrame(
@@ -159,7 +159,7 @@ def test_file_identity_provenance_survives_two_export_reimport_cycles(
 ):
     from test_session_mutations import make_session
 
-    from moltrack.model_io import import_rows
+    from moltrack.model.io import import_rows
 
     s = make_session()
     original = pd.DataFrame(

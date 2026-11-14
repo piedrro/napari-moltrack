@@ -9,14 +9,14 @@ from moltrack.funcs.compute_utils import Worker
 
 
 def _compute_detection(prepared, cancel_event, progress_callback=None):
-    from moltrack.model_processing import compute
+    from moltrack.model.processing import compute
 
     return compute(prepared, progress=progress_callback, cancel_event=cancel_event)
 
 
 class _picasso_detect_utils:
     def _publish_picasso_result(self, pending):
-        from moltrack.model_processing import publish
+        from moltrack.model.processing import publish
 
         try:
             publish(self.session, pending, cancel_event=self.stop_event)
@@ -92,7 +92,7 @@ class _picasso_detect_utils:
                     else:
                         frame_index = None
 
-                    from moltrack.model_processing import DetectionSettings, ProcessingRequest, prepare
+                    from moltrack.model.processing import DetectionSettings, ProcessingRequest, prepare
 
                     roi = self.generate_roi()
                     frozen_roi = tuple(

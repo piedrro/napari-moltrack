@@ -10,9 +10,9 @@ from molcore import Dataset, MissingSource
 from test_model_import import job
 from test_model_persistence import legacy
 
-from moltrack import model_io
-from moltrack.project_codec import AnnotationCodec
-from moltrack.session import ProjectSession
+from moltrack.model import io as model_io
+from moltrack.project.codec import AnnotationCodec
+from moltrack.model.session import ProjectSession
 
 
 def segmentation_session(*, averaged=False, role=True):

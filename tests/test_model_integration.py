@@ -6,10 +6,10 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 
-from moltrack import backend, config
-from moltrack import model_processing as proc
-from moltrack.model_io import import_images, load_project, save_project
-from moltrack.session import ProjectSession
+from moltrack.model import backend, config
+from moltrack.model import processing as proc
+from moltrack.model.io import import_images, load_project, save_project
+from moltrack.model.session import ProjectSession
 
 
 def test_alex_import_fit_track_measure_edit_correct_project_chain(

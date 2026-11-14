@@ -7,7 +7,7 @@ import pandas as pd
 from molcore import Dataset
 from molcore.staging import clone_dataset, transact
 
-from .model_views import channel_rows
+from .views import channel_rows
 
 ORIGIN = "moltrack_origin"
 DETECTION = "detection"
@@ -682,8 +682,8 @@ class ProjectSession:
     ):
         from molcore.staging import state_token
 
-        from .model_analysis import analyze_tracks
-        from .model_processing import _cancel
+        from .analysis import analyze_tracks
+        from .processing import _cancel
 
         _cancel(cancel_event)
 
@@ -753,7 +753,7 @@ class ProjectSession:
 
 def clear_statistics(model, *, ids=None):
     """Invalidate GUI-derived numeric statistics after their inputs change."""
-    from .model_analysis import STAT_COLUMNS
+    from .analysis import STAT_COLUMNS
 
     rows = model.localizations.query(ids=ids, space="raw")
     columns = {

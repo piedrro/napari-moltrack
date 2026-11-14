@@ -23,7 +23,7 @@ class MoltrackUndrifting(QObject):
     def _start(self, method):
         parent, gui = self.moltrack, self.moltrack.gui
         from molcore import DriftSettings as EstimateSettings
-        from moltrack.model_processing import DriftSettings, ProcessingRequest, compute_worker, prepare, selected_partitions
+        from moltrack.model.processing import DriftSettings, ProcessingRequest, compute_worker, prepare, selected_partitions
         selected = gui.undrift_dataset.currentText()
         channel = gui.undrift_channel.currentText()
         references = []

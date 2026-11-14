@@ -23,7 +23,7 @@ statistics. A persistent `ProjectSession` owns the MolCore Dataset; GUI tables,
 images and layers are detached projections of its sources, localization IDs and
 track memberships. GUI actions capture settings and process model snapshots;
 validated results publish atomically on the GUI thread. Array-based entry points
-in `moltrack.backend` remain available for scripts.
+in `moltrack.model.backend` remain available for scripts.
 Picasso GPU fitting appears in the existing fitting selector when Picasso detects
 a CUDA device; otherwise Picasso CPU fitting is available. The custom MolTrack
 detector remains available through a MolCore backend extension.
@@ -38,7 +38,7 @@ On Windows, run GUI tests with `QT_API=pyqt6`:
 
 ```powershell
 $env:QT_API='pyqt6'
-.venv/Scripts/python.exe -m pytest tests src/moltrack/_tests -q --tb=short --disable-warnings
+.venv/Scripts/python.exe -m pytest tests -q --tb=short --disable-warnings
 ```
 
 New projects use `.moltrack.h5`, a native MolCore HDF5 snapshot you can open

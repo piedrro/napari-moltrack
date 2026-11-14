@@ -17,12 +17,12 @@ from qtpy.QtWidgets import QFileDialog
 from shapely.geometry import Polygon
 
 from moltrack.funcs.compute_utils import Worker
-from moltrack.backend import image_source
-from moltrack.model_views import refresh_row_projections
+from moltrack.model.backend import image_source
+from moltrack.model.views import refresh_row_projections
 
 
 def import_image_data(dat, progress_dict=None, index=0):
-    from moltrack.model_io import prepare_image
+    from moltrack.model.io import prepare_image
     callback = None if progress_dict is None else lambda progress: progress_dict.__setitem__(index, progress)
     return prepare_image(dat, progress_callback=callback)
 
@@ -73,7 +73,7 @@ def process_compute_jobs(compute_jobs, progress_callback=None, verbose=False):
 
 def import_data(import_jobs, import_mode="data", progress_callback=None, verbose=False, publication=None, cancel_event=None):
     """Read captured import jobs without accessing a live widget."""
-    from moltrack.model_processing import _cancel
+    from moltrack.model.processing import _cancel
     _cancel(cancel_event)
     jobs = process_compute_jobs(import_jobs, progress_callback, verbose)
     _cancel(cancel_event)
@@ -169,7 +169,7 @@ class _import_utils:
 
 
     def publish_import_images(self, import_list, *, clear=None, concatenate=None):
-        from moltrack.model_io import import_images
+        from moltrack.model.io import import_images
         clear = self.gui.import_clear.isChecked() if clear is None else clear
         concatenate = self.gui.import_concatenate.isChecked() if concatenate is None else concatenate
         import_images(self.session, import_list, concatenate=concatenate, clear=clear)
@@ -190,7 +190,7 @@ class _import_utils:
                 return
         if result['import_mode'].lower() == 'segmentation image':
             job = result['jobs'][0]
-            from moltrack.model_io import import_images
+            from moltrack.model.io import import_images
             descriptor = dict(job, dataset_name='Segmentation Image', multichannel_mode='None', channel_name='Segmentation Image', role='segmentation_image')
             import_images(self.session, [descriptor])
             binding = 'Segmentation Image', 'Segmentation Image'
@@ -269,20 +269,20 @@ class _import_utils:
 
     def import_pos_out_locs(self, path, loc_cols=None):
         from molcore.files import read_table
-        from moltrack.model_io import select_table_columns
+        from moltrack.model.io import select_table_columns
         data = pd.DataFrame(read_table(path))
         data["frame"] = data["frame"] - 1
         return select_table_columns(data, loc_cols)
 
     def import_csv_locs(self, path, loc_cols):
         from molcore.files import read_table
-        from moltrack.model_io import select_table_columns
+        from moltrack.model.io import select_table_columns
         data = pd.DataFrame(read_table(path))
         return select_table_columns(data, loc_cols)
 
     def import_hdf5_locs(self, path, loc_cols):
         from molcore.interop import read_picasso
-        from moltrack.model_io import select_table_columns
+        from moltrack.model.io import select_table_columns
         columns, metadata = read_picasso(path)
         data = select_table_columns(pd.DataFrame(columns), loc_cols)
         data.attrs["picasso_info"] = metadata
@@ -362,7 +362,7 @@ class _import_utils:
 
                         if set(["dataset","channel","frame","x","y"]).issubset(locs_cols):
 
-                            from moltrack.model_io import import_rows
+                            from moltrack.model.io import import_rows
                             import_rows(self.session, import_dataset, import_channel, locs)
 
                             imported_locs = self.get_locs(import_dataset, import_channel)
@@ -383,7 +383,7 @@ class _import_utils:
                         locs_cols = locs.dtype.names
                         if set(["dataset","channel","particle", "frame","x","y"]).issubset(locs_cols):
 
-                            from moltrack.model_io import import_rows
+                            from moltrack.model.io import import_rows
                             import_rows(self.session, import_dataset, import_channel, locs, tracks=True)
                             self.draw_tracks()
 
@@ -560,8 +560,8 @@ class _import_utils:
 
     def import_moltrack_project(self, viewer=None, path=None):
         from copy import deepcopy
-        from moltrack.model_io import load_project
-        from moltrack.model_views import prepare_project_shape_layers
+        from moltrack.model.io import load_project
+        from moltrack.model.views import prepare_project_shape_layers
 
         candidate = None
         try:

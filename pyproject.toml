@@ -85,7 +85,7 @@ version = {attr = "moltrack.__version__"}
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["moltrack*"]
-exclude = ["moltrack.dev*", "moltrack._tests*"]
+exclude = ["moltrack.dev*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.yaml"]

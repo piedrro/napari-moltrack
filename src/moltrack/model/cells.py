@@ -7,7 +7,7 @@ from weakref import ref
 from molcore import StaleResultError
 from molcore.staging import state_token, validate_expected
 
-from .model_processing import _cancel
+from .processing import _cancel
 
 
 @dataclass(frozen=True)

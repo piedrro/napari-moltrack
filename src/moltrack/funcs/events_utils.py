@@ -845,13 +845,13 @@ class _events_utils:
 
             if translation_target in ["Segmentations", "All"]:
                 if hasattr(self, "segLayer"):
-                    from moltrack.model_views import translate_shape_vertices
+                    from moltrack.model.views import translate_shape_vertices
                     with self.segLayer.events.data.blocker(self.update_shapes):
                         translate_shape_vertices(self.segLayer, shift_vector)
 
             if translation_target in ["Cells", "All"]:
                 if hasattr(self, "cellLayer"):
-                    from moltrack.model_views import translate_shape_vertices
+                    from moltrack.model.views import translate_shape_vertices
                     with self.cellLayer.events.data.blocker(self.update_cells):
                         translate_shape_vertices(self.cellLayer, shift_vector)
                     self.store_cell_shapes()

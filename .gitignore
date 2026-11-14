@@ -1,16 +1,19 @@
-# Byte-compiled / optimized / DLL files
+# Python bytecode and generated modules
 __pycache__/
-.venv/
-.verify*/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
+**/_version.py
 
-# Distribution / packaging
+# Local Python environments
 .Python
+.venv/
+.verify*/
 env/
+venv/
+.python-version
+
+# Distribution and packaging
 build/
 develop-eggs/
 dist/
@@ -33,13 +36,16 @@ var/
 *.spec
 !/packaging/windows/moltrack.spec
 
-# Installer logs
+# Logs
+*.log
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
+# Caches and test reports
 htmlcov/
 .tox/
+.pytest_cache/
+.ruff_cache/
 .coverage
 .coverage.*
 .cache
@@ -53,44 +59,23 @@ coverage.xml
 *.mo
 *.pot
 
-# Django stuff:
-*.log
+# Local application settings
 local_settings.py
-
-# Flask instance folder
 instance/
 
-# Sphinx documentation
+# Generated documentation and other build output
 docs/_build/
-
-# MkDocs documentation
 /site/
-
-# PyBuilder
 target/
 
-# Pycharm and VSCode
+# Editors, notebooks, and OS metadata
 .idea/
-venv/
 .vscode/
-
-# IPython Notebook
 .ipynb_checkpoints
-
-# pyenv
-.python-version
-
-# OS
 .DS_Store
 
-# written by setuptools_scm
-**/_version.py
-/src/moltrack/dev/bactfit_dev.py
-/src/moltrack/dev/mask.tif
-/src/moltrack/dev/
-/src/moltrack/dev/bactfit_dev2.py
-/src/moltrack/dev/segmentations.pkl
-/src/moltrack/dev/transform_dev.py
+# Local development files and datasets
+/.superpowers/
+/development/
 /dev_data/
 /src/moltrack/dev/
-/development/

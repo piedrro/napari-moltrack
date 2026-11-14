@@ -19,7 +19,7 @@ def cell_render_host():
     import pandas as pd
     from bactfit.cell import CellList
 
-    from moltrack.bactfit_compat import _cells_from_shapes
+    from moltrack.model.bactfit_compat import _cells_from_shapes
     from moltrack.funcs.cell_heatmap_utils import _cell_heatmap_utils
 
     cell = _cells_from_shapes([rod()])[0]
@@ -76,7 +76,7 @@ def test_cell_heatmap_render_uses_current_picasso_api(cell_render_host, blur_met
 
 
 def test_failed_cell_render_is_not_displayed_or_exported(cell_render_host, monkeypatch):
-    import moltrack.bactfit_compat as compat
+    import moltrack.model.bactfit_compat as compat
     import moltrack.funcs.cell_heatmap_utils as heatmap
 
     host, shown, _ = cell_render_host
@@ -101,7 +101,7 @@ def test_failed_cell_render_is_not_displayed_or_exported(cell_render_host, monke
 def test_cell_render_adapter_preserves_viewport_and_sampling(oversampling):
     import pandas as pd
 
-    from moltrack.bactfit_compat import _render_cell_locs
+    from moltrack.model.bactfit_compat import _render_cell_locs
 
     locs = pd.DataFrame({"frame": [0], "x": [2.0], "y": [3.0]}).to_records(index=False)
     count, image = _render_cell_locs(
@@ -117,7 +117,7 @@ def test_global_cell_blur_uses_finite_precision_without_dropping_positions():
     import pandas as pd
     from picasso.render import render
 
-    from moltrack.bactfit_compat import _render_cell_locs
+    from moltrack.model.bactfit_compat import _render_cell_locs
 
     locs = pd.DataFrame({
         "frame": [0, 1, 2], "x": [2., 4., 6.], "y": [3., 4., 5.],
@@ -148,7 +148,7 @@ def test_cell_blur_falls_back_with_notice_when_precision_unavailable(
     from napari.utils import notifications
     from picasso.render import render
 
-    from moltrack.bactfit_compat import _render_cell_locs
+    from moltrack.model.bactfit_compat import _render_cell_locs
 
     rows = pd.DataFrame({"frame": [0, 1], "x": [2., 4.], "y": [3., 4.]})
     if precision is not None:
@@ -171,7 +171,7 @@ def test_cell_blur_falls_back_with_notice_when_precision_unavailable(
 
 
 def test_numpy2_fit_uses_real_algorithm_without_mutating_numpy():
-    from moltrack.bactfit_compat import _cells_from_shapes, _fit_cell
+    from moltrack.model.bactfit_compat import _cells_from_shapes, _fit_cell
 
     had_rank_warning = hasattr(np, "RankWarning")
     cell = _cells_from_shapes([rod()])[0]
@@ -183,7 +183,7 @@ def test_numpy2_fit_uses_real_algorithm_without_mutating_numpy():
 
 
 def test_framed_polygon_keeps_all_vertices_and_frame():
-    from moltrack.bactfit_compat import _cells_from_shapes
+    from moltrack.model.bactfit_compat import _cells_from_shapes
 
     points = rod()
     framed = np.column_stack((np.full(len(points), 7), points))
@@ -194,7 +194,7 @@ def test_framed_polygon_keeps_all_vertices_and_frame():
 
 
 def test_fitting_in_spawned_processes_preserves_frames():
-    from moltrack.bactfit_compat import fit_segmentations
+    from moltrack.model.bactfit_compat import fit_segmentations
 
     points = rod()
     framed = np.column_stack((np.full(len(points), 7), points))
@@ -212,7 +212,7 @@ def test_fitting_in_spawned_processes_preserves_frames():
 
 
 def test_all_failed_fits_report_failure_instead_of_returning_unfitted_cells():
-    from moltrack.bactfit_compat import fit_segmentations
+    from moltrack.model.bactfit_compat import fit_segmentations
 
     with pytest.raises(ValueError, match="No cells could be fitted"):
         fit_segmentations([rod()], {"max_error": 0.000001}, max_workers=1)
@@ -221,7 +221,7 @@ def test_all_failed_fits_report_failure_instead_of_returning_unfitted_cells():
 def test_empty_shapes_and_cancellation():
     from concurrent.futures import CancelledError
 
-    from moltrack.bactfit_compat import fit_segmentations
+    from moltrack.model.bactfit_compat import fit_segmentations
 
     assert fit_segmentations([], {}) is None
     cancelled = Event()

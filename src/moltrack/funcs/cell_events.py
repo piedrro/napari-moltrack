@@ -8,7 +8,7 @@ from bactfit.cell import Cell
 from napari.utils.notifications import show_info
 from shapely.geometry import LineString, Point, Polygon
 
-from moltrack.bactfit_compat import manual_fit
+from moltrack.model.bactfit_compat import manual_fit
 
 
 def _with_frame(points, frame):
@@ -147,7 +147,7 @@ class _cell_events:
 
         self.store_cell_shapes(init=True)
 
-        from moltrack.model_views import record_layer_annotations, connect_layer_annotations
+        from moltrack.model.views import record_layer_annotations, connect_layer_annotations
         if restore_annotations is None:
             record_layer_annotations(self.session, self.cellLayer, "cells")
         connect_layer_annotations(self.session, self.cellLayer, "cells")

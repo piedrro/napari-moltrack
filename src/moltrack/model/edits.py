@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from molcore.staging import state_token, transact, validate_expected
 
-from .model_processing import _cancel
+from .processing import _cancel
 
 
 @dataclass(frozen=True)
@@ -95,7 +95,7 @@ def publish_merge(session, pending):
         return
 
     def commit(model):
-        from moltrack.session import ProjectSession
+        from moltrack.model.session import ProjectSession
 
         staged = ProjectSession(model)
         staged._partitions = deepcopy(prepared.bindings)
@@ -115,7 +115,7 @@ def publish_merge(session, pending):
                 _cancel(prepared.cancel_event)
                 raw = staged.display_to_raw(dataset, channel, columns)
                 staged.replace_localizations(dataset, channel, raw)
-        from moltrack.session import clear_statistics
+        from moltrack.model.session import clear_statistics
 
         affected_ids = np.concatenate(
             [

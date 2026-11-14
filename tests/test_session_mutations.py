@@ -4,7 +4,7 @@ import pytest
 from molcore import Acquisition, ArraySource, Dataset, Segmentation
 from molcore.staging import state_token
 
-from moltrack.session import ProjectSession
+from moltrack.model.session import ProjectSession
 
 
 def make_session():
@@ -89,7 +89,7 @@ def merge_noop_session(channel_count=2, populated=True):
 def test_merge_fewer_than_two_populated_channels_preserves_entire_state(
     channel_count, populated
 ):
-    from moltrack.model_edits import (
+    from moltrack.model.edits import (
         compute_merge,
         prepare_merge,
         publish_merge,
@@ -116,7 +116,7 @@ def test_merge_fewer_than_two_populated_channels_preserves_entire_state(
 
 
 def test_merge_all_datasets_skips_ineligible_and_keeps_global_channel_guard():
-    from moltrack.model_edits import (
+    from moltrack.model.edits import (
         compute_merge,
         prepare_merge,
         publish_merge,
@@ -164,7 +164,7 @@ def test_merge_noop_still_rejects_stale_or_cancelled_publication(change):
 
     from molcore import StaleResultError
 
-    from moltrack.model_edits import (
+    from moltrack.model.edits import (
         compute_merge,
         prepare_merge,
         publish_merge,
@@ -239,7 +239,7 @@ def test_track_retain_preserves_detection_rows_and_track_id():
 
 @pytest.mark.parametrize("retained", ["all", "whole", "partial", "none"])
 def test_track_filter_preserves_statistics_of_unchanged_tracks(retained):
-    from moltrack.model_analysis import (
+    from moltrack.model.analysis import (
         compute_analysis,
         prepare_analysis,
         publish_analysis,
@@ -351,7 +351,7 @@ def test_persistent_analysis_cache_recomputes_after_calibration_and_is_detached(
 def test_annotation_edit_rejects_prepared_analysis_and_processing():
     from molcore import StaleResultError
 
-    from moltrack.model_analysis import (
+    from moltrack.model.analysis import (
         compute_analysis,
         prepare_analysis,
         publish_analysis,
@@ -368,7 +368,7 @@ def test_annotation_edit_rejects_prepared_analysis_and_processing():
 
 
 def test_special_segmentation_image_excluded_from_ordinary_processing():
-    from moltrack.model_processing import selected_partitions
+    from moltrack.model.processing import selected_partitions
 
     s = make_session()
     s.model.add_acquisition(
@@ -410,7 +410,7 @@ def test_copy_display_positions_into_transformed_target_without_double_correctio
 
 
 def test_calibration_and_shape_edits_clear_stale_published_statistics():
-    from moltrack.model_analysis import (
+    from moltrack.model.analysis import (
         compute_analysis,
         prepare_analysis,
         publish_analysis,
@@ -445,7 +445,7 @@ def test_application_provenance_roundtrips_and_cascades_without_native_run_colli
 ):
     from molcore.storage import open_dataset, save_dataset
 
-    from moltrack import model_processing as proc
+    from moltrack.model import processing as proc
 
     s = make_session()
     for ch in ("donor", "acceptor"):
@@ -503,7 +503,7 @@ def test_cancel_after_computation_preserves_all_native_state(operation):
     )
     event = Event()
     if operation == "analysis":
-        from moltrack.model_analysis import (
+        from moltrack.model.analysis import (
             compute_analysis,
             prepare_analysis,
             publish_analysis,
@@ -515,7 +515,7 @@ def test_cancel_after_computation_preserves_all_native_state(operation):
         def publish():
             return publish_analysis(s, pending)
     elif operation == "merge":
-        from moltrack.model_edits import (
+        from moltrack.model.edits import (
             compute_merge,
             prepare_merge,
             publish_merge,
@@ -527,7 +527,7 @@ def test_cancel_after_computation_preserves_all_native_state(operation):
         def publish():
             return publish_merge(s, pending)
     else:
-        from moltrack.model_cells import (
+        from moltrack.model.cells import (
             finish_cells,
             prepare_cells,
             validate_cells,
@@ -557,21 +557,21 @@ def test_cancel_before_computation_skips_work(operation):
     event.set()
     s = make_session()
     if operation == "analysis":
-        from moltrack.model_analysis import compute_analysis, prepare_analysis
+        from moltrack.model.analysis import compute_analysis, prepare_analysis
 
         prepared = prepare_analysis(s, cancel_event=event)
 
         def compute():
             return compute_analysis(prepared)
     elif operation == "merge":
-        from moltrack.model_edits import compute_merge, prepare_merge
+        from moltrack.model.edits import compute_merge, prepare_merge
 
         prepared = prepare_merge(s, "data", 1.0, cancel_event=event)
 
         def compute():
             return compute_merge(prepared)
     else:
-        from moltrack.model_cells import finish_cells, prepare_cells
+        from moltrack.model.cells import finish_cells, prepare_cells
 
         prepared = prepare_cells(s, {"data": []}, cancel_event=event)
 

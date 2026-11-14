@@ -13,15 +13,15 @@ import numpy as np
 from molcore import Dataset, MissingSource
 from molcore.staging import clone_dataset
 
-from .project_codec import AnnotationCodec
-from .project_geometry import (
+from .codec import AnnotationCodec
+from .geometry import (
     GEOMETRY_LAYERS,
     RECORD_ID,
     encode_geometry,
     ensure_record_ids,
     restore_geometry,
 )
-from .session import ProjectSession
+from moltrack.model.session import ProjectSession
 
 FORMAT = "moltrack-project"
 VERSION = 1
@@ -231,7 +231,7 @@ def load_project(path, *, include_images=True):
         return _load_zip(path, include_images)
     if path.suffix.lower() in {".h5", ".hdf5"}:
         raise ValueError("Invalid MolCore HDF5 project")
-    from .project_legacy import from_legacy, read_legacy
+    from .legacy import from_legacy, read_legacy
 
     session = from_legacy(read_legacy(path), include_images=include_images)
     try:

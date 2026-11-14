@@ -11,7 +11,7 @@ from moltrack.funcs.management_utils import _management_utils
 from moltrack.funcs.track_filter_utils import _track_filter_utils
 from moltrack.funcs.tracking_utils import _tracking_utils
 from moltrack.funcs.trackstats_utils import _trackstats_utils
-from moltrack.model_views import gui_query
+from moltrack.model.views import gui_query
 
 
 def control(value):
@@ -204,7 +204,7 @@ def test_gui_track_filter_empty_result_clears_all_memberships_retains_detections
 
 @pytest.mark.parametrize("imported", [False, True])
 def test_gui_track_filter_preserves_statistics_and_can_filter_again(imported):
-    from moltrack.model_analysis import compute_analysis, prepare_analysis, publish_analysis
+    from moltrack.model.analysis import compute_analysis, prepare_analysis, publish_analysis
 
     h = Host()
     for channel in ("donor", "acceptor"):
@@ -271,7 +271,7 @@ def test_gui_segtrack_removal_empty_result_retains_detection_rows():
 
 def test_gui_track_stats_updates_measurements_by_stable_id():
     h = populated()
-    from moltrack.model_analysis import compute_analysis, prepare_analysis
+    from moltrack.model.analysis import compute_analysis, prepare_analysis
 
     ids = h.session.query_tracks("data", "donor").id.tolist()
     pending = compute_analysis(prepare_analysis(h.session, fit_lags=2))
@@ -423,7 +423,7 @@ def test_localization_cascades_refresh_visible_tracks_and_consumers(
     from napari.components import ViewerModel
 
     from moltrack.funcs.import_utils import _import_utils
-    from moltrack.model_edits import compute_merge, prepare_merge
+    from moltrack.model.edits import compute_merge, prepare_merge
 
     class ProjectionHost(Host, _import_utils):
         def draw_tracks(self, *args, **kwargs):

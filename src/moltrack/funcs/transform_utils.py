@@ -158,7 +158,7 @@ class _transform_utils:
                     else:
                         self.update_ui(init=True)
 
-                        from moltrack.model_processing import ProcessingRequest, RegistrationSettings, compute_worker, prepare
+                        from moltrack.model.processing import ProcessingRequest, RegistrationSettings, compute_worker, prepare
                         target = self.gui.tform_apply_target.currentText().lower()
                         channels = ('donor', 'dd', 'da') if 'donor' in target else ('acceptor', 'aa', 'ad')
                         partitions = tuple((d, c) for d in self.session.datasets()

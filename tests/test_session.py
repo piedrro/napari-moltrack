@@ -5,7 +5,7 @@ from molcore import Acquisition, ArraySource, Dataset
 
 
 def session():
-    from moltrack.session import ProjectSession
+    from moltrack.model.session import ProjectSession
 
     model = Dataset()
     model.add_acquisition(
@@ -121,12 +121,12 @@ def test_failed_track_import_keeps_previous_results():
 def test_channel_frames_and_napari_projections():
     from molcore import ChannelSpec
 
-    from moltrack.model_views import (
+    from moltrack.model.views import (
         gui_records,
         localization_points,
         track_points,
     )
-    from moltrack.session import ProjectSession
+    from moltrack.model.session import ProjectSession
 
     model = Dataset()
     model.add_acquisition(

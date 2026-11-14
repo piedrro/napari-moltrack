@@ -10,8 +10,8 @@ from molcore import BactFitCell, Dataset, MissingSource, SegmentationOutline
 from shapely.geometry import LineString, Polygon
 from test_model_import import job
 
-from moltrack import model_io
-from moltrack.session import ProjectSession
+from moltrack.model import io as model_io
+from moltrack.model.session import ProjectSession
 
 
 def populated():
@@ -330,7 +330,7 @@ def test_unknown_version_and_unexpected_zip_members_are_rejected(tmp_path):
 
 
 def test_historical_zip_project_migrates_to_native_hdf5(tmp_path):
-    from moltrack.project_codec import AnnotationCodec
+    from moltrack.project.codec import AnnotationCodec
 
     session = populated()
     polygon = np.array([[2, 1], [2, 4], [3, 4]])
