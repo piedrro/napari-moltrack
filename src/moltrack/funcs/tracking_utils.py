@@ -5,11 +5,19 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
+from napari.utils.colormaps import ensure_colormap
 from napari.utils.notifications import show_info
+from qtpy.QtCore import QSignalBlocker
 from shapely.geometry import Point
 from shapely.strtree import STRtree
 
 from moltrack.funcs.compute_utils import Worker
+from moltrack.funcs.filter_range_utils import (
+    HistogramFilterRange,
+    clear_filter_plot,
+    reset_filter_limits,
+)
+from moltrack.model.views import available_track_metrics
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -203,7 +211,11 @@ class _tracking_utils:
                     min_length=int(self.gui.min_track_length.value()),
                     remove_unlinked=self.gui.remove_unlinked.isChecked(),
                     polygons=polygons,
-                    segmentation_column=segchannel[:-1].lower() + '_index' if segmented else None)
+                    segmentation_column=segchannel[:-1].lower() + '_index' if segmented else None,
+                    boundary_allowance=(
+                        self.gui.tracking_boundary_allowance.value() if segmented else 0.0
+                    ),
+                )
                 request = ProcessingRequest('tracking', tuple((d['dataset'], d['channel']) for d in loc_data), settings)
                 worker = Worker(compute_worker, prepare(self.session, request), self.stop_event)
                 worker.signals.result.connect(self.process_tracking_results)
@@ -239,7 +251,65 @@ class _tracking_utils:
         return nice * base
 
 
-    def draw_tracks(self, viewer=None, track_id=None, reset_cmap_range = True):
+    def update_track_cmap_options(self, rows):
+        options = available_track_metrics(rows, self.moltrack_metrics)
+        self.moltrack_metrics.update(options)
+        combo = self.gui.track_colour_metric
+        selected = combo.currentText()
+        with QSignalBlocker(combo):
+            combo.clear()
+            combo.addItems(list(options))
+            if selected in options:
+                combo.setCurrentText(selected)
+            combo.setEnabled(bool(options))
+
+    def plot_track_cmap_histogram(self, metric, values):
+        canvas = self.track_cmap_canvas
+        minimum, maximum = self.gui.track_colour_min, self.gui.track_colour_max
+        clear_filter_plot(canvas)
+        reset_filter_limits(values, minimum, maximum)
+        for field in (minimum, maximum):
+            field.setEnabled(bool(len(values)))
+        if not len(values):
+            return
+
+        counts, edges = np.histogram(values, bins=50)
+        plot = canvas.addPlot()
+        plot.plot(edges, counts, stepMode="center", fillLevel=0, brush=(0, 0, 255, 75))
+        plot.setLabel("bottom", metric)
+        plot.setLabel("left", "Frequency")
+        low, high = minimum.value(), maximum.value()
+        step = self.nice_step(low, high) if high > low else 1.0
+        minimum.setSingleStep(step)
+        maximum.setSingleStep(step)
+        HistogramFilterRange(canvas, plot, minimum, maximum, on_change=self.update_track_cmap)
+
+    def update_track_cmap(self, _index=None):
+        layer = getattr(self, "track_layer", None)
+        if layer is None:
+            return
+
+        metric, values = self._track_cmap_data
+        cmap_name = self.gui.track_colour_colourmap.currentText()
+        if values is None:
+            layer.color_by = "track_id"
+            layer.colormaps_dict = {}
+            layer.properties = {}
+        else:
+            low = self.gui.track_colour_min.value()
+            high = self.gui.track_colour_max.value()
+            normalized = np.zeros_like(values)
+            if high > low:
+                np.subtract(values, low, out=normalized, where=np.isfinite(values))
+                normalized = np.clip(normalized / (high - low), 0, 1)
+            # Apply the selected limits through a property-specific colormap.
+            layer.colormaps_dict = {metric: ensure_colormap(cmap_name)}
+            layer.properties = {metric: normalized}
+            layer.color_by = metric
+        if layer.colormap != cmap_name:
+            layer.colormap = cmap_name
+
+    def draw_tracks(self, viewer=None, track_id=None, reset_cmap_range=True):
         try:
 
             remove_tracks = True
@@ -250,8 +320,8 @@ class _tracking_utils:
                 else:
                     show_tracks = True
 
+            layer_names = [layer.name for layer in self.viewer.layers]
             if show_tracks:
-                layer_names = [layer.name for layer in self.viewer.layers]
 
                 dataset_name = self.gui.moltrack_dataset_selector.currentText()
                 channel_name = self.gui.moltrack_channel_selector.currentText()
@@ -269,53 +339,29 @@ class _tracking_utils:
                     remove_tracks = False
 
                     render_tracks = pd.DataFrame(tracks)
+                    if reset_cmap_range:
+                        self.update_track_cmap_options(render_tracks)
 
-                    cmap_metric = self.gui.track_colour_metric.currentText()
-                    cmap_metric = self.moltrack_metrics.get(cmap_metric)
+                    metric_label = self.gui.track_colour_metric.currentText()
+                    cmap_metric = self.moltrack_metrics.get(metric_label)
                     cmap_name = self.gui.track_colour_colourmap.currentText()
 
-                    if cmap_metric in render_tracks.columns and np.isfinite(render_tracks[cmap_metric].to_numpy(dtype=float)).any():
-                        metric_data = render_tracks[cmap_metric].to_numpy(dtype=float)
+                    metric_data = None
+                    finite_metrics = np.empty(0)
+                    if cmap_metric in render_tracks.columns:
+                        values = pd.to_numeric(render_tracks[cmap_metric], errors="coerce")
+                        metric_data = values.to_numpy(dtype=float, na_value=np.nan)
                         finite_metrics = metric_data[np.isfinite(metric_data)]
-
-                        if reset_cmap_range:
-                            cmap_min = min(finite_metrics)
-                            cmap_max = max(finite_metrics)
-
-                            step = self.nice_step(cmap_min,cmap_max) if cmap_max > cmap_min else 1.0
-                            self.gui.track_colour_min.blockSignals(True)
-                            self.gui.track_colour_max.blockSignals(True)
-
-                            self.gui.track_colour_min.setRange(cmap_min, cmap_max)
-                            self.gui.track_colour_max.setRange(cmap_min, cmap_max)
-
-                            self.gui.track_colour_min.setValue(cmap_min)
-                            self.gui.track_colour_max.setValue(cmap_max)
-
-                            self.gui.track_colour_min.setSingleStep(step)
-                            self.gui.track_colour_max.setSingleStep(step)
-
-                            self.gui.track_colour_min.blockSignals(False)
-                            self.gui.track_colour_max.blockSignals(False)
-                        else:
-                            cmap_min = self.gui.track_colour_min.value()
-                            cmap_max = self.gui.track_colour_max.value()
-
-                        if cmap_min > cmap_max:
-                            cmap_min, cmap_max = cmap_max, cmap_min
-
-                        metric_norm_data = (
-                            np.clip((metric_data - cmap_min) / (cmap_max - cmap_min), 0, 1)
-                            if cmap_max > cmap_min else np.zeros(len(metric_data))
-                        )
-                    else:
-                        metric_norm_data = None
+                        if not len(finite_metrics):
+                            metric_data = None
+                    if reset_cmap_range:
+                        self.plot_track_cmap_histogram(metric_label, finite_metrics)
 
                     if track_id in render_tracks["track_id"].values:
                         selected = render_tracks["track_id"] == track_id
                         render_tracks = render_tracks[selected]
-                        if metric_norm_data is not None:
-                            metric_norm_data = metric_norm_data[selected]
+                        if metric_data is not None:
+                            metric_data = metric_data[selected]
                     render_tracks = render_tracks[["track_id", "frame", "y", "x"]]
 
                     render_tracks = render_tracks.to_records(index=False)
@@ -323,12 +369,11 @@ class _tracking_utils:
                     render_tracks = np.array(render_tracks).copy()
                     render_tracks[:, 1] = 0
 
-                    properties = {cmap_metric: metric_norm_data}
 
                     if "Tracks" not in layer_names:
                         self.track_layer = self.viewer.add_tracks(
                             render_tracks, name="Tracks",scale=scale,
-                            colormap=cmap_name, properties=properties,
+                            colormap=cmap_name,
                             color_by="track_id", units=units,)
 
                         self.viewer.reset_view()
@@ -340,16 +385,13 @@ class _tracking_utils:
                         self.track_layer.data = render_tracks
                         self.track_layer.scale = scale
                         self.track_layer.units = units
-                        self.track_layer.colormap = cmap_name
 
                     if self.gui.show_tracks.isChecked() == False:
                         if self.track_layer in self.viewer.layers:
                             self.viewer.layers.remove(self.track_layer)
 
-                    self.track_layer.properties = properties
-
-                    if metric_norm_data is not None:
-                        self.track_layer.color_by = cmap_metric
+                    self._track_cmap_data = (cmap_metric, metric_data)
+                    self.update_track_cmap()
 
                     self.track_layer.tail_length = n_frames * 2
                     self.track_layer.blending = "opaque"
@@ -360,6 +402,9 @@ class _tracking_utils:
                     self.track_layer.units = ("pixel", "nm", "nm")
 
             if remove_tracks:
+                if reset_cmap_range:
+                    self.update_track_cmap_options(None)
+                    self.plot_track_cmap_histogram("", ())
                 try:
                     if "Tracks" in layer_names:
                         self.viewer.layers.remove("Tracks")

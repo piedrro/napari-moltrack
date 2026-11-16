@@ -2762,7 +2762,7 @@
            <item>
             <widget class="QLabel" name="label_148">
              <property name="text">
-              <string>When a segmentation (segmentation /cells) layer is selected, the linking algorithm only links the localisations within each segmentation, ensuring that particle tracks are confined within unique segmentations.</string>
+              <string>Select Segmentations or Cells to link localisations by polygon.</string>
              </property>
              <property name="wordWrap">
               <bool>true</bool>
@@ -2796,27 +2796,44 @@
               </widget>
              </item>
              <item row="4" column="0">
+              <widget class="QLabel" name="label_tracking_boundary_allowance">
+               <property name="text">
+                <string>Boundary Allowance (px)</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="1">
+              <widget class="QDoubleSpinBox" name="tracking_boundary_allowance">
+               <property name="toolTip">
+                <string>With Cells or Segmentations selected, zero requires strict containment. A positive value allows points within this distance of the nearest outline.</string>
+               </property>
+               <property name="singleStep">
+                <double>0.500000000000000</double>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="0">
               <widget class="QLabel" name="label_99">
                <property name="text">
                 <string>Memory (Frames)</string>
                </property>
               </widget>
              </item>
-             <item row="4" column="1">
+             <item row="5" column="1">
               <widget class="QSpinBox" name="trackpy_memory">
                <property name="value">
                 <number>1</number>
                </property>
               </widget>
              </item>
-             <item row="5" column="0">
+             <item row="6" column="0">
               <widget class="QLabel" name="label_100">
                <property name="text">
                 <string>Min Track Length (Frames)</string>
                </property>
               </widget>
              </item>
-             <item row="5" column="1">
+             <item row="6" column="1">
               <widget class="QSpinBox" name="min_track_length">
                <property name="minimum">
                 <number>1</number>
@@ -3328,6 +3345,9 @@
                </item>
                <item row="0" column="1">
                 <widget class="QDoubleSpinBox" name="track_colour_min">
+                 <property name="decimals">
+                  <number>6</number>
+                 </property>
                  <property name="minimum">
                   <double>-999999999.000000000000000</double>
                  </property>
@@ -3349,6 +3369,9 @@
                </item>
                <item row="0" column="1">
                 <widget class="QDoubleSpinBox" name="track_colour_max">
+                 <property name="decimals">
+                  <number>6</number>
+                 </property>
                  <property name="minimum">
                   <double>-99999999999.000000000000000</double>
                  </property>
@@ -3362,17 +3385,14 @@
             </layout>
            </item>
            <item>
-            <spacer name="verticalSpacer_36">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
+            <widget class="QWidget" name="track_cmap_graph_container" native="true">
+             <property name="minimumSize">
               <size>
-               <width>20</width>
-               <height>40</height>
+               <width>0</width>
+               <height>140</height>
               </size>
              </property>
-            </spacer>
+            </widget>
            </item>
           </layout>
          </widget>

@@ -3,133 +3,14 @@ import warnings
 from functools import partial
 
 import numpy as np
-import pandas as pd
 from napari.utils.notifications import show_info
-from shapely.geometry import LineString, Point, Polygon
+from shapely.geometry import LineString, Polygon
 
 from moltrack.funcs.compute_utils import Worker
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
 class _trackstats_utils:
-
-    @staticmethod
-    def calculate_track_angles(coords):
-        # Calculate the difference between each consecutive point
-        vectors = np.diff(coords, axis=0)
-
-        # Calculate the angles of these vectors relative to the x-axis
-        angles = np.arctan2(vectors[:, 1], vectors[:, 0])
-
-        # Convert angles from radians to degrees
-        angles = np.degrees(angles)
-
-        # Initialize the relative angles array with zeros
-        relative_angles = np.zeros(len(coords))
-
-        # The first angle is zero
-        relative_angles[0] = 0
-
-        # Calculate the difference in angles between consecutive vectors
-        for i in range(1, len(angles) + 1):
-            relative_angles[i] = (angles[i - 1] - angles[i - 2] + 360) % 360 if i > 1 else angles[i - 1]
-
-        return relative_angles
-
-    @staticmethod
-    def get_track_shape_stats(track_data, shape_data, pixel_size):
-
-        shape_stats = {}
-
-        try:
-            if shape_data is None:
-                return shape_stats
-
-            polygon_index = None
-
-            track_coords = np.array(track_data[["x", "y"]].values)
-            track_line = LineString(track_coords)
-
-            if "polygons" in shape_data.keys():
-                polygons = shape_data["polygons"]
-
-                polygon_index = [polygon_index for polygon_index, polygon in enumerate(polygons) if track_line.intersects(polygon)]
-
-                if len(polygon_index) == 0:
-                    return shape_stats
-
-                polygon_index = polygon_index[0]
-                polygon = polygons[polygon_index]
-                polygon_centroid = polygon.centroid.coords[0]
-
-                try:
-                    centroid_distance = [Point(coord).distance(Point(polygon_centroid)) for coord in track_coords]
-
-                    if len(centroid_distance) == len(track_coords):
-                        centroid_distance = np.array(centroid_distance)
-                        centroid_distance = centroid_distance * pixel_size
-                        centroid_distance = centroid_distance.tolist()
-                        shape_stats["centroid_distance"] = centroid_distance
-
-                except:
-                    pass
-
-                try:
-                    polygon_coords = np.array(polygon.exterior.coords)
-                    polygon_outline = LineString(polygon_coords)
-
-                    membrane_distance = [Point(coord).distance(polygon_outline) for coord in track_coords]
-
-                    if len(membrane_distance) == len(track_coords):
-                        membrane_distance = np.array(membrane_distance)
-                        membrane_distance = membrane_distance * pixel_size
-                        membrane_distance = membrane_distance.tolist()
-                        shape_stats["membrane_distance"] = membrane_distance
-                except:
-                    pass
-
-            if "midlines" in shape_data.keys():
-
-                if polygon_index is not None:
-
-                    midlines = shape_data["midlines"]
-                    midline = midlines[polygon_index]
-
-                    try:
-
-                        midline_distance = [Point(coord).distance(midline) for coord in track_coords]
-
-                        if len(midline_distance) == len(track_coords):
-                            midline_distance = np.array(midline_distance)
-                            midline_distance = midline_distance * pixel_size
-                            midline_distance = midline_distance.tolist()
-                            shape_stats["midline_distance"] = midline_distance
-
-                    except:
-                        pass
-
-                    try:
-
-                        midline_coords = np.array(midline.coords)
-
-                        cell_poles = [Point(midline_coords[0]), Point(midline_coords[-1])]
-
-                        cell_pole_distance = [min([Point(coord).distance(pole) for pole in cell_poles]) for coord in track_coords]
-
-                        if len(cell_pole_distance) == len(track_coords):
-                            cell_pole_distance = np.array(cell_pole_distance)
-                            cell_pole_distance = cell_pole_distance * pixel_size
-                            cell_pole_distance = cell_pole_distance.tolist()
-                            shape_stats["cell_pole_distance"] = cell_pole_distance
-
-                    except:
-                        pass
-
-        except:
-            print(traceback.format_exc())
-
-        return shape_stats
-
 
     def compute_track_stats_finished(self):
 
@@ -142,6 +23,7 @@ class _trackstats_utils:
         self.update_traces_export_options()
 
         self.update_trackplot_options()
+        self.draw_tracks()
         self.plot_tracks()
 
         self.update_ui()

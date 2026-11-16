@@ -166,6 +166,7 @@ class _pixstats_utils:
         self.update_traces_export_options()
 
         self.update_trackplot_options()
+        self.draw_tracks()
         self.plot_tracks()
 
 

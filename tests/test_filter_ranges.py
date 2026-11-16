@@ -228,3 +228,129 @@ def test_small_values_keep_a_usable_full_range(histogram):
     histogram.draw(np.array([-0.004, -0.001]))
     assert (histogram.low.value(), histogram.high.value()) == (-0.01, 0.0)
     assert regions(histogram)[0].getRegion() == (-0.01, 0.0)
+
+
+def test_tracks_cmap_histogram_updates_the_visible_colour_scale(qtbot):
+    import pandas as pd
+    from napari.components import ViewerModel
+    from napari.utils.colormaps import ensure_colormap
+    from qtpy.QtWidgets import QComboBox
+
+    from moltrack.funcs.tracking_utils import _tracking_utils
+
+    host = _tracking_utils()
+    canvas = pg.GraphicsLayoutWidget()
+    low, high, colours, metrics = QDoubleSpinBox(), QDoubleSpinBox(), QComboBox(), QComboBox()
+    for widget in (canvas, low, high, colours, metrics):
+        qtbot.addWidget(widget)
+    colours.addItems(["viridis", "plasma"])
+    host.track_cmap_canvas = canvas
+    host.viewer = ViewerModel()
+    host.session = SimpleNamespace(
+        image=lambda *args: np.empty((2, 16, 16)),
+        _view=lambda *args: SimpleNamespace(
+            acquisition=SimpleNamespace(pixel_size=None)
+        ),
+    )
+    selector = SimpleNamespace(currentText=lambda: "Speed")
+    host.gui = SimpleNamespace(
+        moltrack_dataset_selector=selector,
+        moltrack_channel_selector=selector,
+        track_colour_metric=metrics,
+        track_colour_colourmap=colours,
+        track_colour_min=low,
+        track_colour_max=high,
+        show_tracks=SimpleNamespace(isChecked=lambda: True),
+    )
+    host.moltrack_metrics = {"D": "D", "Speed": "speed"}
+    host.select_track = lambda *args: None
+    rows = pd.DataFrame({
+        "track_id": [1, 1, 2, 2, 3, 3],
+        "frame": [0, 1, 0, 1, 0, 1],
+        "x": [1, 2, 3, 4, 5, 6],
+        "y": [1, 2, 3, 4, 5, 6],
+        "speed": [0.0, 2.0, 4.0, 6.0, 10.0, np.nan],
+        "D": [np.nan, np.inf, -np.inf, np.nan, np.nan, np.nan],
+    })
+    host.get_tracks = lambda *args, **kwargs: rows
+
+    host.draw_tracks()
+    assert [metrics.itemText(i) for i in range(metrics.count())] == ["Speed"]
+    region, = regions(SimpleNamespace(canvas=canvas))
+    assert region.getRegion() == (0.0, 10.0)
+    layer = host.track_layer
+    region.setRegion((2.0, 8.0))
+    assert (low.value(), high.value()) == (2.0, 8.0)
+    assert len(layer.data) == len(rows)
+    np.testing.assert_allclose(layer.properties["speed"][:5], [0, 0, 1/3, 2/3, 1])
+
+    host.draw_tracks(track_id=2, reset_cmap_range=False)
+    low.setValue(3)
+    assert region.getRegion() == (3.0, 8.0)
+    expected = np.array([0.2, 0.6])
+    np.testing.assert_allclose(layer.track_colors, ensure_colormap("viridis").map(expected))
+    colours.setCurrentText("plasma")
+    host.update_track_cmap()
+    assert region.getRegion() == (3.0, 8.0)
+    np.testing.assert_allclose(layer.track_colors, ensure_colormap("plasma").map(expected))
+
+    rows["speed"] = np.nan
+    host.draw_tracks()
+    assert metrics.count() == 0
+    assert regions(SimpleNamespace(canvas=canvas)) == []
+    assert layer.color_by == "track_id"
+
+    rows.loc[0, "D"] = 0.0
+    host.draw_tracks()
+    assert metrics.currentText() == "D"
+    assert layer.color_by == "D"
+
+
+def test_track_plot_and_filter_offer_available_metrics(qtbot):
+    import pandas as pd
+    from qtpy.QtWidgets import QComboBox
+
+    from moltrack.funcs.trackplot_utils import _trackplot_utils
+
+    class Host(_trackplot_utils, _track_filter_utils):
+        pass
+
+    host = Host()
+    host.session = object()
+    host.moltrack_metrics = {"Photons": "photons", "Speed": "speed", "D": "D"}
+    rows = pd.DataFrame({
+        "dataset": ["a", "a", "a"],
+        "channel": ["image", "image", "image"],
+        "track_id": [1, 1, 1],
+        "photons": [100.0, 200.0, 300.0],
+        "speed": [np.nan, np.inf, -np.inf],
+        "D": pd.array([pd.NA, pd.NA, pd.NA], dtype="Float64"),
+    })
+    host.trackplot_tracks = rows
+    host.get_tracks = lambda *args: rows
+    host.init_trackplot_tracks = lambda **kwargs: None
+    host.initialise_trackplot_slider = lambda: None
+    host.plot_tracks = lambda: None
+    host.update_track_filter_metric = lambda: None
+    controls = {}
+    for name in (*[f"trackplot_metric{i}" for i in range(1, 5)], "track_filter_criterion"):
+        controls[name] = QComboBox()
+        qtbot.addWidget(controls[name])
+    selector = SimpleNamespace(currentText=lambda: "image")
+    host.gui = SimpleNamespace(**controls, track_filter_dataset=selector, track_filter_channel=selector)
+
+    def items(name):
+        combo = controls[name]
+        return [combo.itemText(i) for i in range(combo.count())]
+
+    host.update_trackplot_options()
+    host.update_track_filter_criterion()
+    assert items("trackplot_metric1") == ["Photons"]
+    assert items("trackplot_metric2") == ["", "Photons"]
+    assert items("track_filter_criterion") == ["Track Length", "Photons"]
+
+    rows.loc[1, "D"] = 0.0
+    host.update_trackplot_options()
+    host.update_track_filter_criterion()
+    assert items("trackplot_metric1") == ["Photons", "D"]
+    assert items("track_filter_criterion") == ["Track Length", "Photons", "D"]

@@ -204,6 +204,12 @@ class MolTrack(QWidget, gui, *subclasses):
         self.track_graph_canvas = CustomPyQTGraphWidget(self)
         self.gui.tracks_filter_graph_container.layout().addWidget(self.track_graph_canvas)
 
+        self.track_cmap_canvas = CustomPyQTGraphWidget(self)
+        self.track_cmap_canvas.setToolTip("Drag the shaded range to set the colour limits.")
+        cmap_layout = QVBoxLayout(self.gui.track_cmap_graph_container)
+        cmap_layout.setContentsMargins(0, 0, 0, 0)
+        cmap_layout.addWidget(self.track_cmap_canvas)
+
         self.gui.adc_graph_container.setLayout(QVBoxLayout())
         self.adc_graph_canvas = CustomPyQTGraphWidget(self)
         self.gui.adc_graph_container.layout().addWidget(self.adc_graph_canvas)
@@ -467,9 +473,7 @@ class MolTrack(QWidget, gui, *subclasses):
         self.gui.trackplot_xaxis.currentIndexChanged.connect(partial(self.plot_tracks, reset=True))
 
         self.gui.track_colour_metric.currentIndexChanged.connect(self.draw_tracks)
-        self.gui.track_colour_colourmap.currentIndexChanged.connect(self.draw_tracks)
-        self.gui.track_colour_min.valueChanged.connect(lambda: self.draw_tracks(reset_cmap_range = False))
-        self.gui.track_colour_max.valueChanged.connect(lambda: self.draw_tracks(reset_cmap_range = False))
+        self.gui.track_colour_colourmap.currentIndexChanged.connect(self.update_track_cmap)
 
         self.gui.traces_export_dataset.currentIndexChanged.connect(self.update_traces_export_options)
         self.gui.traces_export_channel.currentIndexChanged.connect(self.update_traces_export_options)

@@ -52,7 +52,7 @@ def _check_cancelled(event):
         raise CancelledError()
 
 
-def _model(movie=None, rows=None, shape=None):
+def _model(movie=None, rows=None, shape=None, *, timestamps=None):
     geometry_only = movie is None
     if movie is None:
         frame_count = (
@@ -71,6 +71,7 @@ def _model(movie=None, rows=None, shape=None):
             ArraySource.borrow(data) if geometry_only else ArraySource(data),
             id=ACQUISITION,
             channel_specs={CHANNEL: ChannelSpec()},
+            timestamps=timestamps,
         )
     )
     ids = np.array([], dtype=np.uint64)

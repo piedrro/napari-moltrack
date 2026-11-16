@@ -513,6 +513,9 @@ def test_gui_workflows_capture_detached_requests(operation):
         host._apply_fret_transform_matrix_finished
     ) = lambda: None
     if operation == "tracking":
+        host.gui.tracking_segmentations = Control("Cells")
+        host.gui.tracking_boundary_allowance = Control(number=1.5)
+        host.get_shapes = lambda *a, **kw: [((1, 1), (8, 1), (8, 8), (1, 8))]
         host.initialise_tracking()
     elif operation == "photometry":
         host.initialise_pixstats("locs")
@@ -529,6 +532,9 @@ def test_gui_workflows_capture_detached_requests(operation):
     assert getattr(worker.fn, "__self__", None) is None
     prepared = worker.args[0]
     assert prepared.request.operation == operation
+    if operation == "tracking":
+        assert prepared.request.settings.segmentation_column == "cell_index"
+        assert prepared.request.settings.boundary_allowance == 1.5
     assert prepared.session.model is not host.session.model
     assert prepared.owner() is host.session.model
 
@@ -750,6 +756,47 @@ def test_tracking_segmentation_groups_keep_detection_ids():
     assert len(session.query_localizations("a", "image")) == 4
 
 
+def test_tracking_overlapping_polygons_claim_only_linked_localizations():
+    import pandas as pd
+
+    from moltrack.model import processing as proc
+
+    session = make_session()
+    ids = session.replace_localizations(
+        "a",
+        "image",
+        pd.DataFrame(
+            {
+                "frame": [0, 1, 0, 1, 0, 1, 0, 1],
+                "x": [5.0, 5.0, 5.8, 6.2, 0.0, 0.0, 11.0, 11.0],
+                "y": [1.5, 1.5, 4.0, 4.0, 2.0, 2.0, 2.0, 2.0],
+            }
+        ),
+    )
+    polygons = (
+        ((0, 0), (6, 0), (6, 6), (0, 6)),
+        ((4, 0), (10, 0), (10, 6), (4, 6)),
+    )
+    pending = run(
+        session,
+        "tracking",
+        proc.TrackingSettings(
+            search_range=0.5,
+            min_length=2,
+            polygons=polygons,
+            segmentation_column="segmentation_index",
+        ),
+    )
+
+    memberships, labels = pending.results[0][2]
+    assert [members.tolist() for members in memberships] == [
+        ids[:2].tolist(),
+        ids[2:4].tolist(),
+    ]
+    assert labels == {int(lid): i // 2 for i, lid in enumerate(ids[:4])}
+    assert len(session.query_localizations("a", "image")) == 8
+
+
 @pytest.mark.parametrize("segmented", [False, True])
 @pytest.mark.parametrize("partition_count", [1, 2])
 def test_tracking_progress_covers_whole_run(
@@ -758,15 +805,16 @@ def test_tracking_progress_covers_whole_run(
     from types import SimpleNamespace
 
     from molcore.types import ProgressUpdate
+
     from moltrack.model import processing as proc
 
     session = make_session()
     session.bind("b", "image", "camera", "image")
     calls, progress = [], []
 
-    def track(*args, ids, context, **kwargs):
+    def track(snapshot, selection, *, ids, context, **kwargs):
         progress = context.progress
-        calls.append(ids.copy())
+        calls.append((snapshot, context.cpu))
         for percent in (0, 50, 100, 100):
             progress(ProgressUpdate(percent, 100))
         return SimpleNamespace(memberships=(ids,))
@@ -794,6 +842,12 @@ def test_tracking_progress_covers_whole_run(
     )
     assert len(pending.results) == partition_count
     assert len(calls) == partition_count * (2 if segmented else 1)
+    if segmented:
+        for first, second in zip(calls[::2], calls[1::2], strict=True):
+            assert first[0] is second[0]
+            assert first[1] is not None and first[1] is second[1]
+        if partition_count > 1:
+            assert calls[0][1] is not calls[2][1]
     assert progress == sorted(progress)
     assert progress[-1] == 100
     assert progress.count(100) == 1

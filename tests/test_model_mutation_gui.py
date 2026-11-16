@@ -417,10 +417,12 @@ def test_segmentation_image_translation_updates_persistent_corrected_view():
     ["delete", "copy", "filter", "partial", "polygon", "merge", "import_csv"],
 )
 def test_localization_cascades_refresh_visible_tracks_and_consumers(
-    operation, tmp_path
+    operation, tmp_path, qtbot
 ):
+    import pyqtgraph as pg
     from molcore import Acquisition, ArraySource
     from napari.components import ViewerModel
+    from qtpy.QtWidgets import QComboBox, QDoubleSpinBox
 
     from moltrack.funcs.import_utils import _import_utils
     from moltrack.model.edits import compute_merge, prepare_merge
@@ -444,10 +446,15 @@ def test_localization_cascades_refresh_visible_tracks_and_consumers(
     unaffected_track = h.session.model.tracks.add(unaffected_ids)
     acceptor_ids = h.session.query_tracks("data", "acceptor").id.tolist()
     h.viewer = ViewerModel()
+    h.track_cmap_canvas = pg.GraphicsLayoutWidget()
+    h.gui.track_colour_min = QDoubleSpinBox()
+    h.gui.track_colour_max = QDoubleSpinBox()
+    h.gui.track_colour_metric = QComboBox()
+    for widget in (h.track_cmap_canvas, h.gui.track_colour_min, h.gui.track_colour_max, h.gui.track_colour_metric):
+        qtbot.addWidget(widget)
     for name, value in {
         "moltrack_dataset_selector": "data",
         "moltrack_channel_selector": "donor",
-        "track_colour_metric": "",
         "track_colour_colourmap": "viridis",
         "show_tracks": True,
     }.items():
@@ -459,18 +466,7 @@ def test_localization_cascades_refresh_visible_tracks_and_consumers(
             h.session.query_tracks("data", "donor").id,
             {"speed": [0.0, 1.0, 2.0]},
         )
-        h.gui.track_colour_metric = control("Speed")
-        for name in ("track_colour_min", "track_colour_max"):
-            setattr(
-                h.gui,
-                name,
-                NS(
-                    blockSignals=lambda *args: None,
-                    setRange=lambda *args: None,
-                    setValue=lambda *args: None,
-                    setSingleStep=lambda *args: None,
-                ),
-            )
+        h.gui.track_colour_metric.addItem("Speed")
     h.draw_tracks()
     assert "Tracks" in h.viewer.layers
     h.calls.clear()

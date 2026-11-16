@@ -1,16 +1,30 @@
 """Persistent-model trajectory analysis and detached worker publication."""
 
+from contextlib import suppress
 from copy import deepcopy
 from dataclasses import dataclass
 from weakref import ref
 
 import numpy as np
 import pandas as pd
-from molcore import CoordinateSpace, SpatialUnit, StaleResultError
+from molcore import (
+    CoordinateSpace,
+    CpuExecutor,
+    SerialExecutor,
+    SpatialUnit,
+    StaleResultError,
+)
 from molcore.staging import state_token, transact, validate_expected
 from molcore.trajectory import trajectory_statistics
+from shapely import distance, points
+from shapely.errors import GEOSException
+from shapely.geometry import LineString, Point
 
+from . import config
+from .backend import _model, progress_adapter
 from .processing import _cancel
+
+_ANALYSIS_ROWS_PER_WORKER = 256
 
 STAT_COLUMNS = (
     "step_size",
@@ -45,6 +59,15 @@ class PreparedAnalysis:
 class PendingAnalysis:
     prepared: PreparedAnalysis
     rows: object
+
+
+@dataclass(frozen=True)
+class _TrackInput:
+    coordinates: np.ndarray
+    times: np.ndarray
+    sigma: np.ndarray | None
+    scale: float
+    interval: float
 
 
 def prepare_analysis(
@@ -110,23 +133,169 @@ def publish_analysis(session, pending):
     return rows
 
 
-def _trajectory(model, track_id, ids, interval, fit_lags):
+def _calculate_track_angles(coords):
+    # Calculate the difference between each consecutive point
+    vectors = np.diff(coords, axis=0)
+
+    # Calculate the angles of these vectors relative to the x-axis
+    angles = np.arctan2(vectors[:, 1], vectors[:, 0])
+
+    # Convert angles from radians to degrees
+    angles = np.degrees(angles)
+
+    # Initialize the relative angles array with zeros
+    relative_angles = np.zeros(len(coords))
+
+    # The first angle is zero
+    relative_angles[0] = 0
+
+    # Calculate the difference in angles between consecutive vectors
+    for i in range(1, len(angles) + 1):
+        relative_angles[i] = (angles[i - 1] - angles[i - 2] + 360) % 360 if i > 1 else angles[i - 1]
+
+    return relative_angles
+
+
+def _track_shape_stats(coordinates, shape_data, scale):
+    if not shape_data or len(coordinates) < 2:
+        return {}
+    track_line = LineString(coordinates)
+    match = next(
+        (
+            (index, polygon)
+            for index, polygon in enumerate(shape_data.get("polygons", ()))
+            if track_line.intersects(polygon)
+        ),
+        None,
+    )
+    if match is None:
+        return {}
+
+    index, polygon = match
+    locations = points(coordinates)
+    metrics = {"centroid_distance": distance(locations, polygon.centroid) * scale}
+    if hasattr(polygon, "exterior"):
+        metrics["membrane_distance"] = distance(locations, polygon.exterior) * scale
+    midlines = shape_data.get("midlines", ())
+    if index < len(midlines) and midlines[index] is not None:
+        midline = midlines[index]
+        metrics["midline_distance"] = distance(locations, midline) * scale
+        if isinstance(midline, LineString) and not midline.is_empty:
+            first = distance(locations, Point(midline.coords[0]))
+            last = distance(locations, Point(midline.coords[-1]))
+            metrics["cell_pole_distance"] = np.minimum(first, last) * scale
+    return metrics
+
+
+def _trajectory(snapshot, track_id, ids, interval, fit_lags):
     options = {
         "ids": ids,
-        "space": CoordinateSpace.CORRECTED,
+        "space": CoordinateSpace.RAW,
         "unit": SpatialUnit.PIXELS,
         "frame_interval": interval,
     }
-    result = trajectory_statistics(model.snapshot(), track_id, **options)
+    result = trajectory_statistics(snapshot, track_id, **options)
     lags = result.msd["lag"][:fit_lags]
     if len(lags) >= 2:
         result = trajectory_statistics(
-            model.snapshot(),
+            snapshot,
             track_id,
             fit_lag_range=(lags[0], lags[-1]),
             **options,
         )
     return result
+
+
+def _analyze_track(track, fit_lags, rolling_window, shape_data, reporter):
+    coordinates, scale, interval = track.coordinates, track.scale, track.interval
+    # Corrected positions and their absolute times are already resolved by the caller.
+    # The local model uses compact frame indices and carries no movie data.
+    rows = pd.DataFrame({
+        "frame": np.arange(len(coordinates)),
+        "x": coordinates[:, 0],
+        "y": coordinates[:, 1],
+    })
+    model, ids = _model(rows=rows, timestamps=track.times)
+    track_id = model.tracks.add(ids)
+    snapshot = model.snapshot()
+    result = _trajectory(snapshot, track_id, ids, interval, fit_lags)
+    diffusion = (
+        np.nan
+        if result.diffusion is None
+        else result.diffusion.coefficient * scale**2
+    )
+    sigma = track.sigma * scale if track.sigma is not None else None
+    corrected = (
+        diffusion - np.mean(sigma**2) / interval
+        if sigma is not None
+        else np.nan
+    )
+    rolling, rolling_corrected = [], []
+    for offset in range(len(coordinates)):
+        reporter.check_cancelled()
+        first = max(0, offset - rolling_window // 2)
+        last = min(len(coordinates), offset + rolling_window // 2 + 1)
+        current = (
+            _trajectory(snapshot, track_id, ids[first:last], interval, fit_lags)
+            if last - first >= 3
+            else None
+        )
+        value = (
+            np.nan
+            if current is None or current.diffusion is None
+            else current.diffusion.coefficient * scale**2
+        )
+        rolling.append(value)
+        rolling_corrected.append(
+            value - np.mean(sigma[first:last] ** 2) / interval
+            if sigma is not None
+            else np.nan
+        )
+    msd = np.full(len(coordinates), np.nan)
+    msd[0] = 0.0
+    count = min(len(coordinates) - 1, len(result.msd["msd"]))
+    msd[1 : count + 1] = result.msd["msd"][:count] * scale**2
+    metrics = {
+        "step_size": np.r_[0.0, result.steps["distance"]] * scale,
+        "speed": np.r_[0.0, result.steps["speed"]] * scale,
+        "D": diffusion,
+        "D*": corrected,
+        "rD": rolling,
+        "rD*": rolling_corrected,
+        "msd": msd,
+        "time": track.times - track.times[0],
+        "angle": _calculate_track_angles(coordinates),
+    }
+    # Keep trajectory statistics when optional shape geometry is invalid.
+    with suppress(GEOSException):
+        metrics.update(_track_shape_stats(coordinates, shape_data, scale))
+    return metrics
+
+
+def _analyze_batch(payload, reporter):
+    tracks, fit_lags, rolling_window, shape_data = payload
+    results = []
+    for index, track in enumerate(tracks, 1):
+        reporter.check_cancelled()
+        results.append(_analyze_track(track, fit_lags, rolling_window, shape_data, reporter))
+        reporter.report(index, len(tracks), "Computing track statistics")
+    return results
+
+
+def _track_input(session, dataset, channel, rows):
+    view = session._view(dataset, channel)
+    source = view.acquisition
+    interval = source.metadata.get("exposure_s", 0)
+    interval = interval if interval > 0 else 1.0
+    frames = view.source_frames[rows.frame.to_numpy(dtype=int)]
+    times = frames * interval if source.timestamps is None else source.timestamps[frames]
+    return _TrackInput(
+        rows[["x", "y"]].to_numpy(dtype=float),
+        times,
+        rows.sigma.to_numpy(dtype=float, na_value=np.nan) if "sigma" in rows else None,
+        source.pixel_size * 0.001,
+        interval,
+    )
 
 
 def analyze_tracks(
@@ -138,99 +307,49 @@ def analyze_tracks(
     progress_callback=None,
     cancel_event=None,
 ):
-    _cancel(cancel_event)
-    from moltrack.funcs.trackstats_utils import _trackstats_utils
-    from moltrack.model.views import gui_query
+    from .views import gui_query
 
+    _cancel(cancel_event)
     data = pd.DataFrame(
         gui_query(session, "All Datasets", "All Channels", tracks=True)
     )
     if data.empty:
         return data
-    groups = list(data.groupby(["dataset", "channel", "track_id"], sort=False))
-    results = []
-    for index, ((dataset, channel, track_id), rows) in enumerate(groups):
-        _cancel(cancel_event)
-        rows = (
-            rows.sort_values("frame", kind="stable")
-            .reset_index(drop=True)
-            .copy()
+    groups = [
+        (dataset, channel, rows.sort_values("frame", kind="stable"))
+        for (dataset, channel, _), rows in data.groupby(
+            ["dataset", "channel", "track_id"], sort=False
         )
-        acquisition, _ = session.partition(dataset, channel)
-        source = session.model.acquisitions[acquisition]
-        scale = source.pixel_size * 0.001
-        interval = source.metadata.get("exposure_s", 0)
-        interval = interval if interval > 0 else 1.0
-        ids = rows.id.to_numpy()
-        result = _trajectory(
-            session.model, int(track_id), ids, interval, fit_lags
-        )
-        rows["step_size"] = np.r_[0.0, result.steps["distance"]] * scale
-        rows["speed"] = np.r_[0.0, result.steps["speed"]] * scale
-        diffusion = (
-            np.nan
-            if result.diffusion is None
-            else result.diffusion.coefficient * scale**2
-        )
-        sigma = rows.sigma.to_numpy() * scale if "sigma" in rows else None
-        rows["D"] = diffusion
-        rows["D*"] = (
-            diffusion - np.mean(sigma**2) / interval
-            if sigma is not None
-            else np.nan
-        )
-        rolling, corrected = ([], [])
-        for offset in range(len(rows)):
+    ]
+    # Amortize process startup and limit worker counts on high-core machines.
+    workers = 1
+    if len(data) >= 4 * _ANALYSIS_ROWS_PER_WORKER:
+        workers = min(config.NUM_CPUS, len(groups), len(data) // _ANALYSIS_ROWS_PER_WORKER)
+    batch_size = max(1, min(16, len(groups) // (4 * workers)))
+    starts = range(0, len(groups), batch_size)
+
+    def batches():
+        for first in starts:
             _cancel(cancel_event)
-            first = max(0, offset - rolling_window // 2)
-            last = min(len(rows), offset + rolling_window // 2 + 1)
-            current = (
-                _trajectory(
-                    session.model,
-                    int(track_id),
-                    ids[first:last],
-                    interval,
-                    fit_lags,
-                )
-                if last - first >= 3
-                else None
-            )
-            value = (
-                np.nan
-                if current is None or current.diffusion is None
-                else current.diffusion.coefficient * scale**2
-            )
-            rolling.append(value)
-            corrected.append(
-                value - np.mean(sigma[first:last] ** 2) / interval
-                if sigma is not None
-                else np.nan
-            )
-        rows["rD"], rows["rD*"] = (rolling, corrected)
-        msd = np.full(len(rows), np.nan)
-        msd[0] = 0.0
-        count = min(len(rows) - 1, len(result.msd["msd"]))
-        msd[1 : count + 1] = result.msd["msd"][:count] * scale**2
-        rows["msd"] = msd
-        camera_frames = session._view(dataset, channel).source_frames[
-            rows.frame.to_numpy(dtype=int)
+            tracks = [
+                _track_input(session, dataset, channel, rows)
+                for dataset, channel, rows in groups[first : first + batch_size]
+            ]
+            yield tracks, fit_lags, rolling_window, shape_data
+
+    executor = CpuExecutor(num_cpus=workers) if workers > 1 else SerialExecutor()
+    with executor:
+        batches_results = executor.imap(
+            _analyze_batch,
+            batches(),
+            total=len(starts),
+            progress=progress_adapter(progress_callback),
+            cancel_event=cancel_event,
+        )
+        metrics = (track_metrics for batch in batches_results for track_metrics in batch)
+        results = [
+            rows.assign(**track_metrics)
+            for (_, _, rows), track_metrics in zip(groups, metrics, strict=True)
         ]
-        times = (
-            camera_frames * interval
-            if source.timestamps is None
-            else source.timestamps[camera_frames]
-        )
-        rows["time"] = times - times[0]
-        rows["angle"] = _trackstats_utils.calculate_track_angles(
-            rows[["x", "y"]].to_numpy()
-        )
-        if len(rows) >= 2:
-            for key, value in _trackstats_utils.get_track_shape_stats(
-                rows, shape_data, scale
-            ).items():
-                rows[key] = value
-        results.append(rows)
-        if progress_callback is not None:
-            progress_callback.emit(int(100 * (index + 1) / len(groups)))
     _cancel(cancel_event)
     return pd.concat(results, ignore_index=True)

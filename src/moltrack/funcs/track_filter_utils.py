@@ -3,11 +3,14 @@ import traceback
 import numpy as np
 import pandas as pd
 from napari.utils.notifications import show_info
+from qtpy.QtCore import QSignalBlocker
+
 from moltrack.funcs.filter_range_utils import (
     HistogramFilterRange,
     clear_filter_plot,
     reset_filter_limits,
 )
+from moltrack.model.views import available_track_metrics
 
 
 class _track_filter_utils:
@@ -20,15 +23,19 @@ class _track_filter_utils:
 
             criterion = self.gui.track_filter_criterion.currentText()
 
-            if criterion in ["Track Length", "Track Duration"]:
-                metrics = [""]
+            if not criterion or criterion in ("Track Length", "Track Duration"):
+                metrics = []
             else:
                 metrics = ["Mean", "Median", "Standard Deviation", "Min", "Max"]
 
-            self.gui.track_filter_metric.blockSignals(True)
-            self.gui.track_filter_metric.clear()
-            self.gui.track_filter_metric.addItems(metrics)
-            self.gui.track_filter_metric.blockSignals(False)
+            combo = self.gui.track_filter_metric
+            selected = combo.currentText()
+            with QSignalBlocker(combo):
+                combo.clear()
+                combo.addItems(metrics)
+                if selected in metrics:
+                    combo.setCurrentText(selected)
+                combo.setEnabled(bool(metrics))
 
             self.update_track_criterion_ranges()
 
@@ -46,19 +53,26 @@ class _track_filter_utils:
 
                 tracks = self.get_tracks(dataset, channel)
 
-                critertion_options = []
-
+                choices = []
                 if len(tracks) > 0:
-                    critertion_options.append("Track Length")
-
                     tracks = pd.DataFrame(tracks)
+                    # The filter's measurement reducers skip each track's first row.
+                    later_rows = tracks.duplicated(["dataset", "channel", "track_id"])
+                    metrics = available_track_metrics(
+                        tracks.loc[later_rows], self.moltrack_metrics
+                    )
+                    self.moltrack_metrics.update(metrics)
+                    choices = ["Track Length", *metrics]
 
-                    for metrix_name, metric in self.moltrack_metrics.items():
-                        if metric in tracks.columns:
-                            critertion_options.append(metrix_name)
-
-                self.gui.track_filter_criterion.clear()
-                self.gui.track_filter_criterion.addItems(critertion_options)
+                combo = self.gui.track_filter_criterion
+                selected = combo.currentText()
+                with QSignalBlocker(combo):
+                    combo.clear()
+                    combo.addItems(choices)
+                    if selected in choices:
+                        combo.setCurrentText(selected)
+                    combo.setEnabled(bool(choices))
+                self.update_track_filter_metric()
 
         except:
             traceback.print_exc()

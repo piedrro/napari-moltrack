@@ -68,6 +68,28 @@ def track_points(rows):
     )
 
 
+def available_track_metrics(rows, metrics):
+    """Return metric labels backed by finite values in these track rows."""
+    if rows is None or rows.empty:
+        return {}
+
+    candidates = dict(metrics)
+    for label, column in metrics.items():
+        fret_column = f"{column}_fret"
+        if fret_column in rows:
+            candidates.setdefault(f"{label} FRET", fret_column)
+
+    available_columns = set()
+    for column in rows.columns.intersection(candidates.values()):
+        values = pd.to_numeric(rows[column], errors="coerce")
+        if np.isfinite(values.to_numpy(dtype=float, na_value=np.nan)).any():
+            available_columns.add(column)
+    return {
+        label: column for label, column in candidates.items()
+        if column in available_columns
+    }
+
+
 def gui_query(
     session,
     dataset,

@@ -3,7 +3,10 @@ import traceback
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
+from qtpy.QtCore import QSignalBlocker
 from qtpy.QtGui import QColor
+
+from moltrack.model.views import available_track_metrics
 
 
 class _trackplot_utils:
@@ -99,7 +102,7 @@ class _trackplot_utils:
             if hasattr(self, "track_layer") == False:
                 return
 
-            self.draw_tracks(track_id=track_id)
+            self.draw_tracks(track_id=track_id, reset_cmap_range=False)
 
         except:
             print(traceback.format_exc())
@@ -110,7 +113,7 @@ class _trackplot_utils:
             if hasattr(self, "track_layer"):
 
                 if self.gui.trackplot_highlight.isChecked() == False:
-                    self.draw_tracks()
+                    self.draw_tracks(reset_cmap_range=False)
 
         except:
             print(traceback.format_exc())
@@ -404,65 +407,25 @@ class _trackplot_utils:
 
 
     def get_trackplot_metrics(self):
-
-        trackplot_metrics = None
-
-        if hasattr(self, "session"):
-
-            if isinstance(self.trackplot_tracks, pd.DataFrame) == False:
-                return trackplot_metrics
-
-            track_cols = self.trackplot_tracks.columns
-
-            trackplot_metrics = {}
-
-            for metric_name in list(self.moltrack_metrics.keys()):
-                metric = self.moltrack_metrics[metric_name]
-
-                if metric in track_cols:
-                    trackplot_metrics[metric_name] = metric
-                if metric + "_fret" in track_cols:
-                    trackplot_metrics[metric_name + " FRET"] = metric + "_fret"
-                    self.moltrack_metrics[metric_name + " FRET"] = metric + "_fret"
-
-        return trackplot_metrics
-
-
+        options = available_track_metrics(self.trackplot_tracks, self.moltrack_metrics)
+        self.moltrack_metrics.update(options)
+        return options
 
     def update_trackplot_options(self):
-
         try:
-
             self.init_trackplot_tracks(reset=True)
             self.initialise_trackplot_slider()
-            n_metric_combos = 4
-            metric_list = [""]
-
-            metric_dict = self.get_trackplot_metrics()
-
-            if isinstance(metric_dict, dict):
-                metric_list = list(metric_dict.keys())
-                metric_list.insert(0, "")
-
-            for i in range(1, n_metric_combos+1):
-
-                metric_combo = getattr(self.gui, f"trackplot_metric{i}")
-
-                metric_combo.blockSignals(True)
-
-                metric_combo.clear()
-                if i == 1:
-                    metric_combo.addItems(metric_list[1:])
-                else:
-                    metric_combo.addItems(metric_list)
-
-                metric_combo.blockSignals(False)
-
-            self.gui.track_colour_metric.blockSignals(True)
-            self.gui.track_colour_metric.clear()
-            self.gui.track_colour_metric.addItems(metric_list[1:])
-            self.gui.track_colour_metric.blockSignals(False)
-
+            metrics = list(self.get_trackplot_metrics())
+            for i in range(1, 5):
+                combo = getattr(self.gui, f"trackplot_metric{i}")
+                selected = combo.currentText()
+                choices = ["", *metrics] if i > 1 and metrics else metrics
+                with QSignalBlocker(combo):
+                    combo.clear()
+                    combo.addItems(choices)
+                    if selected in choices:
+                        combo.setCurrentText(selected)
+                    combo.setEnabled(bool(metrics))
             self.plot_tracks()
 
         except:

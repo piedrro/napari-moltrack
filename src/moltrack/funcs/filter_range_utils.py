@@ -46,9 +46,10 @@ def reset_filter_limits(values, minimum, maximum):
 class HistogramFilterRange:
     """Keep a movable value band and two spin boxes synchronised."""
 
-    def __init__(self, canvas, plot, minimum, maximum):
+    def __init__(self, canvas, plot, minimum, maximum, *, on_change=None):
         self.minimum = minimum
         self.maximum = maximum
+        self.on_change = on_change
         self.region = pg.LinearRegionItem(
             values=(minimum.value(), maximum.value()),
             bounds=(minimum.minimum(), maximum.maximum()),
@@ -58,7 +59,7 @@ class HistogramFilterRange:
         )
         plot.addItem(self.region, ignoreBounds=True)
         self.region.sigRegionChanged.connect(self._from_region)
-        self.region.sigRegionChangeFinished.connect(self._from_region)
+        self.region.sigRegionChangeFinished.connect(self._finish_region)
         minimum.valueChanged.connect(self._from_minimum)
         maximum.valueChanged.connect(self._from_maximum)
         canvas.filter_range = self
@@ -70,17 +71,26 @@ class HistogramFilterRange:
             self.maximum.setValue(high)
         self._update_region()
 
+    def _finish_region(self):
+        self._from_region()
+        if self.on_change is not None:
+            self.on_change()
+
     def _from_minimum(self):
         with QSignalBlocker(self.maximum):
             if self.minimum.value() > self.maximum.value():
                 self.maximum.setValue(self.minimum.value())
         self._update_region()
+        if self.on_change is not None:
+            self.on_change()
 
     def _from_maximum(self):
         with QSignalBlocker(self.minimum):
             if self.maximum.value() < self.minimum.value():
                 self.minimum.setValue(self.maximum.value())
         self._update_region()
+        if self.on_change is not None:
+            self.on_change()
 
     def _update_region(self):
         with QSignalBlocker(self.region):
@@ -88,6 +98,6 @@ class HistogramFilterRange:
 
     def disconnect(self):
         self.region.sigRegionChanged.disconnect(self._from_region)
-        self.region.sigRegionChangeFinished.disconnect(self._from_region)
+        self.region.sigRegionChangeFinished.disconnect(self._finish_region)
         self.minimum.valueChanged.disconnect(self._from_minimum)
         self.maximum.valueChanged.disconnect(self._from_maximum)

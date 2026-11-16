@@ -1,6 +1,7 @@
 """Detached processing requests and atomic GUI-thread publication."""
 
 from concurrent.futures import CancelledError
+from contextlib import nullcontext
 from copy import deepcopy
 from dataclasses import asdict, dataclass, replace
 from weakref import ref
@@ -11,6 +12,7 @@ from molcore import (
     ApertureShape,
     Calibration,
     CameraSettings,
+    CpuExecutor,
     ExecutionContext,
     LocalisationSettings,
     PartitionSelection,
@@ -40,8 +42,8 @@ from .backend import (
     _filter_candidates,
     progress_adapter,
 )
-from .views import channel_rows
 from .session import ProjectSession, clear_statistics
+from .views import channel_rows
 
 
 @dataclass(frozen=True)
@@ -66,6 +68,11 @@ class TrackingSettings:
     remove_unlinked: bool = False
     polygons: tuple = ()
     segmentation_column: str | None = None
+    boundary_allowance: float = 0.0
+
+    def __post_init__(self):
+        if not np.isfinite(self.boundary_allowance) or self.boundary_allowance < 0:
+            raise ValueError("Boundary allowance must be finite and nonnegative")
 
 
 @dataclass(frozen=True)
@@ -612,57 +619,108 @@ def _photometry_fret(results):
     return output
 
 
+def _tracking_polygon_groups(rows, row_ids, settings, cancel_event):
+    from shapely import points
+    from shapely.geometry import Polygon
+    from shapely.strtree import STRtree
+
+    locations = points(rows.x.to_numpy(), rows.y.to_numpy())
+    spatial_index = STRtree(locations)
+    polygons, groups = [], []
+    for coordinates in settings.polygons:
+        _cancel(cancel_event)
+        polygon = Polygon(coordinates)
+        polygons.append(polygon)
+        groups.append(spatial_index.query(polygon, predicate="contains"))
+
+    if settings.boundary_allowance > 0:
+        _cancel(cancel_event)
+        outside = np.ones(len(row_ids), dtype=bool)
+        for inside in groups:
+            outside[inside] = False
+        outside_rows = np.flatnonzero(outside)
+        point_indices, polygon_indices = STRtree(polygons).query_nearest(
+            locations[outside_rows], max_distance=settings.boundary_allowance
+        )
+        _cancel(cancel_event)
+        # Pick the first polygon in layer order for exactly equidistant outlines.
+        owners = np.full(len(outside_rows), len(polygons), dtype=np.intp)
+        np.minimum.at(owners, point_indices, polygon_indices)
+        assigned = np.flatnonzero(owners < len(polygons))
+        ordered = assigned[np.argsort(owners[assigned], kind="stable")]
+        splits = np.searchsorted(owners[ordered], np.arange(1, len(polygons)))
+        nearby_groups = np.split(outside_rows[ordered], splits)
+        groups = [
+            np.concatenate((inside, nearby))
+            for inside, nearby in zip(groups, nearby_groups, strict=True)
+        ]
+
+    # Keep the original localisation row order for linking.
+    return [(index, row_ids[np.sort(group)]) for index, group in enumerate(groups)]
+
+
 def _track_partition(session, dataset, channel, settings, options):
     from molcore import TrackingSettings as LinkSettings
 
+    cancel_event = options.get("cancel_event")
+    _cancel(cancel_event)
     acquisition, name = session.partition(dataset, channel)
     rows = session.query_localizations(dataset, channel)
-    groups = [(None, rows.id.to_numpy(dtype=np.uint64))]
+    row_ids = rows.id.to_numpy(dtype=np.uint64)
+    groups = [(None, row_ids)]
     if settings.segmentation_column:
-        from shapely.geometry import Point, Polygon
+        if not settings.polygons:
+            return (), {}
 
-        groups = []
-        for index, coordinates in enumerate(settings.polygons):
-            polygon = Polygon(coordinates)
-            inside = [
-                polygon.contains(Point(x, y))
-                for x, y in zip(rows.x, rows.y, strict=True)
-            ]
-            groups.append((index, rows.id.to_numpy(dtype=np.uint64)[inside]))
+        groups = _tracking_polygon_groups(rows, row_ids, settings, cancel_event)
+    _cancel(cancel_event)
+    if not any(len(ids) for _, ids in groups):
+        return (), {}
+
+    snapshot = session.model.snapshot()
+    selection = PartitionSelection(acquisition, name)
+    link_settings = LinkSettings(
+        search_range=settings.search_range,
+        memory=settings.memory,
+        min_length=settings.min_length,
+        frame_clock="channel",
+    )
     memberships, labels = ([], {})
     used = set()
-    for group_index, (label, ids) in enumerate(groups):
-        ids = np.asarray(
-            [i for i in ids if int(i) not in used], dtype=np.uint64
-        )
-        if not len(ids):
-            continue
-        result = tracking.track(
-            session.model.snapshot(),
-            PartitionSelection(acquisition, name),
-            ids=ids,
-            settings=LinkSettings(
-                search_range=settings.search_range,
-                memory=settings.memory,
-                min_length=settings.min_length,
-                frame_clock="channel",
-            ),
-            context=ExecutionContext(
-                num_cpus=config.NUM_CPUS,
-                **{
-                    **options,
-                    "progress": _progress_slice(
+    executor = (
+        CpuExecutor(num_cpus=config.NUM_CPUS)
+        if settings.segmentation_column
+        else nullcontext()
+    )
+    with executor as cpu:
+        for group_index, (label, ids) in enumerate(groups):
+            _cancel(cancel_event)
+            if used:
+                ids = np.asarray(
+                    [i for i in ids if int(i) not in used], dtype=np.uint64
+                )
+            if not len(ids):
+                continue
+            result = tracking.track(
+                snapshot,
+                selection,
+                ids=ids,
+                settings=link_settings,
+                context=ExecutionContext(
+                    cpu=cpu,
+                    num_cpus=config.NUM_CPUS if cpu is None else None,
+                    cancel_event=cancel_event,
+                    progress=_progress_slice(
                         options.get("progress"), group_index, len(groups)
                     ),
-                },
-            ),
-        )
-        memberships.extend(result.memberships)
-        for members in result.memberships:
-            used.update(map(int, members))
-            if label is not None:
-                labels.update(((int(i), label) for i in members))
-    return (tuple(memberships), labels)
+                ),
+            )
+            memberships.extend(result.memberships)
+            for members in result.memberships:
+                used.update(map(int, members))
+                if label is not None:
+                    labels.update((int(lid), label) for lid in members)
+    return tuple(memberships), labels
 
 
 def _publish_workflow(session, pending, *, cancel_event):

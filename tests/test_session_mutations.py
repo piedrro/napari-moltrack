@@ -348,6 +348,72 @@ def test_persistent_analysis_cache_recomputes_after_calibration_and_is_detached(
     ] == pytest.approx(2 * np.sqrt(2))
 
 
+def test_track_analysis_uses_processes_and_preserves_results(monkeypatch):
+    from concurrent.futures import CancelledError
+    from threading import Event
+    from types import SimpleNamespace
+
+    from molcore import ChannelSpec, CpuExecutor
+    from shapely.geometry import LineString, box
+
+    from moltrack.model import analysis, config
+
+    session = make_session()
+    session.model.add_acquisition(
+        Acquisition(
+            ArraySource(np.zeros((5, 8, 8))),
+            id="timed",
+            pixel_size=100,
+            timestamps=[0.0, 0.1, 0.25, 0.4, 0.75],
+            channel_specs={"image": ChannelSpec(frame_step=2)},
+        )
+    )
+    session.bind("timed", "donor", "timed", "image")
+    timed_ids = session.replace_localizations("timed", "donor", rows().assign(y=2.0))
+    session.model.tracks.add(timed_ids)
+    session.model.tracks.add(session.replace_localizations("data", "donor", rows()))
+    shapes = {"polygons": [box(0, 0, 6, 6)], "midlines": [LineString([(0, 2), (6, 2)])]}
+    calls = []
+
+    class RecordingExecutor(CpuExecutor):
+        def __init__(self, *, num_cpus):
+            calls.append(num_cpus)
+            super().__init__(num_cpus=num_cpus)
+
+    monkeypatch.setattr(analysis, "CpuExecutor", RecordingExecutor, raising=False)
+    monkeypatch.setattr(config, "NUM_CPUS", 2)
+    expected = analysis.compute_analysis(analysis.prepare_analysis(session, shape_data=shapes))
+    assert calls == []
+    monkeypatch.setattr(analysis, "_ANALYSIS_ROWS_PER_WORKER", 1)
+    progress = []
+    actual = analysis.compute_analysis(
+        analysis.prepare_analysis(session, shape_data=shapes),
+        progress_callback=SimpleNamespace(emit=progress.append),
+    )
+
+    assert calls == [2]
+    pd.testing.assert_frame_equal(actual.rows, expected.rows)
+    timed = actual.rows[actual.rows.id.isin(timed_ids)]
+    np.testing.assert_allclose(timed.time, [0.0, 0.25, 0.75])
+    np.testing.assert_allclose(timed.speed, [0.0, 0.4, 0.2])
+    np.testing.assert_allclose(timed.midline_distance, 0.0)
+    assert progress == sorted(progress) and progress[-1] == 100
+
+    cancel_event = Event()
+
+    def cancel_during_work(percent):
+        if percent > 0:
+            cancel_event.set()
+
+    before = state_token(session.model)
+    with pytest.raises(CancelledError):
+        analysis.compute_analysis(
+            analysis.prepare_analysis(session, shape_data=shapes, cancel_event=cancel_event),
+            progress_callback=SimpleNamespace(emit=cancel_during_work),
+        )
+    assert state_token(session.model) == before
+
+
 def test_annotation_edit_rejects_prepared_analysis_and_processing():
     from molcore import StaleResultError
 
